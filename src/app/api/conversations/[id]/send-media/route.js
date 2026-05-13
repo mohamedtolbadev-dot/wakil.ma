@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { uploadWhatsAppMedia, sendWhatsAppMessage } from "@/lib/whatsapp"
 import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/response"
+import { rateLimit } from "@/lib/rateLimit"
 
 function normalizePhoneForWhatsApp(phone) {
   if (!phone) return null
@@ -15,9 +16,7 @@ function normalizePhoneForWhatsApp(phone) {
 
 // WhatsApp supported MIME types
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
-const VIDEO_TYPES = ["video/mp4", "video/3gpp"]
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024    // 5MB
-const MAX_VIDEO_SIZE = 16 * 1024 * 1024   // 16MB
 const MAX_DOC_SIZE = 100 * 1024 * 1024    // 100MB
 
 export const dynamic = "force-dynamic"
@@ -25,6 +24,15 @@ export const dynamic = "force-dynamic"
 export async function POST(request, { params }) {
   const user = await getUserFromRequest(request)
   if (!user) return unauthorizedResponse()
+
+  // ✅ Rate limiting — media messages are expensive (slower rate than text)
+  const rateLimitResult = rateLimit(request)
+  if (!rateLimitResult.success) {
+    return errorResponse(
+      `تم تجاوز الحد. حاول بعد ${Math.ceil(rateLimitResult.retryAfter / 60)} دقيقة`,
+      429
+    )
+  }
 
   try {
     const resolvedParams = await Promise.resolve(params)
@@ -47,7 +55,7 @@ export async function POST(request, { params }) {
       if (!mediaUrl || !mediaUrl.startsWith("https://")) {
         return errorResponse("رابط الملف غير صالح", 400)
       }
-      if (!mediaType || !["image", "video", "document"].includes(mediaType)) {
+      if (!mediaType || !["image", "document"].includes(mediaType)) {
         return errorResponse("نوع الملف غير صالح", 400)
       }
       console.log(`📤 Sending ${mediaType} via URL: "${fileName}"`)
@@ -58,8 +66,8 @@ export async function POST(request, { params }) {
       mediaType = formData.get("type")
 
       if (!file) return errorResponse("الملف مطلوب", 400)
-      if (!mediaType || !["image", "video", "document"].includes(mediaType)) {
-        return errorResponse("نوع الملف غير صالح (image, video أو document)", 400)
+      if (!mediaType || !["image", "document"].includes(mediaType)) {
+        return errorResponse("Invalid media type (image or document)", 400)
       }
 
       fileType = file.type || "application/octet-stream"
@@ -72,9 +80,9 @@ export async function POST(request, { params }) {
         if (file.size > MAX_IMAGE_SIZE) {
           return errorResponse("حجم الصورة يتجاوز 5MB", 400)
         }
-      } else if (mediaType === "video") {
-        if (!VIDEO_TYPES.includes(fileType)) {
-          return errorResponse("صيغة الفيديو غير مدعومة (MP4, 3GPP فقط)", 400)
+      } else if (mediaType === "document") {
+        if (file.size > MAX_DOC_SIZE) {
+          return errorResponse("حجم المستند يتجاوز 100MB", 400)
         }
       }
       console.log(`📤 Uploading ${mediaType}: "${fileName}" (${fileType}, ${(file.size / 1024).toFixed(0)} KB)`)
@@ -111,11 +119,6 @@ export async function POST(request, { params }) {
           phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
           to: normalizedPhone, type: "image", message: mediaUrl,
         })
-      } else if (mediaType === "video") {
-        sentResult = await sendWhatsAppMessage({
-          phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
-          to: normalizedPhone, type: "video", videoUrl: mediaUrl,
-        })
       } else {
         sentResult = await sendWhatsAppMessage({
           phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
@@ -148,11 +151,6 @@ export async function POST(request, { params }) {
           phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
           to: normalizedPhone, type: "image", imageId: mediaId,
         })
-      } else if (mediaType === "video") {
-        sentResult = await sendWhatsAppMessage({
-          phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
-          to: normalizedPhone, type: "video", videoId: mediaId,
-        })
       } else {
         sentResult = await sendWhatsAppMessage({
           phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
@@ -172,10 +170,8 @@ export async function POST(request, { params }) {
 
     // Save to DB
     const content = mediaType === "image"
-      ? "[صورة]"
-      : mediaType === "video"
-      ? "[فيديو]"
-      : `[مستند: ${fileName}]`
+      ? mediaUrl ? `[صورة] ${mediaUrl}` : "[صورة]"
+      : mediaUrl ? `[مستند: ${fileName}] ${mediaUrl}` : `[مستند: ${fileName}]`
 
     const [saved] = await Promise.all([
       prisma.message.create({
@@ -183,7 +179,7 @@ export async function POST(request, { params }) {
           conversationId: id, 
           role: "AGENT", 
           content,
-          whatsappMediaId: mediaId || null  // ✅ Save mediaId for images/videos
+          whatsappMediaId: mediaId || null  // Save mediaId for uploaded media
         }
       }),
       prisma.conversation.update({

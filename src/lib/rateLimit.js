@@ -21,18 +21,33 @@ if (typeof global !== "undefined") {
 }
 
 function getClientIP(request) {
-  // Try different headers
-  const forwarded = request.headers.get("x-forwarded-for")
-  const realIP = request.headers.get("x-real-ip")
-  
-  if (forwarded) {
-    return forwarded.split(",")[0].trim()
+  // Only trust proxy-added IP headers from known hosting layers.
+  const trustedHeaders = [
+    "x-vercel-forwarded-for",
+    "cf-connecting-ip",
+    "fly-client-ip",
+    "x-real-ip",
+  ]
+
+  for (const header of trustedHeaders) {
+    const value = request.headers.get(header)
+    if (!value) continue
+
+    const candidate = value.split(",")[0].trim()
+    if (candidate) return candidate
   }
-  if (realIP) {
-    return realIP
+
+  // `x-forwarded-for` is trivially spoofable when trusted directly.
+  // Only allow it as a best-effort fallback outside production.
+  if (process.env.NODE_ENV !== "production") {
+    const forwarded = request.headers.get("x-forwarded-for")
+    if (forwarded) {
+      const candidate = forwarded.split(",")[0].trim()
+      if (candidate) return candidate
+    }
   }
-  
-  // Fallback (works in development)
+
+  // Fallback (development / unknown proxy chain)
   return "unknown"
 }
 
@@ -45,11 +60,18 @@ export function rateLimit(request, isAuthEndpoint = false) {
   
   if (!record || now > record.resetTime) {
     // New window
+    const resetTime = now + RATE_LIMIT_WINDOW
     rateLimitStore.set(ip, {
       count: 1,
-      resetTime: now + RATE_LIMIT_WINDOW,
+      resetTime,
     })
-    return { success: true, limit: maxRequests, remaining: maxRequests - 1 }
+    return {
+      success: true,
+      limit: maxRequests,
+      remaining: maxRequests - 1,
+      resetTime,
+      retryAfter: Math.ceil((resetTime - now) / 1000),
+    }
   }
   
   if (record.count >= maxRequests) {
@@ -58,11 +80,18 @@ export function rateLimit(request, isAuthEndpoint = false) {
       limit: maxRequests,
       remaining: 0,
       resetTime: record.resetTime,
+      retryAfter: Math.max(1, Math.ceil((record.resetTime - now) / 1000)),
     }
   }
   
   record.count++
-  return { success: true, limit: maxRequests, remaining: maxRequests - record.count }
+  return {
+    success: true,
+    limit: maxRequests,
+    remaining: maxRequests - record.count,
+    resetTime: record.resetTime,
+    retryAfter: Math.max(1, Math.ceil((record.resetTime - now) / 1000)),
+  }
 }
 
 export function rateLimitMiddleware(handler, isAuthEndpoint = false) {

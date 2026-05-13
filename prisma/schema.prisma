@@ -9,30 +9,49 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  password      String?
-  phone         String?
-  storeName     String
-  plan          Plan           @default(FREE)
-  role          UserRole       @default(USER)
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  googleId      String?        @unique(map: "googleId")
-  agent         Agent?
-  products      Product[]
-  services      Service[]
-  conversations Conversation[]
-  customers     Customer[]
-  notifications Notification[]
-  appointments  Appointment[]
-  orders        Order[]
-  invoices      Invoice[]
-  outboundLeads OutboundLead[]
+  id                String             @id @default(cuid())
+  name              String
+  email             String             @unique
+  password          String?
+  phone             String?
+  storeName         String
+  plan              Plan               @default(FREE)
+  planExpiresAt     DateTime?
+  role              UserRole           @default(USER)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  googleId          String?            @unique(map: "googleId")
+  agent             Agent?
+  products          Product[]
+  conversations     Conversation[]
+  customers         Customer[]
+  notifications     Notification[]
+  orders            Order[]
+  invoices          Invoice[]
+  monthlyUsage      MonthlyUsage[]
+  campaigns         Campaign[]
+  campaignTemplates CampaignTemplate[]
+  blogPosts         BlogPost[]
 
   @@map("users")
+}
+
+model MonthlyUsage {
+  id             String   @id @default(cuid())
+  userId         String
+  month          String // format: "YYYY-MM" (e.g. "2026-04")
+  conversations  Int      @default(0)
+  aiReplies      Int      @default(0)
+  aiTokensInput  Int      @default(0)
+  aiTokensOutput Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId, month])
+  @@map("monthly_usage")
 }
 
 model VerificationToken {
@@ -47,36 +66,31 @@ model VerificationToken {
 }
 
 model Agent {
-  id                String           @id @default(cuid())
-  userId            String           @unique
-  name              String           @default("Agent")
-  domain            String           @default("تجارة عامة")
-  style             String           @default("friendly")
-  language          String           @default("darija")
-  isActive          Boolean          @default(true)
-  instructions      String?          @db.Text
-  productInstructions String?        @db.Text
-  serviceInstructions String?        @db.Text
-  whatsappPhoneId   String?
-  whatsappToken     String?          @db.Text
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  selectedProductId String?
-  offlineMessage    String?          @db.Text
-  postSaleMessage   String?          @db.Text
-  welcomeMessage    String?          @db.Text
-  serviceWelcomeMessage String?     @db.Text
-  workEnd           String           @default("18:00")
-  workHoursEnabled  Boolean          @default(false)
-  workStart         String           @default("09:00")
-  verifyToken       String?          @default(uuid())
-  selectedServiceId String?
-  mode              String           @default("product")
-
-  // ✅ رسائل المواعيد التلقائية
-  appointmentConfirmMessage     String? @db.Text
-  appointmentReminderMessage    String? @db.Text
-  appointmentCancellationMessage String? @db.Text
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  name                String   @default("Agent")
+  domain              String   @default("تجارة عامة")
+  style               String   @default("friendly")
+  language            String   @default("darija")
+  isActive            Boolean  @default(true)
+  instructions        String?  @db.Text
+  productInstructions String?  @db.Text
+  whatsappPhoneId     String?
+  whatsappToken       String?  @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  selectedProductId   String?
+  offlineMessage      String?  @db.Text
+  postSaleMessage     String?  @db.Text
+  replyDelayMaxSeconds Int      @default(0)
+  replyDelayMinSeconds Int      @default(0)
+  replyDelayMode       String   @default("instant")
+  welcomeMessage      String?  @db.Text
+  workEnd             String   @default("18:00")
+  workHoursEnabled    Boolean  @default(false)
+  workStart           String   @default("09:00")
+  verifyToken         String?  @default(uuid())
+  voiceReplyEnabled   Boolean  @default(false)
 
   // ✅ رسائل الطلبيات التلقائية
   orderConfirmMessage   String? @db.Text
@@ -85,14 +99,10 @@ model Agent {
   orderCancelledMessage String? @db.Text
 
   // ✅ رابط التتبع من شركة التوصيل (مثال: https://tracking.company.com/?code={tracking})
-  trackingUrlTemplate   String? @db.Text
+  trackingUrlTemplate String? @db.Text
 
-  // ✅ Outbound Sales Settings
-  outboundEnabled       Boolean @default(false)
-  outboundTemplate      String? @db.Text
-
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  objectionReplies  ObjectionReply[]
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  objectionReplies ObjectionReply[]
 
   @@map("agents")
 }
@@ -109,42 +119,30 @@ model ObjectionReply {
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   userId      String
   name        String
   price       Float
-  description String?  @db.Text
-  isActive    Boolean  @default(true)
-  questions   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  images      String?  @db.Text
-  stock       Int      @default(0)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Optional sale price. When set and < price, displayed as discount.
+  salePrice   Float?
+  /// Optional category for grouping/filtering (simple string, no separate model).
+  category    String?
+  /// JSON array of variant groups: [{ name: "Taille", options: ["S","M","L"] }, ...]
+  variants    String?    @db.Text
+  /// If false, AI should NOT proactively ask "how many units?" (e.g. phones, furniture).
+  /// Customer can still explicitly request multiple.
+  askQuantity Boolean    @default(true)
+  description String?    @db.Text
+  isActive    Boolean    @default(true)
+  questions   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  images      String?    @db.Text
+  stock       Int        @default(0)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns   Campaign[]
 
   @@map("products")
-}
-
-model Service {
-  id           String   @id @default(cuid())
-  userId       String
-  name         String
-  price        Float
-  priceMax     Float?
-  duration     Int      @default(60)
-  durationUnit String   @default("minutes")
-  category     String?
-  description  String?  @db.Text
-  features     String?  @db.Text
-  images       String?  @db.Text
-  isActive     Boolean  @default(true)
-  questions    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
-
-  @@map("services")
 }
 
 model Conversation {
@@ -158,8 +156,6 @@ model Conversation {
   context     Json?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
-  serviceId   String?
-  type        String            @default("product")
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   customer    Customer          @relation(fields: [customerId], references: [id])
   messages    Message[]
@@ -168,33 +164,40 @@ model Conversation {
 }
 
 model Message {
-  id               String       @id @default(cuid())
-  conversationId   String
-  role             MessageRole
-  content          String       @db.Text
+  id                String       @id @default(cuid())
+  conversationId    String
+  role              MessageRole
+  content           String       @db.Text
+  /// معرّف رسالة واتساب الواردة لمنع التكرار عند إعادة webhook
+  whatsappMessageId String?      @unique
   /// معرّف ميديا واتساب (صوت/…) — تشغيل مجاني عبر بروكسي بدون Whisper
-  whatsappMediaId  String?
-  createdAt        DateTime     @default(now())
-  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  whatsappMediaId   String?
+  createdAt         DateTime     @default(now())
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
 
 model Customer {
-  id            String         @id @default(cuid())
-  userId        String
-  name          String
-  phone         String
-  tag           CustomerTag    @default(NEW)
-  totalSpent    Float          @default(0)
-  ordersCount   Int            @default(0)
-  lastSeen      DateTime       @default(now())
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversations Conversation[]
-  appointments  Appointment[]
-  orders        Order[]
+  id                   String              @id @default(cuid())
+  userId               String
+  name                 String
+  phone                String
+  tag                  CustomerTag         @default(NEW)
+  totalSpent           Float               @default(0)
+  ordersCount          Int                 @default(0)
+  lastSeen             DateTime            @default(now())
+  marketingOptInAt     DateTime?
+  marketingOptInSource String?
+  marketingOptOutAt    DateTime?
+  outboundBlocked      Boolean             @default(false)
+  lastMarketingSentAt  DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations        Conversation[]
+  orders               Order[]
+  campaignRecipients   CampaignRecipient[]
 
   @@unique([userId, phone])
   @@map("customers")
@@ -213,34 +216,10 @@ model Notification {
   @@map("notifications")
 }
 
-model Appointment {
-  id                String            @id @default(cuid())
-  userId            String
-  customerId        String?
-  customerName      String
-  customerPhone     String
-  serviceId         String?
-  serviceName       String
-  date              DateTime
-  status            AppointmentStatus @default(PENDING)
-  notes             String?           @db.Text
-  reminderSent      Boolean           @default(false)
-  confirmationSent  Boolean           @default(false)
-  cancellationSent  Boolean           @default(false)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  customer          Customer?         @relation(fields: [customerId], references: [id])
-  service           Service?          @relation(fields: [serviceId], references: [id])
-
-  @@index([userId, date])
-  @@index([userId, status])
-  @@map("appointments")
-}
-
 enum Plan {
   FREE
   PRO
+  BUSINESS
   ENTERPRISE
 }
 
@@ -287,19 +266,45 @@ enum NotificationType {
   SYSTEM
 }
 
-enum AppointmentStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
 enum OrderStatus {
   PENDING
   CONFIRMED
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+enum CampaignStatus {
+  DRAFT
+  READY
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CampaignAudienceType {
+  ALL_BUYERS
+  SAME_PRODUCT_BUYERS
+  SAME_CATEGORY_BUYERS
+  TAG_BUYERS
+  RECENT_BUYERS
+}
+
+enum CampaignRecipientStatus {
+  PENDING
+  SKIPPED
+  SENT
+  FAILED
+  REPLIED
+  OPTED_OUT
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 model Order {
@@ -311,6 +316,8 @@ model Order {
   customerPhone  String
   productId      String?
   productName    String
+  /// Selected variant, e.g. "Taille: L / Couleur: Rouge" — populated by AI
+  variant        String?
   quantity       Int         @default(1)
   totalAmount    Float
   status         OrderStatus @default(PENDING)
@@ -321,6 +328,13 @@ model Order {
   shipSent       Boolean     @default(false)
   deliverSent    Boolean     @default(false)
   trackingNumber String?
+  deliveryReference String? @unique
+  deliveryStatus String?
+  sentToDeliveryAt DateTime?
+  lastNotifiedDeliveryStatus String?
+  deliveryProviderName String?
+  isDraft        Boolean     @default(false)
+  missingFields  String?     @db.Text
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -329,6 +343,87 @@ model Order {
   @@index([userId, status])
   @@index([userId, createdAt])
   @@map("orders")
+}
+
+model CampaignTemplate {
+  id               String     @id @default(cuid())
+  userId           String
+  name             String
+  metaTemplateName String
+  language         String     @default("fr")
+  headerType       String?
+  bodyVariables    Json?
+  previewText      String?    @db.Text
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns        Campaign[]
+
+  @@unique([userId, metaTemplateName, language])
+  @@index([userId, isActive])
+  @@map("campaign_templates")
+}
+
+model Campaign {
+  id                    String               @id @default(cuid())
+  userId                String
+  productId             String?
+  templateId            String?
+  name                  String
+  status                CampaignStatus       @default(DRAFT)
+  audienceType          CampaignAudienceType
+  filtersJson           Json?
+  templateVariablesJson Json?
+  batchSize             Int                  @default(25)
+  audienceCount         Int                  @default(0)
+  eligibleCount         Int                  @default(0)
+  sentCount             Int                  @default(0)
+  failedCount           Int                  @default(0)
+  skippedCount          Int                  @default(0)
+  repliedCount          Int                  @default(0)
+  scheduledAt           DateTime?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  lastDispatchedAt      DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product               Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
+  template              CampaignTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  recipients            CampaignRecipient[]
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([productId])
+  @@index([templateId])
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id            String                  @id @default(cuid())
+  campaignId    String
+  customerId    String?
+  customerName  String?
+  phone         String?
+  status        CampaignRecipientStatus @default(PENDING)
+  skipReason    String?
+  variablesJson Json?
+  waMessageId   String?
+  lastError     String?                 @db.Text
+  lastAttemptAt DateTime?
+  sentAt        DateTime?
+  repliedAt     DateTime?
+  optedOutAt    DateTime?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  campaign      Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer      Customer?               @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, phone])
+  @@index([campaignId, status])
+  @@index([customerId, status])
+  @@map("campaign_recipients")
 }
 
 model Invoice {
@@ -352,46 +447,27 @@ model Invoice {
   @@map("invoices")
 }
 
-model OutboundLead {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+model BlogPost {
+  id              String         @id @default(cuid())
+  authorId        String?
+  title           String
+  slug            String         @unique
+  excerpt         String         @db.Text
+  content         String         @db.LongText
+  coverImage      String?
+  category        String?
+  language        String         @default("fr")
+  metaTitle       String?
+  metaDescription String?        @db.Text
+  keywords        String?        @db.Text
+  status          BlogPostStatus @default(DRAFT)
+  publishedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  author          User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
-  customerPhone   String
-  customerName    String?
-
-  // المنتج أو الخدمة المقترحة
-  itemId          String?
-  itemName        String?
-  itemType        String
-  itemPrice       Float?
-
-  // حالة الإرسال
-  status          String    @default("PENDING")
-
-  // Template المرسلة
-  templateName    String?
-  templateBody    String?   @db.Text
-
-  // واتساب
-  whatsappMsgId   String?
-
-  // التتبع
-  sentAt          DateTime?
-  repliedAt       DateTime?
-  convertedAt     DateTime?
-
-  // ربط بالمحادثة لما يرد
-  conversationId  String?
-
-  notes           String?
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([userId])
-  @@index([customerPhone])
-  @@index([status])
-  @@index([createdAt])
-  @@map("outbound_leads")
+  @@index([status, publishedAt])
+  @@index([language, status])
+  @@index([authorId])
+  @@map("blog_posts")
 }

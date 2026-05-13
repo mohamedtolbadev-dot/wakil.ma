@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils"
 import { Search, Download, MessageCircle, Sparkles,
   Users, CheckCircle, AlertCircle, Loader2,
   RefreshCw, ChevronRight, Trash2, AlertTriangle,
-  X, ShoppingBag, Wrench, Send, Mic,
-  Paperclip, ImageIcon, FileText, Video, Eye,
+  X, ShoppingBag, Send, Mic, Copy, Check, MoreVertical,
+  Paperclip, ImageIcon, FileText, Video, Eye, Play, Pause,
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
@@ -186,6 +186,61 @@ function ScoreBar({ score, color, width = "w-10" }) {
 }
 
 /* ─────────────── Stat Card ─────────────── */
+function getPendingOrderSummary(conversation) {
+  const summary = conversation?.context?.pendingOrderSummary
+  return summary && typeof summary === "object" && summary.productName ? summary : null
+}
+
+function getConversationOrderAmount(conversation) {
+  const pending = getPendingOrderSummary(conversation)
+  const current = conversation?.context?.currentOrder
+  const amount = conversation?.totalAmount ?? pending?.totalAmount ?? current?.totalAmount
+  const number = Number(amount)
+  return Number.isFinite(number) && number > 0 ? number : null
+}
+
+function formatOrderAmount(value) {
+  const number = Number(value)
+  if (!Number.isFinite(number) || number <= 0) return null
+  return number.toLocaleString("en-US", { maximumFractionDigits: 0 })
+}
+
+function PendingOrderInline({ conversation }) {
+  const { language } = useLanguage()
+  const pending = getPendingOrderSummary(conversation)
+  if (!pending) return null
+  const amount = formatOrderAmount(pending.totalAmount)
+  return (
+    <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-bold text-amber-700">
+      <ShoppingBag size={11} className="shrink-0" />
+      <span className="truncate">{language === "ar" ? "كتسنى التأكيد" : "À confirmer"}</span>
+      {amount && <span className="shrink-0">· {amount} DH</span>}
+    </span>
+  )
+}
+
+function PendingOrderNotice({ conversation }) {
+  const { language } = useLanguage()
+  const pending = getPendingOrderSummary(conversation)
+  if (!pending) return null
+  const amount = formatOrderAmount(pending.totalAmount)
+  const title = language === "ar" ? "طلبية كتسنى التأكيد" : "Commande à confirmer"
+  const confirmText = language === "ar" ? "الزبون مازال ما أكدش الطلبية" : "Le client n'a pas encore confirmé"
+  return (
+    <div className="flex items-start gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-amber-800">
+      <ShoppingBag size={15} className="mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-[13px] font-bold">{title}</p>
+          {amount && <span className="shrink-0 text-[12px] font-bold">{amount} DH</span>}
+        </div>
+        <p className="truncate text-[12px] font-medium">{pending.productName}</p>
+        <p className="text-[11px] text-amber-700/80">{confirmText}</p>
+      </div>
+    </div>
+  )
+}
+
 function StatCard({ label, value, badge, icon: Icon, delay = 0 }) {
   const [visible, setVisible] = useState(false)
   useEffect(() => {
@@ -234,9 +289,38 @@ function Avatar({ name, size = "sm" }) {
 }
 
 /* ─────────────── Voice (WhatsApp media — مجاني عبر بروكسي) ─────────────── */
-function VoiceMessagePlayer({ conversationId, messageId }) {
+const VOICE_WAVEFORM_BARS = [9, 15, 22, 13, 28, 18, 34, 16, 25, 38, 20, 30, 14, 26, 18, 34, 12, 24, 16, 29, 14, 21]
+
+function formatVoiceTime(value) {
+  if (!Number.isFinite(value) || value < 0) return "0:00"
+  const minutes = Math.floor(value / 60)
+  const seconds = Math.floor(value % 60)
+  return `${minutes}:${String(seconds).padStart(2, "0")}`
+}
+
+function VoiceUnavailablePill() {
+  const { t, language } = useLanguage()
+  return (
+    <div className="flex min-w-[190px] items-center gap-2 rounded-xl border border-border bg-secondary/30 px-3 py-2">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600/10 text-brand-600">
+        <Mic size={15} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[12px] font-semibold text-foreground">{t('conv.voice_message')}</p>
+        <p className="text-[10px] text-muted-foreground">{language === "ar" ? "الصوت غير متاح" : "Audio indisponible"}</p>
+      </div>
+    </div>
+  )
+}
+
+function VoiceMessagePlayer({ conversationId, messageId, isAgent = false }) {
+  const { t, language } = useLanguage()
   const [url, setUrl] = useState(null)
   const [failed, setFailed] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [duration, setDuration] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const audioRef = useRef(null)
 
   useEffect(() => {
     let objectUrl
@@ -266,14 +350,126 @@ function VoiceMessagePlayer({ conversationId, messageId }) {
     }
   }, [conversationId, messageId])
 
+  const canSeek = duration > 0
+  const progress = canSeek ? Math.min(currentTime / duration, 1) : 0
+
+  const togglePlay = async () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (audio.paused) {
+      try {
+        await audio.play()
+      } catch {
+        setFailed(true)
+      }
+    } else {
+      audio.pause()
+    }
+  }
+
+  const handleSeek = (event) => {
+    const audio = audioRef.current
+    if (!audio || !canSeek) return
+    const next = Number(event.target.value)
+    audio.currentTime = next
+    setCurrentTime(next)
+  }
+
   if (failed) {
-    return <span className="text-[11px] text-muted-foreground">تعذر التشغيل</span>
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/5 px-3 py-2 text-[12px] text-red-600">
+        <AlertCircle size={14} />
+        <span>{language === "ar" ? "تعذر تشغيل الصوت" : `${t('conv.voice_message')} - audio unavailable`}</span>
+      </div>
+    )
   }
   if (!url) {
-    return <Loader2 size={14} className="animate-spin text-brand-600 shrink-0" aria-hidden />
+    return (
+      <div className="flex min-w-[220px] items-center gap-3 rounded-2xl border border-border bg-secondary/25 px-3 py-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600/10">
+          <Loader2 size={15} className="animate-spin text-brand-600" aria-hidden />
+        </div>
+        <div className="flex-1 space-y-1.5">
+          <div className="h-2 w-28 rounded-full bg-border/70" />
+          <div className="h-2 w-20 rounded-full bg-border/50" />
+        </div>
+      </div>
+    )
   }
   return (
-    <audio src={url} controls preload="none" className="max-w-[min(260px,72vw)] h-8 align-middle" />
+    <div
+      className={cn(
+        "w-[min(292px,72vw)] rounded-2xl border px-3 py-1.5 shadow-sm",
+        isAgent
+          ? "border-border bg-card/70"
+          : "border-brand-600/15 bg-brand-600/[0.06]"
+      )}
+    >
+      <audio
+        ref={audioRef}
+        src={url}
+        preload="metadata"
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          if (audioRef.current) audioRef.current.currentTime = 0
+          setIsPlaying(false)
+          setCurrentTime(0)
+        }}
+      />
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={togglePlay}
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all active:scale-95",
+            isAgent
+              ? "bg-secondary text-foreground hover:bg-border/70"
+              : "bg-brand-600 text-white hover:bg-brand-700"
+          )}
+          aria-label={isPlaying ? "Pause audio" : "Play audio"}
+        >
+          {isPlaying ? <Pause size={14} /> : <Play size={14} className="ms-0.5" />}
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="relative flex h-7 items-center">
+            <div className="flex h-full w-full items-center gap-[2px]">
+              {VOICE_WAVEFORM_BARS.map((height, index) => {
+                const active = index / VOICE_WAVEFORM_BARS.length <= progress
+                return (
+                  <span
+                    key={index}
+                    className={cn(
+                      "w-[3px] rounded-full transition-colors",
+                      active ? "bg-brand-600" : "bg-muted-foreground/25"
+                    )}
+                    style={{ height: Math.max(6, Math.round(height * 0.72)) }}
+                  />
+                )
+              })}
+            </div>
+            <input
+              type="range"
+              min="0"
+              max={duration || 1}
+              step="0.1"
+              value={canSeek ? currentTime : 0}
+              onChange={handleSeek}
+              disabled={!canSeek}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
+              aria-label="Audio progress"
+            />
+          </div>
+          <div className="mt-0 flex items-center justify-between text-[10px] font-medium leading-none text-muted-foreground">
+            <span>{t('conv.voice_message')}</span>
+            <span className="tabular-nums">{formatVoiceTime(currentTime)} / {formatVoiceTime(duration)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -288,7 +484,6 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
   const [preview, setPreview] = useState(null) // { file, mediaType, url, name, size }
 
   const imageInputRef = useRef(null)
-  const videoInputRef = useRef(null)
   const docInputRef = useRef(null)
   const menuRef = useRef(null)
 
@@ -358,8 +553,8 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
       processedFile = await compressImage(file)
     }
 
-    // Create preview URL for images and videos
-    const url = (mediaType === "image" || mediaType === "video")
+    // Create preview URL for images
+    const url = mediaType === "image"
       ? URL.createObjectURL(processedFile) : null
 
     setPreview({ file: processedFile, mediaType, url, name: file.name, size: processedFile.size })
@@ -370,7 +565,6 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
     setPreview(null)
     setError(null)
     if (imageInputRef.current) imageInputRef.current.value = ""
-    if (videoInputRef.current) videoInputRef.current.value = ""
     if (docInputRef.current) docInputRef.current.value = ""
   }, [preview])
 
@@ -451,7 +645,7 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
     } finally {
       setSending(false)
     }
-  }, [preview, conversationId, onSent, handleCancelPreview])
+  }, [preview, conversationId, onSent, handleCancelPreview, DIRECT_UPLOAD_LIMIT, t])
 
   // Escape key to close preview
   useEffect(() => {
@@ -467,8 +661,6 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
         {/* Hidden file inputs */}
         <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f, "image") }} />
-        <input ref={videoInputRef} type="file" accept="video/mp4,video/3gpp" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f, "video") }} />
         <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f, "document") }} />
 
@@ -490,7 +682,7 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
 
         {/* Dropdown menu */}
         {open && !sending && (
-          <div className="absolute bottom-12 left-0 z-50 w-48 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="absolute bottom-12 -left-2 z-50 w-48 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150">
             <button
               onClick={() => imageInputRef.current?.click()}
               className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-medium text-foreground hover:bg-secondary transition-colors"
@@ -498,15 +690,6 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
               <ImageIcon size={15} className="text-brand-600" />
               {t('conv.media_image')}
               <span className="text-[10px] text-muted-foreground mr-auto">{t('conv.media_image_types')}</span>
-            </button>
-            <div className="h-px bg-border" />
-            <button
-              onClick={() => videoInputRef.current?.click()}
-              className="flex items-center gap-2.5 w-full px-3 py-2.5 text-[13px] font-medium text-foreground hover:bg-secondary transition-colors"
-            >
-              <Video size={15} className="text-brand-600" />
-              {t('conv.media_video')}
-              <span className="text-[10px] text-muted-foreground mr-auto">{t('conv.media_video_types')}</span>
             </button>
             <div className="h-px bg-border" />
             <button
@@ -522,7 +705,7 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
 
         {/* Error toast (only when no preview open) */}
         {error && !preview && (
-          <div className="absolute bottom-12 left-0 z-50 w-52 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+          <div className="absolute bottom-12 -left-2 z-50 w-52 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
             <p className="text-[11px] text-red-600 font-medium">{error}</p>
           </div>
         )}
@@ -557,14 +740,6 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
                 </div>
               )}
 
-              {/* Video preview */}
-              {preview.mediaType === "video" && preview.url && (
-                <div className="rounded-xl overflow-hidden border border-border bg-black mb-3">
-                  <video src={preview.url} controls preload="metadata"
-                    className="w-full max-h-[280px] object-contain" />
-                </div>
-              )}
-
               {/* Document preview */}
               {preview.mediaType === "document" && (
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-border bg-secondary/20 mb-3">
@@ -578,8 +753,8 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
                 </div>
               )}
 
-              {/* File info for image/video */}
-              {(preview.mediaType === "image" || preview.mediaType === "video") && (
+              {/* File info for image */}
+              {preview.mediaType === "image" && (
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[11px] text-muted-foreground truncate flex-1">{preview.name}</span>
                   <span className="text-[11px] text-muted-foreground shrink-0">{formatFileSize(preview.size)}</span>
@@ -618,7 +793,7 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
 }
 
 /* ─────────────── Image Message Viewer ─────────────── */
-function ImageMessageViewer({ conversationId, messageId }) {
+function ImageMessageViewer({ conversationId, messageId, mediaUrl = null }) {
   const { t } = useLanguage()
   const [src, setSrc] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -626,7 +801,9 @@ function ImageMessageViewer({ conversationId, messageId }) {
   const [fullscreen, setFullscreen] = useState(false)
 
   useEffect(() => {
+    if (mediaUrl) return
     if (!conversationId || !messageId) return
+    let objectUrl = null
     const token = getToken()
     fetch(`/api/conversations/${conversationId}/messages/${messageId}/media`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -636,7 +813,8 @@ function ImageMessageViewer({ conversationId, messageId }) {
         return res.blob()
       })
       .then(blob => {
-        setSrc(URL.createObjectURL(blob))
+        objectUrl = URL.createObjectURL(blob)
+        setSrc(objectUrl)
         setLoading(false)
       })
       .catch(() => {
@@ -645,17 +823,20 @@ function ImageMessageViewer({ conversationId, messageId }) {
       })
 
     return () => {
-      if (src) URL.revokeObjectURL(src)
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, messageId])
+  }, [conversationId, messageId, mediaUrl])
 
-  if (loading) {
+  const displaySrc = mediaUrl || src
+  const isLoading = !mediaUrl && loading
+  const hasErrored = !mediaUrl && errored
+
+  if (isLoading) {
     return (
       <div className="w-48 h-32 bg-secondary/30 rounded-lg animate-pulse" />
     )
   }
-  if (errored || !src) {
+  if (hasErrored || !displaySrc) {
     return (
       <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
         <ImageIcon size={14} />
@@ -667,7 +848,7 @@ function ImageMessageViewer({ conversationId, messageId }) {
   return (
     <>
       <img
-        src={src}
+        src={displaySrc}
         alt={t('conv.media_image')}
         className="max-w-[240px] max-h-[200px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
         onClick={() => setFullscreen(true)}
@@ -684,7 +865,7 @@ function ImageMessageViewer({ conversationId, messageId }) {
             <X size={20} />
           </button>
           <img
-            src={src}
+            src={displaySrc}
             alt={t('conv.media_image')}
             className="max-w-[90vw] max-h-[85vh] rounded-xl object-contain"
             onClick={(e) => e.stopPropagation()}
@@ -696,11 +877,12 @@ function ImageMessageViewer({ conversationId, messageId }) {
 }
 
 /* ─────────────── Document Message Viewer ─────────────── */
-function DocumentMessageViewer({ conversationId, messageId, content }) {
+function DocumentMessageViewer({ conversationId, messageId, content, mediaUrl = null, documentFilename = null }) {
   const { t } = useLanguage()
   const [downloading, setDownloading] = useState(false)
   const filenameMatch = content?.match(/\[مستند:\s*(.+?)\]/)
   const filename = filenameMatch?.[1] || "document"
+  const displayFilename = documentFilename || filename
 
   const handleDownload = async () => {
     if (downloading) return
@@ -716,7 +898,7 @@ function DocumentMessageViewer({ conversationId, messageId, content }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = filename
+      a.download = displayFilename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -738,7 +920,7 @@ function DocumentMessageViewer({ conversationId, messageId, content }) {
         <FileText size={16} className="text-brand-600" />
       </div>
       <div className="text-right min-w-0">
-        <p className="text-[12px] font-semibold text-foreground truncate max-w-[160px]">{filename}</p>
+        <p className="text-[12px] font-semibold text-foreground truncate max-w-[160px]">{displayFilename}</p>
         <p className="text-[10px] text-muted-foreground">
           {downloading ? t('conv.downloading') : t('conv.tap_to_download')}
         </p>
@@ -752,14 +934,16 @@ function DocumentMessageViewer({ conversationId, messageId, content }) {
 }
 
 /* ─────────────── Video Message Viewer ─────────────── */
-function VideoMessageViewer({ conversationId, messageId }) {
+function VideoMessageViewer({ conversationId, messageId, mediaUrl = null }) {
   const { t } = useLanguage()
   const [src, setSrc] = useState(null)
   const [loading, setLoading] = useState(true)
   const [errored, setErrored] = useState(false)
 
   useEffect(() => {
+    if (mediaUrl) return
     if (!conversationId || !messageId) return
+    let objectUrl = null
     const token = getToken()
     fetch(`/api/conversations/${conversationId}/messages/${messageId}/media`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -769,7 +953,8 @@ function VideoMessageViewer({ conversationId, messageId }) {
         return res.blob()
       })
       .then(blob => {
-        setSrc(URL.createObjectURL(blob))
+        objectUrl = URL.createObjectURL(blob)
+        setSrc(objectUrl)
         setLoading(false)
       })
       .catch(() => {
@@ -778,17 +963,20 @@ function VideoMessageViewer({ conversationId, messageId }) {
       })
 
     return () => {
-      if (src) URL.revokeObjectURL(src)
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, messageId])
+  }, [conversationId, messageId, mediaUrl])
 
-  if (loading) {
+  const displaySrc = mediaUrl || src
+  const isLoading = !mediaUrl && loading
+  const hasErrored = !mediaUrl && errored
+
+  if (isLoading) {
     return (
       <div className="w-48 h-32 bg-secondary/30 rounded-lg animate-pulse" />
     )
   }
-  if (errored || !src) {
+  if (hasErrored || !displaySrc) {
     return (
       <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
         <Video size={14} />
@@ -799,12 +987,180 @@ function VideoMessageViewer({ conversationId, messageId }) {
 
   return (
     <div className="rounded-xl overflow-hidden border border-border bg-black max-w-[280px]">
-      <video src={src} controls preload="metadata" className="w-full max-h-[200px] object-contain" />
+      <video src={displaySrc} controls preload="metadata" className="w-full max-h-[200px] object-contain" />
     </div>
   )
 }
 
 /* ─────────────── Message Bubble ─────────────── */
+const MEDIA_TAGS = {
+  image: ["[صورة]", "[ØµÙˆØ±Ø©]", "[Ã˜ÂµÃ™Ë†Ã˜Â±Ã˜Â©]"],
+  video: ["[فيديو]", "[ÙÙŠØ¯ÙŠÙˆ]", "[Ã™ÂÃ™Å Ã˜Â¯Ã™Å Ã™Ë†]"],
+  voice: ["[رسالة صوتية]", "[Ø±Ø³Ø§Ù„Ø© ØµÙˆØªÙŠØ©]", "[Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ˜Â© Ã˜ÂµÃ™Ë†Ã˜ÂªÃ™Å Ã˜Â©]"],
+  document: ["[مستند:", "[Ù…Ø³ØªÙ†Ø¯:", "[Ã™â€¦Ã˜Â³Ã˜ÂªÃ™â€ Ã˜Â¯:"],
+}
+
+function firstMatchingTag(content, tags) {
+  return tags.find(tag => content.startsWith(tag)) || null
+}
+
+function extractMediaUrl(content) {
+  return content.match(/https?:\/\/\S+/i)?.[0] || null
+}
+
+function stripMediaTag(content, tag) {
+  return tag ? content.slice(tag.length).trim() : content
+}
+
+function stripMediaUrl(content, mediaUrl) {
+  return mediaUrl ? content.replace(mediaUrl, "").trim() : content.trim()
+}
+
+function getDocumentFilename(content) {
+  const match = content.match(/\[(?:مستند|Ù…Ø³ØªÙ†Ø¯|Ã™â€¦Ã˜Â³Ã˜ÂªÃ™â€ Ã˜Â¯):\s*(.+?)\]/)
+  return match?.[1] || "document"
+}
+
+function getMediaInfo(msg) {
+  const content = String(msg?.content || "").trim()
+  const imageTag = firstMatchingTag(content, MEDIA_TAGS.image)
+  const videoTag = firstMatchingTag(content, MEDIA_TAGS.video)
+  const documentTag = firstMatchingTag(content, MEDIA_TAGS.document)
+  const voiceTag = firstMatchingTag(content, MEDIA_TAGS.voice)
+  const mediaUrl = extractMediaUrl(content)
+  const hasSource = Boolean(msg?.whatsappMediaId || mediaUrl)
+
+  const isImage = Boolean(imageTag && hasSource)
+  const isVideo = Boolean(videoTag && hasSource)
+  const isDocument = Boolean(documentTag && hasSource)
+  const isVoice = Boolean(voiceTag && msg?.whatsappMediaId)
+  const isCustomerImage = Boolean(imageTag && !hasSource)
+  const isCustomerVideo = Boolean(videoTag && !hasSource)
+  const isCustomerVoice = Boolean(voiceTag && !msg?.whatsappMediaId)
+  const isTranscribedVoice = Boolean(
+    msg?.whatsappMediaId &&
+    msg?.role === "USER" &&
+    content &&
+    !content.startsWith("[") &&
+    !isImage &&
+    !isVideo &&
+    !isDocument &&
+    !isVoice
+  )
+
+  const imageCaption = isImage
+    ? stripMediaUrl(stripMediaTag(content, imageTag), mediaUrl)
+    : ""
+
+  return {
+    isImage,
+    isVideo,
+    isDocument,
+    isVoice,
+    isCustomerImage,
+    isCustomerVideo,
+    isCustomerVoice,
+    isTranscribedVoice,
+    mediaUrl,
+    imageCaption,
+    documentFilename: getDocumentFilename(content),
+  }
+}
+
+const BAD_CUSTOMER_DISPLAY_RE = /\b(?:rah|ra|rani|hani|sift|syft|siftlik|syftlik|siftlek|smyti|smiti|smiyti|smitiya|name|nom|sent|send|already|deja|déjà|عطيتك|رسلت|رسلتلك|صيفطت|صيفطتلك|سميتي|الاسم|الإسم|قبل|من\s*قبل|راه|ها|هادي|هدا)\b/i
+
+function getCustomerDisplayName(customer) {
+  const name = String(customer?.name || "").trim()
+  const phone = String(customer?.phone || "").trim()
+  if (!name) return phone || "Client"
+  if (BAD_CUSTOMER_DISPLAY_RE.test(name.toLowerCase())) return phone || "Client"
+  if (/[؟?!]/.test(name)) return phone || "Client"
+  return name
+}
+
+function copyTextToClipboard(text) {
+  const value = String(text || "").trim()
+  if (!value) return Promise.resolve(false)
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(value).then(() => true)
+  }
+
+  if (typeof document === "undefined") return Promise.resolve(false)
+
+  const textarea = document.createElement("textarea")
+  textarea.value = value
+  textarea.setAttribute("readonly", "")
+  textarea.style.position = "absolute"
+  textarea.style.left = "-9999px"
+  document.body.appendChild(textarea)
+  textarea.select()
+
+  let success = false
+  try {
+    success = document.execCommand("copy")
+  } catch {
+    success = false
+  } finally {
+    document.body.removeChild(textarea)
+  }
+
+  return Promise.resolve(success)
+}
+
+function getMessageCopyText(msg, t) {
+  const contentStr = String(msg?.content || "").trim()
+  if (!contentStr) return ""
+
+  const mediaInfo = getMediaInfo(msg)
+  if (mediaInfo.isImage || mediaInfo.isCustomerImage) {
+    return mediaInfo.imageCaption || t('conv.media_image')
+  }
+  if (mediaInfo.isVideo || mediaInfo.isCustomerVideo) {
+    return t('conv.media_video')
+  }
+  if (mediaInfo.isVoice || mediaInfo.isCustomerVoice) {
+    return t('conv.voice_message')
+  }
+  if (mediaInfo.isDocument) {
+    return mediaInfo.documentFilename || t('conv.media_document')
+  }
+  if (mediaInfo.isTranscribedVoice) {
+    return t('conv.voice_message')
+  }
+
+  const isImage = contentStr.startsWith("[صورة]") && msg?.whatsappMediaId
+  const isVideo = contentStr.startsWith("[فيديو]") && msg?.whatsappMediaId
+  const isDocument = contentStr.startsWith("[مستند:") && msg?.whatsappMediaId
+  const isVoice = contentStr === "[رسالة صوتية]" && msg?.whatsappMediaId
+  const isCustomerImage = contentStr === "[صورة]" && !msg?.whatsappMediaId
+  const isCustomerVoice = contentStr === "[رسالة صوتية]" && !msg?.whatsappMediaId
+  const isCustomerVideo = contentStr === "[فيديو]" && !msg?.whatsappMediaId
+
+  if (isImage) {
+    return contentStr.replace(/^\[صورة\]\s*/, "").trim() || t('conv.media_image')
+  }
+
+  if (isVideo || isCustomerVideo) {
+    return t('conv.media_video')
+  }
+
+  if (isVoice || isCustomerVoice) {
+    return t('conv.voice_message')
+  }
+
+  if (isDocument) {
+    const filenameMatch = contentStr.match(/\[مستند:\s*(.+?)\]/)
+    return filenameMatch?.[1] || t('conv.media_document')
+  }
+
+  if (isCustomerImage) {
+    return t('conv.media_image')
+  }
+
+  return contentStr
+}
+
 function MessageBubble({ msg, customerName, conversationId }) {
   const { t } = useLanguage()
   const isAgent = msg.role === "AGENT"
@@ -870,6 +1226,7 @@ function MessageBubble({ msg, customerName, conversationId }) {
             <VoiceMessagePlayer
               conversationId={conversationId}
               messageId={msg.id}
+              isAgent={isAgent}
             />
           </div>
         ) : isCustomerImage ? (
@@ -878,10 +1235,7 @@ function MessageBubble({ msg, customerName, conversationId }) {
             <span className="text-[12px] italic text-muted-foreground">{t('conv.media_image')}</span>
           </div>
         ) : isCustomerVoice ? (
-          <div className="flex items-center gap-1.5">
-            <Mic size={12} className="text-muted-foreground shrink-0" />
-            <span className="text-[12px] italic text-muted-foreground">{t('conv.voice_message')}</span>
-          </div>
+          <VoiceUnavailablePill />
         ) : isCustomerVideo ? (
           <div className="flex items-center gap-1.5">
             <Video size={12} className="text-muted-foreground shrink-0" />
@@ -895,6 +1249,267 @@ function MessageBubble({ msg, customerName, conversationId }) {
   )
 }
 
+function ActionableMessageBubble({
+  msg,
+  customerName,
+  conversationId,
+  onCopyMessage,
+  onDeleteMessage,
+  deletingMessageId,
+}) {
+  const { t } = useLanguage()
+  const isAgent = msg.role === "AGENT"
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const actionRef = useRef(null)
+  const longPressRef = useRef(null)
+  const canDelete = Boolean(onDeleteMessage && msg?.id && !String(msg.id).startsWith("temp-"))
+  const isDeleting = deletingMessageId === msg.id
+
+  const mediaInfo = getMediaInfo(msg)
+  const {
+    isImage,
+    isVideo,
+    isDocument,
+    isVoice,
+    isCustomerImage,
+    isCustomerVoice,
+    isCustomerVideo,
+    isTranscribedVoice,
+    mediaUrl,
+    imageCaption,
+    documentFilename,
+  } = mediaInfo
+  const showVoice = Boolean(isVoice && conversationId)
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const handleOutsideClick = (event) => {
+      if (actionRef.current && !actionRef.current.contains(event.target)) {
+        setMenuOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick)
+    document.addEventListener("touchstart", handleOutsideClick)
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick)
+      document.removeEventListener("touchstart", handleOutsideClick)
+    }
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 1400)
+    return () => clearTimeout(timer)
+  }, [copied])
+
+  useEffect(() => () => {
+    if (longPressRef.current) clearTimeout(longPressRef.current)
+  }, [])
+
+  const clearLongPress = () => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current)
+      longPressRef.current = null
+    }
+  }
+
+  const handleTouchStart = () => {
+    clearLongPress()
+    longPressRef.current = setTimeout(() => {
+      setMenuOpen(true)
+      longPressRef.current = null
+    }, 450)
+  }
+
+  const handleCopyClick = async () => {
+    const textToCopy = getMessageCopyText(msg, t)
+    const success = await (onCopyMessage
+      ? onCopyMessage(msg, textToCopy)
+      : copyTextToClipboard(textToCopy))
+
+    if (success) {
+      setCopied(true)
+      setMenuOpen(false)
+    }
+  }
+
+  return (
+    <div className={cn("flex gap-2 items-end", !isAgent && "flex-row-reverse")}>
+      <div className={cn(
+        "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
+        isAgent
+          ? "bg-secondary text-foreground border border-border"
+          : "bg-card text-foreground border border-border"
+      )}>
+        {isAgent ? "و" : getInitials(customerName)}
+      </div>
+
+      <div
+        ref={actionRef}
+        className="relative max-w-[78%] group/message"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={clearLongPress}
+        onTouchMove={clearLongPress}
+        onTouchCancel={clearLongPress}
+      >
+        <button
+          type="button"
+          onClick={() => setMenuOpen(prev => !prev)}
+          className={cn(
+            "absolute -top-2 z-10 w-7 h-7 rounded-full border border-border bg-card/95 backdrop-blur-sm",
+            "items-center justify-center text-muted-foreground shadow-sm transition-all",
+            "hover:text-foreground hover:border-brand-300 active:scale-95",
+            menuOpen ? "flex opacity-100" : "opacity-0 group-hover/message:opacity-100 md:flex",
+            isAgent ? "-right-2" : "-left-2"
+          )}
+          title={t('conv.message_actions')}
+        >
+          <MoreVertical size={14} />
+        </button>
+
+        {menuOpen && (
+          <div
+            className={cn(
+              "absolute -top-12 z-20 flex items-center gap-1 rounded-full border border-border bg-card px-1.5 py-1 shadow-lg",
+              isAgent ? "right-0" : "left-0"
+            )}
+          >
+            <button
+              type="button"
+              onClick={handleCopyClick}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-brand-600 hover:bg-secondary transition-colors"
+              title={t('common.copy')}
+            >
+              {copied ? <Check size={14} className="text-brand-600" /> : <Copy size={14} />}
+            </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onDeleteMessage?.(msg)
+                }}
+                disabled={isDeleting}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={t('common.delete')}
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin text-red-600" /> : <Trash2 size={14} />}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className={cn(
+          "rounded-2xl px-2.5 py-1.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words",
+          isAgent
+            ? "bg-secondary text-foreground border border-border rounded-tl-sm"
+            : "bg-card text-foreground border border-border rounded-tr-sm"
+        )}>
+          {isImage ? (
+            <div className="flex flex-col gap-1.5">
+              <ImageMessageViewer conversationId={conversationId} messageId={msg.id} mediaUrl={mediaUrl} />
+              {imageCaption && (
+                <span className="text-[12px] text-muted-foreground">{imageCaption}</span>
+              )}
+            </div>
+          ) : isVideo ? (
+            <div className="flex flex-col gap-1.5">
+              <VideoMessageViewer conversationId={conversationId} messageId={msg.id} mediaUrl={mediaUrl} />
+            </div>
+          ) : isDocument ? (
+            <DocumentMessageViewer
+              conversationId={conversationId}
+              messageId={msg.id}
+              content={msg.content}
+              mediaUrl={mediaUrl}
+              documentFilename={documentFilename}
+            />
+          ) : showVoice ? (
+            <div className="flex flex-col gap-1.5">
+            <VoiceMessagePlayer conversationId={conversationId} messageId={msg.id} isAgent={isAgent} />
+            </div>
+          ) : isTranscribedVoice ? (
+            <div className="flex flex-col gap-1.5">
+              <VoiceMessagePlayer conversationId={conversationId} messageId={msg.id} isAgent={isAgent} />
+            </div>
+          ) : isCustomerImage ? (
+            <div className="flex items-center gap-1.5">
+              <ImageIcon size={12} className="text-muted-foreground shrink-0" />
+              <span className="text-[12px] italic text-muted-foreground">{t('conv.media_image')}</span>
+            </div>
+          ) : isCustomerVoice ? (
+            <VoiceUnavailablePill />
+          ) : isCustomerVideo ? (
+            <div className="flex items-center gap-1.5">
+              <Video size={12} className="text-muted-foreground shrink-0" />
+              <span className="text-[12px] italic text-muted-foreground">{t('conv.media_video')}</span>
+            </div>
+          ) : (
+            msg.content
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MessagesSkeleton() {
+  const rows = [
+    { side: "left", width: "w-[72%]", lines: ["w-[82%]", "w-[55%]"] },
+    { side: "right", width: "w-[58%]", lines: ["w-[76%]"] },
+    { side: "left", width: "w-[66%]", lines: ["w-[88%]", "w-[48%]"] },
+    { side: "right", width: "w-[44%]", lines: ["w-[64%]"] },
+    { side: "left", width: "w-[60%]", lines: ["w-[72%]", "w-[38%]"] },
+  ]
+
+  return (
+    <div className="flex flex-col gap-3 px-1 py-2" aria-hidden="true">
+      {rows.map((row, index) => (
+        <div
+          key={index}
+          className={cn(
+            "flex w-full",
+            row.side === "right" ? "justify-end" : "justify-start"
+          )}
+        >
+          <div
+            className={cn(
+              "rounded-2xl px-4 py-3 shadow-sm animate-pulse",
+              row.width,
+              row.side === "right"
+                ? "rounded-br-md bg-brand-600/20"
+                : "rounded-bl-md bg-secondary border border-border"
+            )}
+          >
+            <div className="flex flex-col gap-2">
+              {row.lines.map((line, lineIndex) => (
+                <div
+                  key={lineIndex}
+                  className={cn(
+                    "h-2.5 rounded-full",
+                    line,
+                    row.side === "right" ? "bg-brand-600/25" : "bg-muted-foreground/15"
+                  )}
+                />
+              ))}
+              <div
+                className={cn(
+                  "mt-1 h-2 rounded-full self-end",
+                  row.side === "right" ? "w-10 bg-brand-600/20" : "w-8 bg-muted-foreground/10"
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Scrolls to newest messages when opening a thread or when messages update */
 function ConversationMessagesScroll({
   className,
@@ -904,6 +1519,9 @@ function ConversationMessagesScroll({
   messagesError,
   onRetryMessages,
   customerName,
+  onCopyMessage,
+  onDeleteMessage,
+  deletingMessageId,
 }) {
   const { t } = useLanguage()
   const scrollRef = useRef(null)
@@ -923,7 +1541,9 @@ function ConversationMessagesScroll({
 
   return (
     <div ref={scrollRef} className={className}>
-      {messagesError ? (
+      {messagesLoading ? (
+        <MessagesSkeleton />
+      ) : messagesError ? (
         <div className="flex flex-col items-center justify-center flex-1 gap-2 min-h-[120px]">
           <AlertCircle size={20} className="text-red-500" />
           <p className="text-xs text-muted-foreground">{messagesError}</p>
@@ -940,11 +1560,14 @@ function ConversationMessagesScroll({
         </div>
       ) : (
         messages.map(msg => (
-          <MessageBubble
+          <ActionableMessageBubble
             key={msg.id || `${msg.role}-${msg.createdAt}`}
             msg={msg}
             customerName={customerName}
             conversationId={conversationId}
+            onCopyMessage={onCopyMessage}
+            onDeleteMessage={onDeleteMessage}
+            deletingMessageId={deletingMessageId}
           />
         ))
       )}
@@ -961,15 +1584,27 @@ const STAGE_FILTERS = {
     { key: "PITCHING",  labelKey: "conv.filter_pitching"  },
     { key: "OBJECTION", labelKey: "conv.filter_objection" },
     { key: "CLOSING",   labelKey: "conv.filter_closing"   },
+    { key: "RECOVERY",  labelKey: "recovery"              },
     { key: "CLOSED",    labelKey: "conv.filter_closed"    },
   ],
-  service: [
-    { key: "all",       labelKey: "conv.filter_all"      },
-    { key: "PITCHING",  labelKey: "conv.filter_pitching"  },
-    { key: "OBJECTION", labelKey: "conv.filter_objection" },
-    { key: "CLOSING",   labelKey: "conv.filter_booking"   },
-    { key: "CLOSED",    labelKey: "conv.filter_closed"    },
-  ],
+}
+
+function recoveryLabel(language) {
+  return language === "ar" ? "متابعة" : "Relance"
+}
+
+function recoveryReasonLabel(reason, language) {
+  const ar = {
+    unanswered_customer: "رسالة زبون بلا جواب",
+    almost_closed: "قريبة من التأكيد",
+    stale_conversation: "محادثة متوقفة",
+  }
+  const fr = {
+    unanswered_customer: "Client sans réponse",
+    almost_closed: "Presque confirmée",
+    stale_conversation: "Conversation inactive",
+  }
+  return (language === "ar" ? ar : fr)[reason] || recoveryLabel(language)
 }
 
 /* ════════════════════════════════════════════════
@@ -982,7 +1617,6 @@ function ConversationsContent() {
   const [conversations, setConversations]       = useState([])
   const [loading, setLoading]                   = useState(true)
   const [error, setError]                       = useState(null)
-  const [convType, setConvType]                 = useState("product")
   const [filter, setFilter]                     = useState("all")
   const [search, setSearch]                     = useState("")
   const [selected, setSelected]                 = useState(null)
@@ -990,6 +1624,8 @@ function ConversationsContent() {
   const [messagesLoading, setMessagesLoading]   = useState(false)
   const [messagesError, setMessagesError]       = useState(null)
   const [deleteModal, setDeleteModal]           = useState({ open: false, id: null, name: "" })
+  const [messageDeleteDialog, setMessageDeleteDialog] = useState({ open: false, messageId: null, preview: "" })
+  const [deletingMessageId, setDeletingMessageId] = useState(null)
   const [agentIsActive, setAgentIsActive]       = useState(true)
   const [replyText, setReplyText]               = useState("")
   const [replySending, setReplySending]         = useState(false)
@@ -1000,13 +1636,6 @@ function ConversationsContent() {
   const toastTimerRef    = useRef(null)
   const hasAutoSelectedRef = useRef(false)
   const router = useRouter()
-
-  const handleTypeChange = useCallback((type) => {
-    setConvType(type)
-    setFilter("all")
-    setSelected(null)
-    setMessages([])
-  }, [])
 
   const handleDeleteConversation = useCallback((id, name) => {
     setDeleteModal({ open: true, id, name })
@@ -1055,6 +1684,71 @@ function ConversationsContent() {
 
   // 🔧 FIX: Callback to refresh messages after sending voice
   // 📍 LOCATION: ConversationsContent, after handleManualReply
+  const handleCopyMessage = useCallback(async (_msg, textToCopy) => {
+    return copyTextToClipboard(textToCopy)
+  }, [])
+
+  const handleDeleteMessage = useCallback((message) => {
+    setMessageDeleteDialog({
+      open: true,
+      messageId: message?.id || null,
+      preview: getMessageCopyText(message, t),
+    })
+  }, [t])
+
+  const cancelDeleteMessage = useCallback(() => {
+    setMessageDeleteDialog({ open: false, messageId: null, preview: "" })
+  }, [])
+
+  const confirmDeleteMessage = useCallback(async () => {
+    if (!selected?.id || !messageDeleteDialog.messageId || deletingMessageId) return
+
+    try {
+      setDeletingMessageId(messageDeleteDialog.messageId)
+      const token = getToken()
+      const res = await fetch(
+        `/api/conversations/${selected.id}/messages/${messageDeleteDialog.messageId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || t('conv.message_delete_failed'))
+      }
+
+      const conversationData = data.data?.conversation
+      setMessages(prev => prev.filter(message => message.id !== messageDeleteDialog.messageId))
+      setSelected(prev => (
+        prev?.id === selected.id && conversationData
+          ? { ...prev, updatedAt: conversationData.updatedAt }
+          : prev
+      ))
+      setConversations(prev => prev.map((conversation) => {
+        if (conversation.id !== selected.id) return conversation
+
+        return {
+          ...conversation,
+          updatedAt: conversationData?.updatedAt || conversation.updatedAt,
+          messages: conversationData?.lastMessage ? [conversationData.lastMessage] : [],
+          _count: {
+            ...conversation._count,
+            messages: conversationData?.messagesCount ?? Math.max((conversation._count?.messages || 1) - 1, 0),
+          },
+        }
+      }))
+      setMessageDeleteDialog({ open: false, messageId: null, preview: "" })
+    } catch (err) {
+      console.error("Delete message failed:", err)
+      setReplyError(t('conv.message_delete_failed') || "فشل حذف الرسالة")
+      setTimeout(() => setReplyError(null), 4000)
+    } finally {
+      setDeletingMessageId(null)
+    }
+  }, [deletingMessageId, messageDeleteDialog.messageId, selected?.id, t])
+
   const handleRefreshMessages = useCallback(async () => {
     if (!selected?.id) return
     try {
@@ -1079,10 +1773,13 @@ function ConversationsContent() {
       if (selected?.id === id) { setSelected(null); setMessages([]) }
       setDeleteModal({ open: false, id: null, name: "" })
     } catch (err) {
-      console.error("Delete error:", err)
+      console.error("Delete conversation failed:", err)
+      // Keep modal open so user can retry; surface error in UI
+      setError(t('conv.delete_failed') || "فشل حذف المحادثة")
+      setTimeout(() => setError(null), 4000)
       setDeleteModal({ open: false, id: null, name: "" })
     }
-  }, [deleteModal, selected])
+  }, [deleteModal, selected, t])
 
   const cancelDelete = useCallback(() => {
     setDeleteModal({ open: false, id: null, name: "" })
@@ -1104,6 +1801,8 @@ function ConversationsContent() {
 
   const pollConversations = useCallback(async () => {
     if (!prevConvsRef.current || !getToken()) return
+    // Skip when tab hidden — avoid wasted bandwidth/battery
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return
     try {
       const response = await conversationsAPI.getAll({})
       const newConvs = response.data?.conversations || []
@@ -1123,7 +1822,9 @@ function ConversationsContent() {
       }
       prevConvsRef.current = Object.fromEntries(newConvs.map(c => [c.id, c.updatedAt]))
       setConversations(newConvs)
-    } catch {}
+    } catch (err) {
+      console.warn("pollConversations failed — will retry next tick:", err?.message)
+    }
   }, [])
 
   const handleToastOpen = useCallback((conv) => {
@@ -1201,8 +1902,6 @@ function ConversationsContent() {
     if (!match) return
     
     hasAutoSelectedRef.current = true
-    const neededType = match.type === "service" ? "service" : "product"
-    if (convType !== neededType) setConvType(neededType)
     setFilter("all")
     setSelected(match)
     
@@ -1216,13 +1915,14 @@ function ConversationsContent() {
     if (!selected?.id) { setMessages([]); setMessagesError(null); return }
     setReplyText("")
     setReplyError(null)
+    setMessagesLoading(true)  // Show spinner while fetching new thread
     ;(async () => {
       try {
         setMessagesError(null)
         const res = await conversationsAPI.getById(selected.id)
         setMessages(res.data?.messages || [])
-      } catch (err) { 
-        setMessages([]) 
+      } catch (err) {
+        setMessages([])
         setMessagesError(t('conv.messages_load_failed'))
         console.error("Fetch messages error:", err)
       }
@@ -1236,10 +1936,39 @@ function ConversationsContent() {
     let cancelled = false
     const tick = async () => {
       if (!getToken()) return
+      // Skip when tab hidden — resume on focus
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return
       try {
         const res = await conversationsAPI.getById(selected.id)
         if (cancelled) return
+        const conversation = res.data || null
         const incoming = res.data?.messages || []
+        if (conversation) {
+          setSelected(prev => (
+            prev?.id === conversation.id
+              ? {
+                  ...prev,
+                  ...conversation,
+                  messages: prev.messages,
+                }
+              : prev
+          ))
+          setConversations(prev => prev.map(conv => (
+            conv.id === conversation.id
+              ? {
+                  ...conv,
+                  ...conversation,
+                  messages: conversation.messages?.length
+                    ? [conversation.messages[conversation.messages.length - 1]]
+                    : conv.messages,
+                  _count: {
+                    ...conv._count,
+                    messages: conversation.messages?.length ?? conv._count?.messages,
+                  },
+                }
+              : conv
+          )))
+        }
         setMessages(prev => {
           const a = prev[prev.length - 1]
           const b = incoming[incoming.length - 1]
@@ -1248,7 +1977,9 @@ function ConversationsContent() {
           }
           return prev
         })
-      } catch {}
+      } catch (err) {
+        if (!cancelled) console.warn("Message poll failed:", err?.message)
+      }
     }
     const interval = setInterval(tick, 2000)
     return () => {
@@ -1258,22 +1989,23 @@ function ConversationsContent() {
   }, [selected?.id])
 
   const productConvs = useMemo(() =>
-    conversations.filter(c => c.stage !== "ARCHIVED" && c.type !== "service"),
+    conversations.filter(c => c.stage !== "ARCHIVED"),
     [conversations])
 
-  const serviceConvs = useMemo(() =>
-    conversations.filter(c => c.stage !== "ARCHIVED" && c.type === "service"),
-    [conversations])
-
-  const activeConvs = convType === "product" ? productConvs : serviceConvs
+  const activeConvs = productConvs
 
   const filtered = useMemo(() => {
     let result = activeConvs
-    if (filter !== "all") result = result.filter(c => c.stage === filter)
-    if (search.trim()) {
+    if (filter === "RECOVERY") {
+      result = result.filter(c => c.recovery?.needsRecovery)
+    } else if (filter !== "all") {
+      result = result.filter(c => c.stage === filter)
+    }
+    const q = search.trim().toLowerCase()
+    if (q) {
       result = result.filter(c =>
-        c.customer?.name?.includes(search) ||
-        c.customer?.phone?.includes(search)
+        getCustomerDisplayName(c.customer).toLowerCase().includes(q) ||
+        c.customer?.phone?.includes(q)  // phone is numeric — no case folding needed
       )
     }
     return result
@@ -1282,19 +2014,22 @@ function ConversationsContent() {
   const unreadCount = conversations.filter(c => !c.isRead).length
 
   const filterButtons = useMemo(() =>
-    STAGE_FILTERS[convType].map(f => ({
+    STAGE_FILTERS.product.map(f => ({
       ...f,
       count: f.key === "all"
         ? activeConvs.length
-        : activeConvs.filter(c => c.stage === f.key).length
+        : f.key === "RECOVERY"
+          ? activeConvs.filter(c => c.recovery?.needsRecovery).length
+          : activeConvs.filter(c => c.stage === f.key).length
     }))
-  , [activeConvs, convType])
+  , [activeConvs])
 
   const stats = useMemo(() => ({
     total:     activeConvs.length,
     closed:    activeConvs.filter(c => c.stage === "CLOSED").length,
     pitching:  activeConvs.filter(c => c.stage === "PITCHING").length,
     objection: activeConvs.filter(c => c.stage === "OBJECTION").length,
+    recovery:  activeConvs.filter(c => c.recovery?.needsRecovery).length,
   }), [activeConvs])
 
   if (loading) return <ConversationsSkeleton />
@@ -1329,9 +2064,9 @@ function ConversationsContent() {
                 <span className="text-[12px] text-muted-foreground font-normal">{unreadCount}</span>
               )}
             </button>
-            <Avatar name={selected.customer?.name} size="md" />
+            <Avatar name={getCustomerDisplayName(selected.customer)} size="md" />
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold text-foreground truncate">{selected.customer?.name}</p>
+              <p className="text-[14px] font-bold text-foreground truncate">{getCustomerDisplayName(selected.customer)}</p>
               <p className="text-[12px] text-muted-foreground">{selected.customer?.phone}</p>
             </div>
             <span className={cn("text-[12px] font-semibold px-2 py-0.5 rounded-md border",
@@ -1350,6 +2085,7 @@ function ConversationsContent() {
               {selected.score}%
             </span>
           </div>
+          <PendingOrderNotice conversation={selected} />
           <ConversationMessagesScroll
             className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 min-h-0"
             conversationId={selected.id}
@@ -1357,7 +2093,10 @@ function ConversationsContent() {
             messagesLoading={messagesLoading}
             messagesError={messagesError}
             onRetryMessages={() => setSelected({ ...selected })}
-            customerName={selected.customer?.name}
+            customerName={getCustomerDisplayName(selected.customer)}
+            onCopyMessage={handleCopyMessage}
+            onDeleteMessage={handleDeleteMessage}
+            deletingMessageId={deletingMessageId}
           />
 
           {/* Manual Reply — mobile */}
@@ -1425,8 +2164,8 @@ function ConversationsContent() {
               { label: t('conv.messages'),  value: `${messages.length}` },
               { label: t('conv.duration'),  value: timeAgo(selected.createdAt, t) },
               {
-                label: convType === "product" ? t('conv.order_val') : t('conv.booking_val'),
-                value: selected.totalAmount ? `${selected.totalAmount}` : "—"
+                label: t('conv.order_val'),
+                value: getConversationOrderAmount(selected) ? `${getConversationOrderAmount(selected)}` : "—"
               },
             ].map(item => (
               <div key={item.label} className="bg-secondary/40 border border-border rounded-lg p-2 text-center">
@@ -1438,8 +2177,6 @@ function ConversationsContent() {
         </div>
 
         <MainLayout
-          convType={convType} onTypeChange={handleTypeChange}
-          productCount={productConvs.length} serviceCount={serviceConvs.length}
           stats={stats} filtered={filtered} filter={filter} setFilter={setFilter}
           search={search} setSearch={setSearch} filterButtons={filterButtons}
           selected={selected} setSelected={setSelected}
@@ -1448,11 +2185,15 @@ function ConversationsContent() {
           unreadCount={unreadCount}
           onDeleteConversation={handleDeleteConversation}
           deleteModal={deleteModal} confirmDelete={confirmDelete} cancelDelete={cancelDelete}
+          messageDeleteDialog={messageDeleteDialog} cancelDeleteMessage={cancelDeleteMessage} confirmDeleteMessage={confirmDeleteMessage}
           agentIsActive={agentIsActive}
           replyText={replyText} setReplyText={setReplyText}
           replySending={replySending} replyError={replyError}
           onManualReply={handleManualReply}
           onRefreshMessages={handleRefreshMessages}
+          onCopyMessage={handleCopyMessage}
+          onDeleteMessage={handleDeleteMessage}
+          deletingMessageId={deletingMessageId}
         />
         {newMsgToast && (
           <NewMessageToast conv={newMsgToast} onOpen={handleToastOpen} onClose={handleToastClose} />
@@ -1464,8 +2205,6 @@ function ConversationsContent() {
   return (
     <>
       <MainLayout
-        convType={convType} onTypeChange={handleTypeChange}
-        productCount={productConvs.length} serviceCount={serviceConvs.length}
         stats={stats} filtered={filtered} filter={filter} setFilter={setFilter}
         search={search} setSearch={setSearch} filterButtons={filterButtons}
         selected={selected} setSelected={setSelected}
@@ -1474,11 +2213,15 @@ function ConversationsContent() {
         unreadCount={unreadCount}
         onDeleteConversation={handleDeleteConversation}
         deleteModal={deleteModal} confirmDelete={confirmDelete} cancelDelete={cancelDelete}
+        messageDeleteDialog={messageDeleteDialog} cancelDeleteMessage={cancelDeleteMessage} confirmDeleteMessage={confirmDeleteMessage}
         agentIsActive={agentIsActive}
         replyText={replyText} setReplyText={setReplyText}
         replySending={replySending} replyError={replyError}
         onManualReply={handleManualReply}
         onRefreshMessages={handleRefreshMessages}
+        onCopyMessage={handleCopyMessage}
+        onDeleteMessage={handleDeleteMessage}
+        deletingMessageId={deletingMessageId}
       />
       {newMsgToast && (
         <NewMessageToast conv={newMsgToast} onOpen={handleToastOpen} onClose={handleToastClose} />
@@ -1491,17 +2234,18 @@ function ConversationsContent() {
 // 🔧 FIX: Added onRefreshMessages to refresh messages after voice send
 // 📍 LOCATION: MainLayout props signature
 function MainLayout({
-  convType, onTypeChange, productCount, serviceCount,
   stats, filtered, filter, setFilter,
   search, setSearch, filterButtons,
   selected, setSelected, messages, messagesLoading, messagesError,
   onRetryMessages,
   unreadCount, onDeleteConversation,
   deleteModal, confirmDelete, cancelDelete,
+  messageDeleteDialog, cancelDeleteMessage, confirmDeleteMessage,
   agentIsActive, replyText, setReplyText, replySending, replyError, onManualReply,
   onRefreshMessages,
+  onCopyMessage, onDeleteMessage, deletingMessageId,
 }) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   // ✅ FIX: تعريف getStageLabel هنا لأن MainLayout تستخدمه في الـ map
   const getStageLabel = useStageLabel()
 
@@ -1523,43 +2267,13 @@ function MainLayout({
         </div>
       </div>
 
-      {/* ══ تاب منتجات / خدمات ══ */}
-      <div className="flex gap-1 p-1 bg-secondary/40 border border-border rounded-xl w-fit">
-        {[
-          { key: "product", labelKey: "nav.products", icon: ShoppingBag, count: productCount },
-          { key: "service", labelKey: "nav.services", icon: Wrench,      count: serviceCount },
-        ].map(tab => {
-          const Icon = tab.icon
-          const active = convType === tab.key
-          return (
-            <button key={tab.key}
-              onClick={() => onTypeChange(tab.key)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200",
-                active
-                  ? "bg-background text-foreground shadow-sm border border-border/80"
-                  : "text-muted-foreground hover:text-foreground"
-              )}>
-              <Icon size={15} className={active ? "text-brand-600" : ""} />
-              {t(tab.labelKey)}
-              <span className={cn(
-                "text-[12px] px-1.5 py-0.5 rounded-full font-bold tabular-nums",
-                active ? "bg-brand-600 text-white" : "bg-border/80 text-muted-foreground"
-              )}>
-                {tab.count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
       {/* ── Stats 4 كاردات ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard
-          label={convType === "product" ? t('conv.total_product') : t('conv.total_service')}
+          label={t('conv.total_product')}
           value={stats.total} icon={Users} badge={t('conv.filter_all')} delay={0} />
         <StatCard
-          label={convType === "product" ? t('conv.closed_sales') : t('conv.closed_bookings')}
+          label={t('conv.closed_sales')}
           value={stats.closed} icon={CheckCircle} badge={t('conv.filter_closed')} delay={80} />
         <StatCard
           label={t('conv.filter_pitching')}
@@ -1567,6 +2281,9 @@ function MainLayout({
         <StatCard
           label={t('conv.needs_attention')}
           value={stats.objection} icon={AlertCircle} badge={t('conv.filter_objection')} delay={240} />
+        <StatCard
+          label={recoveryLabel(language)}
+          value={stats.recovery} icon={RefreshCw} badge={recoveryLabel(language)} delay={320} />
       </div>
 
       {/* ── فلاتر المرحلة + بحث ── */}
@@ -1581,7 +2298,7 @@ function MainLayout({
                   ? "bg-brand-600 text-white border-brand-600 shadow-sm"
                   : "bg-secondary text-muted-foreground border-border hover:text-foreground hover:border-brand-300"
               )}>
-              {t(f.labelKey)}
+              {f.key === "RECOVERY" ? recoveryLabel(language) : t(f.labelKey)}
               <span className={cn(
                 "text-[11px] font-bold px-1.5 py-0.5 rounded-md tabular-nums",
                 filter === f.key ? "bg-white/20 text-white" : "bg-border/80 text-muted-foreground"
@@ -1595,7 +2312,7 @@ function MainLayout({
         <div className="relative">
           <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={convType === "product" ? t('conv.search_product') : t('conv.search_service')}
+            placeholder={t('conv.search_product')}
             className="w-full pr-9 pl-3 py-2 bg-card border border-border rounded-xl text-[14px] outline-none focus:border-brand-400 transition-colors duration-200" />
         </div>
       </div>
@@ -1608,13 +2325,10 @@ function MainLayout({
           {filtered.length === 0 ? (
             <div className="border border-border rounded-xl p-4 text-center bg-secondary/20">
               <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center mx-auto mb-3">
-                {convType === "product"
-                  ? <ShoppingBag size={22} className="text-brand-600" />
-                  : <Wrench size={22} className="text-brand-600" />
-                }
+                <ShoppingBag size={22} className="text-brand-600" />
               </div>
               <p className="text-[14px] text-muted-foreground">
-                {convType === "product" ? t('conv.no_product_convs') : t('conv.no_service_convs')}
+                {t('conv.no_product_convs')}
               </p>
             </div>
           ) : (
@@ -1638,7 +2352,6 @@ function MainLayout({
                   onSelect={() => setSelected(conv)}
                   onDelete={onDeleteConversation}
                   delay={idx * 40}
-                  convType={convType}
                   safeScore={safeScore}
                 />
               )
@@ -1651,13 +2364,10 @@ function MainLayout({
           {!selected ? (
             <div className="bg-card border border-border rounded-xl h-full min-h-[420px] flex flex-col items-center justify-center gap-3">
               <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center">
-                {convType === "product"
-                  ? <ShoppingBag size={26} className="text-brand-600" />
-                  : <Wrench size={26} className="text-brand-600" />
-                }
+                <ShoppingBag size={26} className="text-brand-600" />
               </div>
               <p className="text-[14px] text-muted-foreground font-medium">
-                {convType === "product" ? t('conv.select_product') : t('conv.select_service')}
+                {t('conv.select_product')}
               </p>
             </div>
           ) : (
@@ -1668,12 +2378,14 @@ function MainLayout({
               messagesLoading={messagesLoading}
               messagesError={messagesError}
               onRetryMessages={onRetryMessages}
-              convType={convType}
               agentIsActive={agentIsActive}
               replyText={replyText} setReplyText={setReplyText}
               replySending={replySending} replyError={replyError}
               onManualReply={onManualReply}
               onRefreshMessages={onRefreshMessages}
+              onCopyMessage={onCopyMessage}
+              onDeleteMessage={onDeleteMessage}
+              deletingMessageId={deletingMessageId}
             />
           )}
         </div>
@@ -1722,14 +2434,69 @@ function MainLayout({
           </div>
         </div>
       )}
+
+      {messageDeleteDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={cancelDeleteMessage} />
+          <div
+            className="relative w-full max-w-sm border border-border rounded-2xl shadow-2xl overflow-hidden"
+            style={{ backgroundColor: "var(--modal-surface, hsl(var(--card)))" }}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-red-500/5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <AlertTriangle size={16} className="text-red-500" />
+                </div>
+                <p className="text-sm font-bold text-red-500">{t('conv.message_delete_title')}</p>
+              </div>
+              <button
+                onClick={cancelDeleteMessage}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-sm text-foreground font-medium mb-1">
+                {t('conv.message_delete_confirm')}
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words">
+                {messageDeleteDialog.preview || t('conv.no_message')}
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mt-3">
+                {t('conv.message_delete_warning')}
+              </p>
+            </div>
+            <div className="flex gap-2 px-5 py-4 border-t border-border/60 bg-secondary/20">
+              <button
+                onClick={cancelDeleteMessage}
+                className="flex-1 py-2.5 border border-border rounded-xl text-sm font-semibold hover:bg-secondary transition-all"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={confirmDeleteMessage}
+                disabled={Boolean(deletingMessageId)}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deletingMessageId
+                  ? <Loader2 size={12} className="animate-spin" />
+                  : <Trash2 size={12} />
+                }
+                {t('common.yes')}, {t('common.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 /* ─────────────── Conv Card ─────────────── */
 // ✅ يستقبل stageLabel كـ prop من MainLayout — لا يستدعي useStageLabel مرة ثانية
-function ConvCard({ conv, stageLabel, stageClassName, scoreColor, isSelected, onSelect, onDelete, delay, convType, safeScore }) {
-  const { t } = useLanguage()
+function ConvCard({ conv, stageLabel, stageClassName, scoreColor, isSelected, onSelect, onDelete, delay, safeScore }) {
+  const { t, language } = useLanguage()
   const [visible, setVisible] = useState(false)
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), delay)
@@ -1752,11 +2519,11 @@ function ConvCard({ conv, stageLabel, stageClassName, scoreColor, isSelected, on
     >
       <div className="flex items-start justify-between gap-3 mb-1.5">
         <div className="flex items-center gap-3 min-w-0">
-          <Avatar name={conv.customer?.name} size="sm" />
+          <Avatar name={getCustomerDisplayName(conv.customer)} size="sm" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-[14px] font-bold text-foreground truncate">
-                {conv.customer?.name}
+                {getCustomerDisplayName(conv.customer)}
               </span>
               {!conv.isRead && (
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-600 shrink-0 animate-pulse" />
@@ -1765,6 +2532,13 @@ function ConvCard({ conv, stageLabel, stageClassName, scoreColor, isSelected, on
             {!conv.isRead && (
               <span className="text-[12px] text-brand-600 font-semibold">{t('conv.new_message')}</span>
             )}
+            {conv.recovery?.needsRecovery && (
+              <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md border border-amber-500/25 bg-amber-500/10 text-amber-700">
+                <RefreshCw size={11} />
+                {recoveryReasonLabel(conv.recovery.reason, language)}
+              </span>
+            )}
+            <PendingOrderInline conversation={conv} />
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -1772,7 +2546,7 @@ function ConvCard({ conv, stageLabel, stageClassName, scoreColor, isSelected, on
             "text-[11px] px-1.5 py-0.5 rounded-md border font-bold",
             "bg-secondary text-brand-600 border-brand-200"
           )}>
-            {convType === "product" ? t('nav.products') : t('nav.services')}
+            {t('nav.products')}
           </span>
           <span className="text-[12px] text-muted-foreground">{timeAgo(conv.updatedAt, t)}</span>
         </div>
@@ -1790,7 +2564,7 @@ function ConvCard({ conv, stageLabel, stageClassName, scoreColor, isSelected, on
         <div className="flex items-center gap-2">
           <ScoreBar score={safeScore} color={scoreColor} />
           <button
-            onClick={e => { e.stopPropagation(); onDelete(conv.id, conv.customer?.name) }}
+            onClick={e => { e.stopPropagation(); onDelete(conv.id, getCustomerDisplayName(conv.customer)) }}
             className="p-1.5 rounded-md text-muted-foreground hover:text-red-600 hover:bg-secondary transition-colors lg:opacity-0 lg:group-hover:opacity-100"
             title={t('conv.delete_title')}>
             <Trash2 size={16} />
@@ -1804,8 +2578,24 @@ function ConvCard({ conv, stageLabel, stageClassName, scoreColor, isSelected, on
 /* ─────────────── Detail Panel ─────────────── */
 // 🔧 FIX: Added onRefreshMessages to refresh messages after voice send
 // 📍 LOCATION: DetailPanel props signature
-function DetailPanel({ selected, messages, messagesLoading, messagesError, onRetryMessages, convType, agentIsActive, replyText, setReplyText, replySending, replyError, onManualReply, onRefreshMessages }) {
-  const { t } = useLanguage()
+function DetailPanel({
+  selected,
+  messages,
+  messagesLoading,
+  messagesError,
+  onRetryMessages,
+  agentIsActive,
+  replyText,
+  setReplyText,
+  replySending,
+  replyError,
+  onManualReply,
+  onRefreshMessages,
+  onCopyMessage,
+  onDeleteMessage,
+  deletingMessageId,
+}) {
+  const { t, language } = useLanguage()
   // ✅ useStageLabel مستدعى على مستوى الـ component مباشرة — Rules of Hooks
   const getStageLabel = useStageLabel()
   const scoreColor     = getScoreColor(selected.score)
@@ -1817,15 +2607,15 @@ function DetailPanel({ selected, messages, messagesLoading, messagesError, onRet
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-secondary/20 shrink-0">
         <div className="flex items-center gap-2.5">
-          <Avatar name={selected.customer?.name} size="md" />
+          <Avatar name={getCustomerDisplayName(selected.customer)} size="md" />
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-[14px] font-bold text-foreground">{selected.customer?.name}</p>
+              <p className="text-[14px] font-bold text-foreground">{getCustomerDisplayName(selected.customer)}</p>
               <span className={cn(
                 "text-[11px] px-1.5 py-0.5 rounded-md border font-bold",
                 "bg-secondary text-brand-600 border-brand-200"
               )}>
-                {convType === "product" ? t('nav.products') : t('nav.services')}
+                {t('nav.products')}
               </span>
             </div>
             <p className="text-[13px] text-muted-foreground">{selected.customer?.phone}</p>
@@ -1840,6 +2630,15 @@ function DetailPanel({ selected, messages, messagesLoading, messagesError, onRet
       </div>
 
       {/* الرسائل — تمرير تلقائي لآخر رسالة */}
+      {selected.recovery?.needsRecovery && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-amber-500/20 bg-amber-500/10 text-amber-700 text-[12px] font-semibold">
+          <RefreshCw size={13} />
+          <span>{recoveryReasonLabel(selected.recovery.reason, language)}</span>
+          <span className="ms-auto tabular-nums">{selected.recovery.ageHours}h</span>
+        </div>
+      )}
+      <PendingOrderNotice conversation={selected} />
+
       <ConversationMessagesScroll
         className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 min-h-0 max-h-80"
         conversationId={selected.id}
@@ -1847,7 +2646,10 @@ function DetailPanel({ selected, messages, messagesLoading, messagesError, onRet
         messagesLoading={messagesLoading}
         messagesError={messagesError}
         onRetryMessages={onRetryMessages}
-        customerName={selected.customer?.name}
+        customerName={getCustomerDisplayName(selected.customer)}
+        onCopyMessage={onCopyMessage}
+        onDeleteMessage={onDeleteMessage}
+        deletingMessageId={deletingMessageId}
       />
 
       {/* Manual Reply — desktop */}
@@ -1916,8 +2718,8 @@ function DetailPanel({ selected, messages, messagesLoading, messagesError, onRet
             { label: t('conv.messages'), value: `${messages.length}` },
             { label: t('conv.duration'), value: timeAgo(selected.createdAt, t) },
             {
-              label: convType === "product" ? t('conv.order_val') : t('conv.booking_val'),
-              value: selected.totalAmount ? `${selected.totalAmount}` : "—",
+              label: t('conv.order_val'),
+              value: getConversationOrderAmount(selected) ? `${getConversationOrderAmount(selected)}` : "—",
             },
           ].map(item => (
             <div key={item.label}
@@ -1973,14 +2775,14 @@ function NewMessageToast({ conv, onOpen, onClose }) {
         <div className="relative shrink-0">
           <div className="absolute -inset-[2px] rounded-full bg-brand-600/20" />
           <div className="w-11 h-11 rounded-full bg-brand-600 flex items-center justify-center font-bold text-white text-sm relative">
-            {getInitials(conv.customer?.name)}
+            {getInitials(getCustomerDisplayName(conv.customer))}
           </div>
           <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-brand-600 border-2 border-card animate-pulse" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-0.5">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[14px] font-bold text-foreground truncate">{conv.customer?.name}</span>
+              <span className="text-[14px] font-bold text-foreground truncate">{getCustomerDisplayName(conv.customer)}</span>
               <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(conv.updatedAt, t)}</span>
             </div>
             <button

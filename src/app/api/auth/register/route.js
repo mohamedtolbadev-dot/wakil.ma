@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { hashPassword, generateToken } from "@/lib/auth"
+import { getEffectivePlan } from "@/lib/billingPlans"
 import { successResponse, errorResponse } from "@/lib/response"
 import { rateLimit } from "@/lib/rateLimit"
 
@@ -65,21 +66,7 @@ export async function POST(request) {
             language: "darija",
             isActive: true,
             mode,
-            instructions: "كن ودوداً ومقنعاً دائماً",
-            objectionReplies: {
-              create: [
-                {
-                  trigger: "غالي شوية",
-                  reply: "نفهمك 😊 لكن الجودة تستحق + التوصيل مجاني اليوم 🎁",
-                  order: 1,
-                },
-                {
-                  trigger: "نفكر فيها",
-                  reply: "خدي وقتك 😊 لكن الكمية محدودة ⏰",
-                  order: 2,
-                },
-              ],
-            },
+            // ✅ بدون رسائل مفروضة — التعليمات تأتي من Settings > Instructions personnalisées (Produits)
           },
         },
       },
@@ -87,6 +74,7 @@ export async function POST(request) {
     })
 
     const token = generateToken(user.id)
+    const effectivePlan = getEffectivePlan(user)
 
     return successResponse({
       token,
@@ -95,7 +83,9 @@ export async function POST(request) {
         name: user.name,
         email: user.email,
         storeName: user.storeName,
-        plan: user.plan,
+        plan: effectivePlan,
+        rawPlan: user.plan,
+        planExpiresAt: user.planExpiresAt,
       },
     }, 201)
   } catch (error) {

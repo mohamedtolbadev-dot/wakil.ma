@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { generateToken } from "@/lib/auth"
+import { getEffectivePlan } from "@/lib/billingPlans"
 import { successResponse, errorResponse } from "@/lib/response"
 
 export async function POST(request) {
@@ -8,19 +9,33 @@ export async function POST(request) {
 
     if (!email || !code) return errorResponse("fr:Données manquantes||ar:بيانات ناقصة", 400)
 
+    const normalizedEmail = email.trim().toLowerCase()
     const record = await prisma.verificationToken.findFirst({
-      where: { phone: email, code },
+      where: { phone: normalizedEmail, code },
+      orderBy: { createdAt: 'desc' }
     })
 
-    if (!record) return errorResponse("fr:Code incorrect, réessayez||ar:رمز التحقق غير صحيح", 400)
+    if (!record) {
+      console.warn(`[verify-otp] No verification record found for email: ${normalizedEmail}`)
+      return errorResponse("fr:Code incorrect, réessayez||ar:رمز التحقق غير صحيح", 400)
+    }
 
     if (new Date() > record.expiresAt) {
       await prisma.verificationToken.delete({ where: { id: record.id } })
       return errorResponse("fr:Code expiré. Renvoyez un nouveau code.||ar:انتهت صلاحية الرمز. أعد الإرسال.", 410)
     }
 
-    const { name, email: recordEmail, hashedPassword, mode, phone } = JSON.parse(record.data)
-    const resolvedEmail = recordEmail || email
+    let parsedData
+    try {
+      parsedData = JSON.parse(record.data)
+    } catch (parseErr) {
+      console.error(`[verify-otp] Failed to parse record data for email: ${normalizedEmail}`, parseErr)
+      await prisma.verificationToken.delete({ where: { id: record.id } })
+      return errorResponse("fr:Données corrompues||ar:بيانات تالفة", 500)
+    }
+    
+    const { name, email: recordEmail, hashedPassword, mode, phone } = parsedData
+    const resolvedEmail = (recordEmail || email).toLowerCase().trim()
 
     const existing = await prisma.user.findUnique({ where: { email: resolvedEmail } })
     if (existing) {
@@ -28,37 +43,42 @@ export async function POST(request) {
       return errorResponse("fr:Cet e-mail est déjà enregistré||ar:الإيميل مسجل مسبقاً", 400)
     }
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: resolvedEmail,
-        password: hashedPassword,
-        phone: phone || null,
-        storeName: name.trim(),
-        agent: {
-          create: {
-            name: "Agent",
-            domain: "تجارة عامة",
-            style: "friendly",
-            language: "darija",
-            isActive: true,
-            mode,
-            instructions: "كن ودوداً ومقنعاً دائماً",
-            objectionReplies: {
-              create: [
-                { trigger: "غالي شوية", reply: "نفهمك 😊 لكن الجودة تستحق + التوصيل مجاني اليوم 🎁", order: 1 },
-                { trigger: "نفكر فيها", reply: "خدي وقتك 😊 لكن الكمية محدودة ⏰", order: 2 },
-              ],
+    let user
+    try {
+      user = await prisma.user.create({
+        data: {
+          name,
+          email: resolvedEmail,
+          password: hashedPassword,
+          phone: phone || null,
+          storeName: name.trim(),
+          agent: {
+            create: {
+              name: "Agent",
+              domain: "تجارة عامة",
+              style: "friendly",
+              language: "darija",
+              isActive: true,
+              // ✅ بدون رسائل مفروضة — التعليمات تأتي من Settings > Instructions personnalisées (Produits)
             },
           },
         },
-      },
-      include: { agent: true },
-    })
+        include: { agent: true },
+      })
+    } catch (createErr) {
+      console.error(`[verify-otp] Failed to create user for email: ${resolvedEmail}`)
+      console.error(`[verify-otp] Error details:`, {
+        message: createErr.message,
+        code: createErr.code,
+        meta: createErr.meta,
+      })
+      return errorResponse("fr:Erreur lors de la création du compte||ar:خطأ في إنشاء الحساب", 500)
+    }
 
     await prisma.verificationToken.delete({ where: { id: record.id } })
 
     const token = generateToken(user.id)
+    const effectivePlan = getEffectivePlan(user)
 
     return successResponse({
       token,
@@ -67,11 +87,14 @@ export async function POST(request) {
         name:      user.name,
         email:     user.email,
         storeName: user.storeName,
-        plan:      user.plan,
+        plan:      effectivePlan,
+        rawPlan:   user.plan,
+        planExpiresAt: user.planExpiresAt,
       },
     }, 201)
   } catch (error) {
-    console.error("verify-otp error:", error)
+    console.error("verify-otp error:", error.message, error.code)
+    console.error("Stack trace:", error.stack)
     return errorResponse("fr:Erreur lors de la vérification||ar:خطأ في التحقق", 500)
   }
 }

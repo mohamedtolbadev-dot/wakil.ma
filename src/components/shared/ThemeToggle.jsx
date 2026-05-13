@@ -1,18 +1,26 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import { Sun, Moon } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
+import { updateThemePreference } from "@/lib/browserState"
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+
+  function toggleTheme() {
+    const nextTheme = isDark ? "light" : "dark"
+    setTheme(nextTheme)
+    updateThemePreference(nextTheme)
+  }
 
   return (
     <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="p-2 rounded-lg hover:bg-secondary transition-colors"
-      aria-label="تبديل الوضع"
+      onClick={toggleTheme}
+      className="p-2 rounded-lg border border-transparent hover:border-border/60 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+      aria-label="Toggle theme"
     >
-      {theme === "dark" ? (
+      {isDark ? (
         <Sun className="w-5 h-5" />
       ) : (
         <Moon className="w-5 h-5" />

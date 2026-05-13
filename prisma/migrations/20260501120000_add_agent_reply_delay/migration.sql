@@ -1,0 +1,4 @@
+ALTER TABLE `agents`
+  ADD COLUMN `replyDelayMaxSeconds` INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN `replyDelayMinSeconds` INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN `replyDelayMode` VARCHAR(191) NOT NULL DEFAULT 'instant';

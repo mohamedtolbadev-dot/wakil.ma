@@ -1,24 +1,24 @@
 import { prisma } from "@/lib/prisma"
-import { generateToken } from "@/lib/auth"
+import { generateToken, AUTH_USER_SELECT } from "@/lib/auth"
+import { getEffectivePlan } from "@/lib/billingPlans"
 import { successResponse, errorResponse } from "@/lib/response"
 import { rateLimit } from "@/lib/rateLimit"
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ||
-  "919613509554-k84i3jqdmviv7dj9gqmhkh8ffj0tepcg.apps.googleusercontent.com"
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 
-// Verify Google ID Token and check audience
 async function verifyGoogleToken(token) {
   try {
     const response = await fetch(
       `https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${token}`
     )
     if (!response.ok) return null
+
     const data = await response.json()
-    // Verify the token was issued for THIS app
     if (data.aud !== GOOGLE_CLIENT_ID) {
       console.error("Google token aud mismatch:", data.aud)
       return null
     }
+
     return data
   } catch (error) {
     console.error("Google token verification error:", error)
@@ -26,49 +26,85 @@ async function verifyGoogleToken(token) {
   }
 }
 
+async function ensureAuthAgent(userId) {
+  const existingAgent = await prisma.agent.findUnique({
+    where: { userId },
+    select: { id: true }
+  })
+
+  if (existingAgent) return existingAgent
+
+  return prisma.agent.create({
+    data: {
+      userId,
+      name: "Agent",
+      domain: "تجارة عامة",
+    },
+    select: { id: true }
+  })
+}
+
 export async function POST(request) {
   try {
-    // Rate limiting
+    if (!GOOGLE_CLIENT_ID) {
+      console.error("GOOGLE_CLIENT_ID is not configured on the server")
+      return errorResponse("Google auth is not configured", 500)
+    }
+
     const rateLimitResult = rateLimit(request, true)
     if (!rateLimitResult.success) {
-      return errorResponse(`تم تجاوز الحد. حاول بعد ${Math.ceil(rateLimitResult.retryAfter / 60)} دقيقة`, 429)
+      return errorResponse(
+        `تم تجاوز الحد. حاول بعد ${Math.ceil(rateLimitResult.retryAfter / 60)} دقيقة`,
+        429
+      )
     }
 
     const { token } = await request.json()
-
     if (!token) {
-      return errorResponse("Token مطلوب")
+      return errorResponse("Token مطلوب", 400)
     }
 
-    // التحقق من Google Token
     const googleData = await verifyGoogleToken(token)
     if (!googleData) {
-      return errorResponse("Token غير صالح")
+      return errorResponse("Token غير صالح", 400)
     }
 
-    const { sub: googleId, email, name, picture } = googleData
-
+    const { sub: googleId, email, name } = googleData
     if (!email) {
-      return errorResponse("الإيميل مطلوب من Google")
+      return errorResponse("البريد مطلوب من Google", 400)
     }
 
-    // البحث عن المستخدم الحالي أو إنشاء مستخدم جديد
     let user = await prisma.user.findUnique({
       where: { email },
-      include: { agent: true }
+      select: {
+        ...AUTH_USER_SELECT,
+        googleId: true,
+      }
     })
 
     if (user) {
-      // تحديث googleId إذا لم يكن موجوداً
       if (!user.googleId) {
         user = await prisma.user.update({
           where: { id: user.id },
           data: { googleId },
-          include: { agent: true }
+          select: {
+            ...AUTH_USER_SELECT,
+            googleId: true,
+          }
+        })
+      }
+
+      if (!user.agent) {
+        await ensureAuthAgent(user.id)
+        user = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: {
+            ...AUTH_USER_SELECT,
+            googleId: true,
+          }
         })
       }
     } else {
-      // إنشاء مستخدم جديد
       user = await prisma.user.create({
         data: {
           email,
@@ -76,45 +112,55 @@ export async function POST(request) {
           googleId,
           storeName: name || email.split("@")[0],
         },
-        include: { agent: true }
-      })
-
-      // إنشاء Agent افتراضي للمستخدم الجديد
-      await prisma.agent.create({
-        data: {
-          userId: user.id,
-          name: "Agent",
-          domain: "تجارة عامة",
+        select: {
+          ...AUTH_USER_SELECT,
+          googleId: true,
         }
       })
 
-      // إعادة جلب المستخدم مع العلاقات
+      await ensureAuthAgent(user.id)
+
       user = await prisma.user.findUnique({
         where: { id: user.id },
-        include: { agent: true }
+        select: {
+          ...AUTH_USER_SELECT,
+          googleId: true,
+        }
       })
     }
 
     const jwtToken = generateToken(user.id)
+    const effectivePlan = getEffectivePlan(user)
 
     return successResponse({
       token: jwtToken,
       user: {
-        id:        user.id,
-        name:      user.name,
-        email:     user.email,
+        id: user.id,
+        name: user.name,
+        email: user.email,
         storeName: user.storeName,
-        plan:      user.plan,
-        role:      user.role,
+        plan: effectivePlan,
+        rawPlan: user.plan,
+        planExpiresAt: user.planExpiresAt,
+        role: user.role,
         agent: user.agent ? {
-          id:       user.agent.id,
-          name:     user.agent.name,
+          id: user.agent.id,
+          name: user.agent.name,
           isActive: user.agent.isActive,
         } : null,
       },
     })
   } catch (error) {
     console.error("Google auth error:", error)
+
+    if (error?.code === "P2002") {
+      return errorResponse("هذا الحساب مرتبط مسبقًا ببيانات Google أو بريد مستخدم آخر", 409)
+    }
+
+    if (error?.code === "P2022") {
+      return errorResponse("قاعدة البيانات لم تُحدَّث بعد. طبّق Prisma migration ثم أعد المحاولة", 503)
+    }
+
     return errorResponse("خطأ في تسجيل الدخول بواسطة Google", 500)
   }
 }

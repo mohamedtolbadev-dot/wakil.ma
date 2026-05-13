@@ -29,7 +29,7 @@ const securityHeaders = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' https: data: blob:",
     "font-src 'self'",
-    "connect-src 'self' https://*.cloudinary.com https://*.openrouter.ai https://graph.facebook.com",
+    "connect-src 'self' https://*.cloudinary.com https://api.openai.com https://graph.facebook.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

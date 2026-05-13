@@ -7,7 +7,7 @@ import { formatAmount, getCustomerTagConfig, timeAgo, getStageClassName } from "
 import { cn } from "@/lib/utils"
 import {
   ChevronRight, Phone, Edit2, Loader2, AlertCircle,
-  RefreshCw, MessageCircle, ShoppingBag, Calendar,
+  RefreshCw, MessageCircle, ShoppingBag,
   Clock, CheckCircle2, XCircle, Package, Truck,
   User, TrendingUp, Star,
 } from "lucide-react"
@@ -20,13 +20,6 @@ const ORDER_STATUS_CONFIG = {
   SHIPPED:   { color: "text-purple-600", bg: "bg-purple-500/10 border-purple-500/20", icon: Truck       },
   DELIVERED: { color: "text-green-600",  bg: "bg-green-500/10 border-green-500/20",  icon: Package     },
   CANCELLED: { color: "text-red-500",    bg: "bg-red-500/10 border-red-500/20",      icon: XCircle     },
-}
-
-const APPT_STATUS_CONFIG = {
-  PENDING:   { color: "text-amber-600",  bg: "bg-amber-500/10 border-amber-500/20"  },
-  CONFIRMED: { color: "text-green-600",  bg: "bg-green-500/10 border-green-500/20"  },
-  CANCELLED: { color: "text-red-500",    bg: "bg-red-500/10 border-red-500/20"      },
-  COMPLETED: { color: "text-brand-600",  bg: "bg-brand-600/10 border-brand-600/20"  },
 }
 
 /* ─── Skeleton ─── */
@@ -142,7 +135,7 @@ function ConversationsList({ conversations, t }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className={cn("text-[12px] font-semibold px-1.5 py-0.5 rounded-md border", getStageClassName(conv.stage, conv.type))}>
+                <span className={cn("text-[12px] font-semibold px-1.5 py-0.5 rounded-md border", getStageClassName(conv.stage))}>
                   {t(`stage.${conv.stage?.toLowerCase()}`) || conv.stage}
                 </span>
                 <span className="text-[12px] text-muted-foreground shrink-0">
@@ -213,55 +206,6 @@ function OrdersList({ orders, t, locale }) {
   )
 }
 
-/* ─── Appointments List ─── */
-function AppointmentsList({ appointments, t, locale }) {
-  if (!appointments.length) return (
-    <div className="bg-card border border-border rounded-xl p-10 text-center">
-      <Calendar size={28} className="text-muted-foreground mx-auto mb-2" />
-      <p className="text-[14px] text-muted-foreground">{t('common.no_data')}</p>
-    </div>
-  )
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-      {appointments.map(appt => {
-        const cfg = APPT_STATUS_CONFIG[appt.status] || APPT_STATUS_CONFIG.PENDING
-        const date = new Date(appt.date).toLocaleDateString(locale === "ar" ? "ar-MA" : "fr-FR", {
-          weekday: "short", day: "numeric", month: "short", year: "numeric",
-        })
-        const time = new Date(appt.date).toLocaleTimeString(locale === "ar" ? "ar-MA" : "fr-FR", {
-          hour: "2-digit", minute: "2-digit",
-        })
-        return (
-          <div key={appt.id} className="bg-card border border-border rounded-xl p-4 flex items-start gap-3 hover:border-brand-300 hover:shadow-sm transition-all duration-200">
-            <div className="w-9 h-9 rounded-lg bg-brand-600/10 flex items-center justify-center shrink-0">
-              <Calendar size={16} className="text-brand-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-[14px] font-bold text-foreground truncate">{appt.serviceName}</p>
-                <span className={cn("text-[11px] font-semibold px-1.5 py-0.5 rounded-md border shrink-0", cfg.bg, cfg.color)}>
-                  {t(`appt.${appt.status.toLowerCase()}`) || appt.status}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[12px] text-muted-foreground flex items-center gap-1">
-                  <Calendar size={12} /> {date}
-                </span>
-                <span className="text-[12px] text-muted-foreground flex items-center gap-1">
-                  <Clock size={12} /> {time}
-                </span>
-              </div>
-              {appt.notes && (
-                <p className="text-[12px] text-muted-foreground mt-1 truncate">{appt.notes}</p>
-              )}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 /* ════════════════════════════════════════════════
    Main Page
 ════════════════════════════════════════════════ */
@@ -309,12 +253,10 @@ export default function CustomerProfilePage() {
   const tagConfig    = getCustomerTagConfig(customer.tag, t)
   const conversations = customer.conversations || []
   const orders        = customer.orders || []
-  const appointments  = customer.appointments || []
 
   const tabs = [
     { key: "conversations", label: t('nav.conversations'), count: conversations.length, icon: MessageCircle },
     { key: "orders",        label: t('nav.orders'),        count: orders.length,        icon: ShoppingBag  },
-    { key: "appointments",  label: t('nav.appointments'),  count: appointments.length,  icon: Calendar     },
   ]
 
   const joinDate = new Date(customer.createdAt).toLocaleDateString(
@@ -463,9 +405,6 @@ export default function CustomerProfilePage() {
       )}
       {activeTab === "orders" && (
         <OrdersList orders={orders} t={t} locale={locale} />
-      )}
-      {activeTab === "appointments" && (
-        <AppointmentsList appointments={appointments} t={t} locale={locale} />
       )}
 
     </div>

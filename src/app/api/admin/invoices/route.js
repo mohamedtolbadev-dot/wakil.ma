@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyToken } from "@/lib/auth"
+import { getBillingPlan } from "@/lib/billingPlans"
+import { createUniqueInvoiceNumber, getInvoicePlanLabel } from "@/lib/invoiceHelpers"
 
 async function requireSuperAdmin(request) {
   const token = request.headers.get("authorization")?.split(" ")[1]
@@ -10,14 +12,6 @@ async function requireSuperAdmin(request) {
   const admin = await prisma.user.findUnique({ where: { id: decoded.userId }, select: { role: true } })
   if (admin?.role !== "SUPER_ADMIN") return null
   return decoded
-}
-
-function generateInvoiceNumber() {
-  const date = new Date()
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const rand = Math.floor(Math.random() * 9000) + 1000
-  return `INV-${y}${m}-${rand}`
 }
 
 // GET /api/admin/invoices
@@ -64,24 +58,16 @@ export async function POST(request) {
 
     const client = await prisma.user.findUnique({ where: { id: clientId } })
     if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 })
+    const invoicePlan = getBillingPlan(plan || client.plan).key
 
-    let invoiceNumber = generateInvoiceNumber()
-    // ensure uniqueness
-    let exists = await prisma.invoice.findUnique({ where: { invoiceNumber } })
-    let attempts = 0
-    while (exists && attempts < 10) {
-      invoiceNumber = generateInvoiceNumber()
-      exists = await prisma.invoice.findUnique({ where: { invoiceNumber } })
-      attempts++
-    }
-    if (exists) return NextResponse.json({ error: "Failed to generate unique invoice number" }, { status: 500 })
+    const invoiceNumber = await createUniqueInvoiceNumber(prisma)
 
     const invoice = await prisma.invoice.create({
       data: {
         clientId,
         invoiceNumber,
         amount: Number(amount),
-        plan: plan || client.plan,
+        plan: invoicePlan,
         dueDate: new Date(dueDate),
         notes,
         bankInfo,
@@ -92,8 +78,8 @@ export async function POST(request) {
       },
     })
 
-    const planLabelsFr = { FREE: "Gratuit", PRO: "Pro", ENTERPRISE: "Entreprise" }
-    const planLabelsAr = { FREE: "مجاني", PRO: "احترافي", ENTERPRISE: "مؤسسي" }
+    const planLabelFr = getInvoicePlanLabel(invoice.plan, "fr")
+    const planLabelAr = getInvoicePlanLabel(invoice.plan, "ar")
     const dueLabelFr = new Date(dueDate).toLocaleDateString("fr-MA", { month: "long", year: "numeric" })
     const dueLabelAr = new Date(dueDate).toLocaleDateString("ar-MA", { month: "long", year: "numeric" })
     await prisma.notification.create({
@@ -101,7 +87,7 @@ export async function POST(request) {
         userId:  clientId,
         type:    "SYSTEM",
         title:   `fr:Nouvelle facture - ${dueLabelFr}||ar:فاتورة جديدة - ${dueLabelAr}`,
-        message: `fr:Facture N° ${invoiceNumber} — ${Number(amount)} DH (${planLabelsFr[invoice.plan] || invoice.plan}). Échéance: ${dueLabelFr}.||ar:فاتورة رقم ${invoiceNumber} — ${Number(amount)} درهم (${planLabelsAr[invoice.plan] || invoice.plan}). الاستحقاق: ${dueLabelAr}.`,
+        message: `fr:Facture N° ${invoiceNumber} — ${Number(amount)} DH (${planLabelFr}). Échéance: ${dueLabelFr}.||ar:فاتورة رقم ${invoiceNumber} — ${Number(amount)} درهم (${planLabelAr}). الاستحقاق: ${dueLabelAr}.`,
       },
     })
 

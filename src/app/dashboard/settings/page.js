@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useAgentStore } from "@/store/agentStore"
-import { productsAPI, servicesAPI } from "@/lib/api"
+import { productsAPI } from "@/lib/api"
 import { getToken } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
-import { Loader2, Package, Clock, Store, Eye, EyeOff, Sparkles, Zap, Heart, Crown, Flame, Wrench, Maximize2, XCircle, Truck } from "lucide-react"
+import { Loader2, Package, Clock, Store, Eye, EyeOff, Sparkles, Zap, Heart, Crown, Flame, Maximize2, XCircle, Truck } from "lucide-react"
 import {
   Bot, Save, Plus, Trash2, MessageCircle,
   Settings, Shield, Bell, Phone, CalendarCheck,
@@ -45,9 +45,9 @@ function Field({ label, hint, icon: Icon, children, delay = 0 }) {
 
 function Section({ title, children, className = "", delay = 0 }) {
   const [isHovered, setIsHovered] = useState(false)
-  
+
   return (
-    <div 
+    <div
       className={cn(
         "group relative bg-card border border-border rounded-2xl overflow-hidden",
         "transition-all duration-300 ease-out",
@@ -107,13 +107,13 @@ function Toggle({ on, onToggle, label, sub }) {
 
 function AnimatedButton({ children, onClick, disabled, variant = "primary", className = "" }) {
   const [isPressed, setIsPressed] = useState(false)
-  
+
   const variants = {
     primary: "bg-brand-600 text-white shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40",
     secondary: "bg-secondary border border-border hover:border-brand-600/30 hover:bg-secondary/80",
     danger: "bg-brand-600/10 border border-brand-600/20 text-brand-600 hover:bg-brand-600/20",
   }
-  
+
   return (
     <button
       onClick={onClick}
@@ -146,6 +146,46 @@ const inputCls = `
 
 const textareaCls = inputCls + " resize-none leading-relaxed min-h-[80px]"
 
+const replyDelayOptions = [
+  { value: "instant", seconds: "0s" },
+  { value: "short", seconds: "3-7s" },
+  { value: "natural", seconds: "8-18s" },
+  { value: "custom", seconds: "0-20s" },
+]
+
+const replyDelayCopy = {
+  ar: {
+    title: "توقيت رد الوكيل",
+    hint: "اختار واش الوكيل يجاوب مباشرة أو يتأخر قليلاً باش يبان الرد طبيعي.",
+    instant: "فوري",
+    short: "قصير",
+    natural: "طبيعي",
+    custom: "مخصص",
+    min: "أقل تأخير",
+    max: "أقصى تأخير",
+    seconds: "ثانية",
+    customHint: "القيمة القصوى محدودة حالياً في 20 ثانية.",
+  },
+  fr: {
+    title: "Timing des reponses",
+    hint: "Choisissez si l'agent repond instantanement ou avec un delai naturel.",
+    instant: "Instant",
+    short: "Court",
+    natural: "Naturel",
+    custom: "Personnalise",
+    min: "Delai min",
+    max: "Delai max",
+    seconds: "secondes",
+    customHint: "Le delai maximum est limite a 20 secondes pour le moment.",
+  },
+}
+
+function clampReplyDelayInput(value) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return 0
+  return Math.min(20, Math.max(0, Math.round(number)))
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MODAL COMPONENT
 // ═══════════════════════════════════════════════════════════════
@@ -153,19 +193,17 @@ const textareaCls = inputCls + " resize-none leading-relaxed min-h-[80px]"
 function TextareaModal({ isOpen, onClose, title, value, onChange, placeholder, hint }) {
   const { t } = useLanguage()
   const [localValue, setLocalValue] = useState(value)
-  
-  useEffect(() => { setLocalValue(value) }, [value, isOpen])
-  
+
   if (!isOpen) return null
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-2xl border border-border rounded-2xl shadow-2xl animate-slideUp"
            style={{ backgroundColor: 'var(--modal-surface)' }}>
@@ -175,14 +213,14 @@ function TextareaModal({ isOpen, onClose, title, value, onChange, placeholder, h
             <span className="w-1 h-4 rounded-full bg-brand-600" />
             <p className="text-sm font-bold text-foreground/80">{title}</p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             ✕
           </button>
         </div>
-        
+
         {/* Content */}
         <div className="p-5">
           {hint && (
@@ -199,7 +237,7 @@ function TextareaModal({ isOpen, onClose, title, value, onChange, placeholder, h
             autoFocus
           />
         </div>
-        
+
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-border/50 bg-secondary/30">
           <button
@@ -224,12 +262,8 @@ function TextareaModal({ isOpen, onClose, title, value, onChange, placeholder, h
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-function isValidDomain(domain) {
-  if (!domain) return false
-  // Support subdomains like app.example.com
-  const validDomainPattern = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])\.[a-zA-Z]{2,}$/
-  return validDomainPattern.test(domain)
-}
+// Note: `agent.domain` stores a business category (e.g. "ملابس"), not a URL/FQDN.
+// The old isValidDomain helper was removed — its FQDN check was semantically wrong here.
 
 /* ─────────────────────────────────────────────────────────────
    SettingsSkeleton
@@ -382,6 +416,11 @@ function WorkhoursTabSk() {
             <FieldSk labelW={30} />
           </div>
           <FieldSk labelW={150} textarea />
+          <div className="grid grid-cols-2 gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <Sk key={i} w="100%" h={54} r={12} className={i === 0 ? "" : "opacity-65"} />
+            ))}
+          </div>
           <Sk w="100%" h={42} r={10} className="bg-brand-600 opacity-55" />
         </div>
       </SectionShell>
@@ -679,13 +718,10 @@ export default function SettingsPage() {
   const [workStart, setWorkStart] = useState("09:00")
   const [workEnd, setWorkEnd] = useState("18:00")
   const [offlineMessage, setOfflineMessage] = useState("")
+  const [replyDelayMode, setReplyDelayMode] = useState("instant")
+  const [replyDelayMinSeconds, setReplyDelayMinSeconds] = useState(0)
+  const [replyDelayMaxSeconds, setReplyDelayMaxSeconds] = useState(0)
   const [welcomeMessage, setWelcomeMessage] = useState("")
-  const [serviceWelcomeMessage, setServiceWelcomeMessage] = useState("")
-  const [outboundEnabled, setOutboundEnabled] = useState(false)
-  const [outboundTemplate, setOutboundTemplate] = useState("")
-  const [appointmentConfirmMessage, setAppointmentConfirmMessage] = useState("")
-  const [appointmentReminderMessage, setAppointmentReminderMessage] = useState("")
-  const [appointmentCancellationMessage, setAppointmentCancellationMessage] = useState("")
   const [orderConfirmMessage, setOrderConfirmMessage] = useState("")
   const [orderShipMessage, setOrderShipMessage] = useState("")
   const [orderDeliverMessage, setOrderDeliverMessage] = useState("")
@@ -693,8 +729,10 @@ export default function SettingsPage() {
   const [trackingUrlTemplate, setTrackingUrlTemplate] = useState("")
   const [whatsappForm, setWhatsappForm] = useState({ whatsappPhoneId: "", whatsappToken: "" })
   const [showToken, setShowToken] = useState(false)
+  const [testingWA, setTestingWA] = useState(false)
+  const [savingWA, setSavingWA] = useState(false)
   const [products, setProducts] = useState([])
-  const [services, setServices] = useState([])
+  const [productsLoaded, setProductsLoaded] = useState(false)
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false)
@@ -729,7 +767,7 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  useEffect(() => { fetchAgent(); fetchProducts(); fetchServices(); fetchUser() }, [fetchAgent])
+  useEffect(() => { fetchAgent(); fetchProducts(); fetchUser() }, [fetchAgent])
 
   async function fetchUser() {
     try {
@@ -769,56 +807,63 @@ export default function SettingsPage() {
         language: agent.language || "darija",
         instructions: agent.instructions || "",
         productInstructions: agent.productInstructions || "",
-        serviceInstructions: agent.serviceInstructions || "",
         selectedProductId: agent.selectedProductId || "",
-        selectedServiceId: agent.selectedServiceId || "",
-        mode: agent.mode || "product"
       })
       setWorkHoursEnabled(agent.workHoursEnabled || false)
       setWorkStart(agent.workStart || "09:00")
       setWorkEnd(agent.workEnd || "18:00")
       setOfflineMessage(agent.offlineMessage || "")
+      setReplyDelayMode(agent.replyDelayMode || "instant")
+      setReplyDelayMinSeconds(clampReplyDelayInput(agent.replyDelayMinSeconds || 0))
+      setReplyDelayMaxSeconds(clampReplyDelayInput(agent.replyDelayMaxSeconds || 0))
       setWelcomeMessage(agent.welcomeMessage || "")
-      setServiceWelcomeMessage(agent.serviceWelcomeMessage || "")
-      setAppointmentConfirmMessage(agent.appointmentConfirmMessage || "")
-      setAppointmentReminderMessage(agent.appointmentReminderMessage || "")
-      setAppointmentCancellationMessage(agent.appointmentCancellationMessage || "")
       setOrderConfirmMessage(agent.orderConfirmMessage || "")
       setOrderShipMessage(agent.orderShipMessage || "")
       setOrderDeliverMessage(agent.orderDeliverMessage || "")
       setOrderCancelledMessage(agent.orderCancelledMessage || "")
       setTrackingUrlTemplate(agent.trackingUrlTemplate || "")
-      setOutboundEnabled(agent.outboundEnabled || false)
-      setOutboundTemplate(agent.outboundTemplate || "")
       setWhatsappForm({ whatsappPhoneId: agent.whatsappPhoneId || "", whatsappToken: agent.whatsappToken || "" })
     }
   }, [agent])
 
+  useEffect(() => {
+    if (!productsLoaded || !localAgent?.selectedProductId) return
+    const selectedProductStillActive = products.some((product) => product.id === localAgent.selectedProductId)
+    if (!selectedProductStillActive) {
+      setLocalAgent((prev) => ({ ...prev, selectedProductId: null }))
+    }
+  }, [productsLoaded, products, localAgent?.selectedProductId])
+
   async function handleSaveAgent() {
     try {
       setSaving(true)
-      await updateAgent({
+      const success = await updateAgent({
         ...localAgent,
         workHoursEnabled, workStart, workEnd, offlineMessage,
+        replyDelayMode,
+        replyDelayMinSeconds: clampReplyDelayInput(replyDelayMinSeconds),
+        replyDelayMaxSeconds: clampReplyDelayInput(replyDelayMaxSeconds),
         welcomeMessage: welcomeMessage?.trim() || null,
-        serviceWelcomeMessage: serviceWelcomeMessage?.trim() || null,
-        appointmentConfirmMessage, appointmentReminderMessage,
-        appointmentCancellationMessage,
         orderConfirmMessage, orderShipMessage, orderDeliverMessage, orderCancelledMessage,
         trackingUrlTemplate,
-        outboundEnabled,
-        outboundTemplate: outboundTemplate?.trim() || null,
       })
+      if (success === false) throw new Error("update failed")
       showToast(t('settings.toast_saved'))
-    } catch (err) { console.error(err) } finally { setSaving(false) }
+    } catch (err) {
+      console.error("Save agent failed:", err)
+      showToast(t('settings.toast_save_failed') || "فشل الحفظ — حاول مرة أخرى", "error")
+    } finally { setSaving(false) }
   }
 
   async function fetchProducts() {
-    try { const r = await productsAPI.getAll(); setProducts(r.data || []) } catch (err) { console.error(err) }
-  }
-
-  async function fetchServices() {
-    try { const r = await servicesAPI.getAll(); setServices(r.data || []) } catch (err) { console.error(err) }
+    try {
+      const r = await productsAPI.getAll({ active: true })
+      setProducts(r.data || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setProductsLoaded(true)
+    }
   }
 
   async function handleAddObjection() {
@@ -851,10 +896,13 @@ export default function SettingsPage() {
   }
 
   async function handleTestWhatsAppConnection() {
-    if (!whatsappForm.whatsappPhoneId || !whatsappForm.whatsappToken) {
+    const phoneId = whatsappForm.whatsappPhoneId?.trim()
+    const waToken = whatsappForm.whatsappToken?.trim()
+    if (!phoneId || !waToken) {
       showToast(t('settings.toast_enter_creds'), "error")
       return
     }
+    setTestingWA(true)
     try {
       const token = getToken()
       if (!token) {
@@ -863,14 +911,11 @@ export default function SettingsPage() {
       }
       const response = await fetch('/api/whatsapp/test-connection', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          phoneId: whatsappForm.whatsappPhoneId,
-          token: whatsappForm.whatsappToken
-        })
+        body: JSON.stringify({ phoneId, token: waToken })
       })
       const data = await response.json()
       if (data.success) {
@@ -879,7 +924,10 @@ export default function SettingsPage() {
         showToast(t('settings.toast_wa_fail') + (data.error || ""), "error")
       }
     } catch (err) {
+      console.error("WA test failed:", err)
       showToast(t('settings.toast_server_error'), "error")
+    } finally {
+      setTestingWA(false)
     }
   }
 
@@ -892,13 +940,11 @@ export default function SettingsPage() {
   const domain = localAgent.domain || ""
   const style = localAgent.style || "friendly"
   const language = localAgent.language || "darija"
-  const mode = localAgent.mode || "product"
   const isActive = agent?.isActive || false
   const instructions = localAgent.instructions || ""
   const productInstructions = localAgent.productInstructions || ""
-  const serviceInstructions = localAgent.serviceInstructions || ""
-  const modeInstructions = mode === "service" ? serviceInstructions : productInstructions
   const objectionReplies = agent?.objectionReplies || []
+  const delayText = uiLang === "fr" ? replyDelayCopy.fr : replyDelayCopy.ar
 
   const orderPh = uiLang === "fr" ? {
     confirm: "Bonjour {name} !\nVotre commande ({product}) a été confirmée avec succès.",
@@ -906,20 +952,10 @@ export default function SettingsPage() {
     deliver: "Bonjour {name} ! Nous espérons que {product} vous satisfait.",
     cancel:  "Bonjour {name}, malheureusement votre commande ({product}) a été annulée ❌...",
   } : {
-    confirm: "مرحباً {name}!\nتم تأكيد طلبيتك ({product}) بنجاح",
-    ship:    "طلبيتك ({product}) في الطريق\nمرحباً {name}!",
-    deliver: "مرحباً {name}! نتمى أن تكون راضياً عن {product}",
-    cancel:  "مرحبا {name}، للأسف تم إلغاء طلبيتك ❌...",
-  }
-
-  const apptPh = uiLang === "fr" ? {
-    confirm:  "Bonjour {name} ! ✅\nVotre rendez-vous ({service}) est confirmé.\n📅 {date} à {time}\nNous vous attendons ! 😊",
-    reminder: "Bonjour {name} ! ⏰\nRappel : votre rendez-vous ({service}) est demain.\n📅 {date} à {time}",
-    cancel:   "Bonjour {name},\nNous sommes désolés, votre rendez-vous ({service}) du {date} a été annulé. ❌\nContactez-nous pour replanifier.",
-  } : {
-    confirm:  "مرحباً {name}! ✅\nتم تأكيد موعدك ({service}).\n📅 {date} في {time}\nننتظرك! 😊",
-    reminder: "مرحباً {name}! ⏰\nتذكير: موعدك ({service}) غداً.\n📅 {date} في {time}",
-    cancel:   "مرحباً {name},\nنأسف لإبلاغك بإلغاء موعدك ({service}) في {date}. ❌\nتواصل معنا لإعادة الجدولة.",
+    confirm: "مرحبا {name}!\nأكدنا ليك الطلبية ديالك ({product}). المجموع: {amount} DH",
+    ship:    "مرحبا {name}!\nطلبية ({product}) خرجات للتوصيل. رقم التتبع: {tracking}",
+    deliver: "مرحبا {name}!\nتوصلتي بطلبية ({product}). نتمنى تكون عجباتك",
+    cancel:  "مرحبا {name}، لغينا ليك الطلبية ديال ({product}) ❌",
   }
 
   if (loading) return <SettingsSkeleton activeTab={activeTab} />
@@ -939,15 +975,23 @@ export default function SettingsPage() {
     { key: "persuasive", label: t('settings.persuasive_short'), icon: Flame },
   ]
   const langOptions = [
+    { key: "auto", label: t('settings.lang_auto') || "تلقائي (يتبع الزبون)" },
     { key: "darija", label: t('settings.lang_darija') },
     { key: "arabic", label: t('settings.lang_arabic') },
     { key: "french", label: t('settings.lang_french') },
   ]
 
+  const productAgentHint = isRTL
+    ? "اختياري: اختار منتج رئيسي نشيط، أو خليه تلقائي باش Agent يبيع جميع المنتجات النشيطة ويرسل الصور الصحيحة حسب طلب الزبون."
+    : "Optionnel : choisissez un produit principal actif, ou laissez auto pour vendre tous les produits actifs et envoyer les bonnes images selon la demande du client."
+  const allProductsAutoLabel = isRTL
+    ? "جميع المنتجات النشيطة (تلقائي)"
+    : "Tous les produits actifs (auto)"
+
   const isWAConnected = !!(whatsappForm.whatsappPhoneId && whatsappForm.whatsappToken)
 
   // Webhook URL from environment
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://wakil.vercel.app"
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://wakil.ma"
   const webhookUrl = `${APP_URL}/api/webhook/whatsapp`
 
   return (
@@ -1049,44 +1093,20 @@ export default function SettingsPage() {
                   <select value={domain}
                     onChange={(e) => setLocalAgent({ ...localAgent, domain: e.target.value })}
                     className={inputCls}>
-                    {mode === "service"
-                      ? [t('settings.domain_beauty'),t('settings.domain_health'),t('settings.domain_medical'),t('settings.domain_restaurant'),t('settings.domain_cleaning'),t('settings.domain_hotel'),t('settings.domain_other')].map(d => (
-                          <option key={d}>{d}</option>
-                        ))
-                      : [t('settings.domain_clothing'),t('settings.domain_electronics'),t('settings.domain_perfumes'),t('settings.domain_food'),t('settings.domain_jewelry'),t('settings.domain_furniture'),t('settings.domain_other')].map(d => (
-                          <option key={d}>{d}</option>
-                        ))
-                    }
+                    {[
+                      t('settings.domain_clothing'),
+                      t('settings.domain_electronics'),
+                      t('settings.domain_perfumes'),
+                      t('settings.domain_food'),
+                      t('settings.domain_jewelry'),
+                      t('settings.domain_furniture'),
+                      t('settings.domain_other'),
+                    ].map(d => (
+                      <option key={d}>{d}</option>
+                    ))}
                   </select>
                 </Field>
               </div>
-              {/* وضع العمل */}
-              <Field label={t('settings.work_mode')} icon={Package}
-                hint={t('settings.work_mode_hint')}>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setLocalAgent({ ...localAgent, mode: "product" })}
-                    className={cn(
-                      "py-2.5 rounded-xl text-sm border transition-all duration-200 font-medium",
-                      mode !== "service"
-                        ? "bg-brand-600 text-white border-brand-600 shadow-md shadow-brand-600/25"
-                        : "border-border text-muted-foreground hover:bg-secondary hover:border-brand-300/60"
-                    )}>
-                    {t('settings.products_btn')}
-                  </button>
-                  <button
-                    onClick={() => setLocalAgent({ ...localAgent, mode: "service" })}
-                    className={cn(
-                      "py-2.5 rounded-xl text-sm border transition-all duration-200 font-medium",
-                      mode === "service"
-                        ? "bg-brand-600 text-white border-brand-600 shadow-md shadow-brand-600/25"
-                        : "border-border text-muted-foreground hover:bg-secondary hover:border-brand-300/60"
-                    )}>
-                    {t('settings.services_btn')}
-                  </button>
-                </div>
-              </Field>
-
               {/* أسلوب + لغة */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label={t('settings.style_label')}>
@@ -1114,7 +1134,7 @@ export default function SettingsPage() {
                 </Field>
 
                 <Field label={t('settings.lang_label')}>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {langOptions.map((l) => (
                       <button key={l.key}
                         onClick={() => setLocalAgent({ ...localAgent, language: l.key })}
@@ -1131,65 +1151,33 @@ export default function SettingsPage() {
                 </Field>
               </div>
 
-              {/* المنتج / الخدمة */}
-              {mode === "service" ? (
-                <Field label={t('settings.service_agent')} icon={Wrench}
-                  hint={t('settings.service_agent_hint')}>
-                  <select value={localAgent?.selectedServiceId || ""}
-                    onChange={(e) => setLocalAgent({ ...localAgent, selectedServiceId: e.target.value || null })}
-                    className={inputCls}>
-                    <option value="">{t('settings.all_services_auto')}</option>
-                    {services.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name} - {s.price} {t('settings.currency')} ({s.duration}{t('settings.min_abbr')})</option>
-                    ))}
-                  </select>
-                </Field>
-              ) : (
-                <Field label={t('settings.product_agent')} icon={Package}
-                  hint={t('settings.product_agent_hint')}>
-                  <select value={localAgent?.selectedProductId || ""}
-                    onChange={(e) => setLocalAgent({ ...localAgent, selectedProductId: e.target.value || null })}
-                    className={inputCls}>
-                    <option value="">{t('settings.all_products_auto')}</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} - {p.price} {t('settings.currency')}</option>
-                    ))}
-                  </select>
-                </Field>
-              )}
+              {/* المنتج المختار */}
+              <Field label={t('settings.product_agent')} icon={Package}
+                hint={productAgentHint}>
+                <select value={localAgent?.selectedProductId || ""}
+                  onChange={(e) => setLocalAgent({ ...localAgent, selectedProductId: e.target.value || null })}
+                  className={inputCls}>
+                  <option value="">{allProductsAutoLabel}</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name} - {p.price} {t('settings.currency')}</option>
+                  ))}
+                </select>
+              </Field>
 
-              {/* تعليمات خاصة حسب الوضع (منتجات / خدمات) */}
-              <Field label={mode === "service" ? (t('settings.service_instructions_label') || t('settings.instructions_label')) : (t('settings.product_instructions_label') || t('settings.instructions_label'))}>
+              {/* تعليمات عامة للوكيل */}
+              <Field label={t('settings.instructions_label')}>
                 <div className="relative">
-                  <textarea value={modeInstructions} rows={4}
-                    onChange={(e) => setLocalAgent({
-                      ...localAgent,
-                      ...(mode === "service"
-                        ? { serviceInstructions: e.target.value }
-                        : { productInstructions: e.target.value }
-                      )
-                    })}
-                    placeholder={mode === "service"
-                      ? (t('settings.service_instructions_hint') || t('settings.instructions_hint'))
-                      : (t('settings.product_instructions_hint') || t('settings.instructions_hint'))
-                    }
+                  <textarea value={instructions} rows={4}
+                    onChange={(e) => setLocalAgent({ ...localAgent, instructions: e.target.value })}
+                    placeholder={t('settings.instructions_hint')}
                     className={cn(textareaCls, "pr-10")} />
                   <button
                     onClick={() => { setModalConfig({
-                      title: mode === "service"
-                        ? (t('settings.service_instructions_label') || t('settings.instructions_label'))
-                        : (t('settings.product_instructions_label') || t('settings.instructions_label')),
-                      value: modeInstructions,
-                      placeholder: mode === "service"
-                        ? (t('settings.service_instructions_hint') || t('settings.instructions_hint'))
-                        : (t('settings.product_instructions_hint') || t('settings.instructions_hint')),
-                      hint: mode === "service"
-                        ? (t('settings.service_instructions_hint') || t('settings.instructions_hint'))
-                        : (t('settings.product_instructions_hint') || t('settings.instructions_hint')),
-                      onSave: (val) => setLocalAgent({
-                        ...localAgent,
-                        ...(mode === "service" ? { serviceInstructions: val } : { productInstructions: val })
-                      })
+                      title: t('settings.instructions_label'),
+                      value: instructions,
+                      placeholder: t('settings.instructions_hint'),
+                      hint: t('settings.instructions_hint'),
+                      onSave: (val) => setLocalAgent({ ...localAgent, instructions: val })
                     }); setModalOpen(true); }}
                     className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
                     title={t('settings.expand')}
@@ -1199,61 +1187,58 @@ export default function SettingsPage() {
                 </div>
               </Field>
 
-              {/* رسالة الترحيب — حسب الوضع */}
-              {mode === "service" ? (
-                <Field label={t('settings.service_welcome_msg') || "رسالة ترحيب الخدمات"} icon={MessageCircle}
-                  hint={t('settings.service_welcome_msg_hint') || "يُستخدم {name} لاسم الزبون — تُرسل كأول رد للعميل في وضع الخدمات"}>
-                  <div className="relative">
-                    <textarea value={serviceWelcomeMessage} rows={3}
-                      onChange={(e) => setServiceWelcomeMessage(e.target.value)}
-                      placeholder={t('settings.service_welcome_msg_placeholder') || "مرحبا {name} 👋 كيفاش نقدر نعاونك اليوم؟"}
-                      className={cn(textareaCls, "pr-10")} />
-                    <button
-                      onClick={() => { setModalConfig({
-                        title: t('settings.service_welcome_msg') || "رسالة ترحيب الخدمات",
-                        value: serviceWelcomeMessage,
-                        placeholder: t('settings.service_welcome_msg_placeholder') || "مرحبا {name} 👋 كيفاش نقدر نعاونك اليوم؟",
-                        hint: t('settings.service_welcome_msg_hint') || "يُستخدم {name} لاسم الزبون — تُرسل كأول رد للعميل في وضع الخدمات",
-                        onSave: (val) => setServiceWelcomeMessage(val)
-                      }); setModalOpen(true); }}
-                      className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
-                      title={t('settings.expand')}
-                    >
-                      <Maximize2 size={16} />
-                    </button>
-                  </div>
-                </Field>
-              ) : (
-                <Field label={t('settings.welcome_msg') || "رسالة الترحيب"} icon={MessageCircle}
-                  hint={t('settings.welcome_msg_hint') || "يُستخدم {name} لاسم الزبون — تُرسل كأول رد فقط، ثم يتولى AI الباقي"}>
-                  <div className="relative">
-                    <textarea value={welcomeMessage} rows={3}
-                      onChange={(e) => setWelcomeMessage(e.target.value)}
-                      placeholder={t('settings.welcome_msg_placeholder') || "مرحبا {name} 👋 أنا مساعد المتجر، كيف نقدر نعاونك اليوم؟"}
-                      className={cn(textareaCls, "pr-10")} />
-                    <button
-                      onClick={() => { setModalConfig({
-                        title: t('settings.welcome_msg') || "رسالة الترحيب",
-                        value: welcomeMessage,
-                        placeholder: t('settings.welcome_msg_placeholder') || "مرحبا {name} 👋 أنا مساعد المتجر، كيف نقدر نعاونك اليوم؟",
-                        hint: t('settings.welcome_msg_hint') || "يُستخدم {name} لاسم الزبون — تُرسل كأول رد فقط، ثم يتولى AI الباقي",
-                        onSave: (val) => setWelcomeMessage(val)
-                      }); setModalOpen(true); }}
-                      className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
-                      title={t('settings.expand')}
-                    >
-                      <Maximize2 size={16} />
-                    </button>
-                  </div>
-                </Field>
-              )}
+              {/* تعليمات المنتج */}
+              <Field label={t('settings.product_instructions_label') || t('settings.instructions_label')}>
+                <div className="relative">
+                  <textarea value={productInstructions} rows={4}
+                    onChange={(e) => setLocalAgent({ ...localAgent, productInstructions: e.target.value })}
+                    placeholder={t('settings.product_instructions_hint') || t('settings.instructions_hint')}
+                    className={cn(textareaCls, "pr-10")} />
+                  <button
+                    onClick={() => { setModalConfig({
+                      title: t('settings.product_instructions_label') || t('settings.instructions_label'),
+                      value: productInstructions,
+                      placeholder: t('settings.product_instructions_hint') || t('settings.instructions_hint'),
+                      hint: t('settings.product_instructions_hint') || t('settings.instructions_hint'),
+                      onSave: (val) => setLocalAgent({ ...localAgent, productInstructions: val })
+                    }); setModalOpen(true); }}
+                    className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
+                    title={t('settings.expand')}
+                  >
+                    <Maximize2 size={16} />
+                  </button>
+                </div>
+              </Field>
+
+              {/* رسالة الترحيب */}
+              <Field label={t('settings.welcome_msg') || "رسالة الترحيب (اختياري)"} icon={MessageCircle}
+                hint={t('settings.welcome_msg_hint') || "اختياري: إذا تركته فارغاً، AI يرحب تلقائياً بأسلوب طبيعي حسب لغة الزبون. استعمل {name} لاسم الزبون."}>
+                <div className="relative">
+                  <textarea value={welcomeMessage} rows={3}
+                    onChange={(e) => setWelcomeMessage(e.target.value)}
+                    placeholder={t('settings.welcome_msg_placeholder') || "فارغ = AI يرحب تلقائياً. مثال: مرحبا {name} ✨ أهلا بيك في [اسم متجرك]!"}
+                    className={cn(textareaCls, "pr-10")} />
+                  <button
+                    onClick={() => { setModalConfig({
+                      title: t('settings.welcome_msg') || "رسالة الترحيب (اختياري)",
+                      value: welcomeMessage,
+                      placeholder: t('settings.welcome_msg_placeholder') || "فارغ = AI يرحب تلقائياً. مثال: مرحبا {name} ✨ أهلا بيك في [اسم متجرك]!",
+                      hint: t('settings.welcome_msg_hint') || "اختياري: إذا تركته فارغاً، AI يرحب تلقائياً بأسلوب طبيعي حسب لغة الزبون.",
+                      onSave: (val) => setWelcomeMessage(val)
+                    }); setModalOpen(true); }}
+                    className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
+                    title={t('settings.expand')}
+                  >
+                    <Maximize2 size={16} />
+                  </button>
+                </div>
+              </Field>
 
             </div>
           </Section>
 
-          {/* الرسائل التلقائية — فقط في وضع المنتجات */}
-          {mode !== "service" && (
-            <Section title={t('settings.order_messages')}>
+          {/* الرسائل التلقائية للطلبيات */}
+          <Section title={t('settings.order_messages')}>
               <div className="flex flex-col gap-4">
                 {/* رابط التتبع من شركة التوصيل */}
                 <Field label={t('settings.tracking_url_template') || "رابط التتبع من شركة التوصيل"} icon={Truck}
@@ -1359,145 +1344,6 @@ export default function SettingsPage() {
                   </div>
                 </Field>
               </div>
-            </Section>
-          )}
-
-          {/* الرسائل التلقائية — فقط في وضع الخدمات */}
-          {mode === "service" && (
-            <Section title={t('settings.appt_messages')}>
-              <div className="flex flex-col gap-4">
-                <Field label={t('settings.appt_confirm_msg')} icon={CalendarCheck}
-                  hint={t('settings.appt_confirm_hint')}>
-                  <div className="relative">
-                    <textarea value={appointmentConfirmMessage} rows={3}
-                      onChange={(e) => setAppointmentConfirmMessage(e.target.value)}
-                      placeholder={apptPh.confirm}
-                      className={cn(textareaCls, "pr-10")} />
-                    <button
-                      onClick={() => { setModalConfig({
-                        title: t('settings.appt_confirm_msg'),
-                        value: appointmentConfirmMessage,
-                        placeholder: apptPh.confirm,
-                        hint: t('settings.appt_confirm_hint'),
-                        onSave: (val) => setAppointmentConfirmMessage(val)
-                      }); setModalOpen(true); }}
-                      className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
-                      title={t('settings.expand')}
-                    >
-                      <Maximize2 size={16} />
-                    </button>
-                  </div>
-                </Field>
-
-                <Field label={t('settings.appt_reminder_msg')} icon={Bell}
-                  hint={t('settings.appt_reminder_hint')}>
-                  <div className="relative">
-                    <textarea value={appointmentReminderMessage} rows={3}
-                      onChange={(e) => setAppointmentReminderMessage(e.target.value)}
-                      placeholder={apptPh.reminder}
-                      className={cn(textareaCls, "pr-10")} />
-                    <button
-                      onClick={() => { setModalConfig({
-                        title: t('settings.appt_reminder_msg'),
-                        value: appointmentReminderMessage,
-                        placeholder: apptPh.reminder,
-                        hint: t('settings.appt_reminder_hint'),
-                        onSave: (val) => setAppointmentReminderMessage(val)
-                      }); setModalOpen(true); }}
-                      className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
-                      title={t('settings.expand')}
-                    >
-                      <Maximize2 size={16} />
-                    </button>
-                  </div>
-                </Field>
-
-                <Field label={t('settings.appt_cancel_msg')} icon={Trash2}
-                  hint={t('settings.appt_cancel_hint')}>
-                  <div className="relative">
-                    <textarea value={appointmentCancellationMessage} rows={3}
-                      onChange={(e) => setAppointmentCancellationMessage(e.target.value)}
-                      placeholder={apptPh.cancel}
-                      className={cn(textareaCls, "pr-10")} />
-                    <button
-                      onClick={() => { setModalConfig({
-                        title: t('settings.appt_cancel_msg'),
-                        value: appointmentCancellationMessage,
-                        placeholder: apptPh.cancel,
-                        hint: t('settings.appt_cancel_hint'),
-                        onSave: (val) => setAppointmentCancellationMessage(val)
-                      }); setModalOpen(true); }}
-                      className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
-                      title={t('settings.expand')}
-                    >
-                      <Maximize2 size={16} />
-                    </button>
-                  </div>
-                </Field>
-              </div>
-            </Section>
-          )}
-
-          {/* ════════════════════════════════════════════════
-              Outbound Sales Settings
-             ════════════════════════════════════════════════ */}
-          <Section title={t('settings.outbound_title') || "إعدادات Outbound Sales 🚀"}>
-            <div className="flex flex-col gap-4">
-              <Toggle
-                on={outboundEnabled}
-                onToggle={() => setOutboundEnabled(!outboundEnabled)}
-                label={t('settings.outbound_enable') || "تفعيل Outbound Sales"}
-                sub={t('settings.outbound_enable_sub') || "السماح بإرسال عروض للزبائن المحتملين"}
-              />
-
-              {outboundEnabled && (
-                <div className="pt-4 border-t border-border/60">
-                  <Field
-                    label={t('settings.outbound_template') || "Template رسالة Outbound"}
-                    icon={MessageCircle}
-                    hint={t('settings.outbound_template_hint') || "المتغيرات: {name}, {product}, {service}, {price}"}
-                  >
-                    <div className="relative">
-                      <textarea
-                        value={outboundTemplate}
-                        onChange={(e) => setOutboundTemplate(e.target.value)}
-                        rows={4}
-                        placeholder={(() => {
-                          const lang = localAgent.language || "darija"
-                          if (lang === "french") {
-                            return "Bonjour {name}! 👋\nNous avons {product} à {price} DH.\nÇa vous intéresse?"
-                          }
-                          return "مرحبا {name}! 👋\nعندنا {product} بـ {price} درهم.\nواش تحب تعرف أكثر؟"
-                        })()}
-                        className={cn(textareaCls, "pr-10")}
-                      />
-                      <button
-                        onClick={() => {
-                          setModalConfig({
-                            title: t('settings.outbound_template') || "Template رسالة Outbound",
-                            value: outboundTemplate,
-                            placeholder: (() => {
-                              const lang = localAgent.language || "darija"
-                              if (lang === "french") {
-                                return "Bonjour {name}! 👋\nNous avons {product} à {price} DH.\nÇa vous intéresse?"
-                              }
-                              return "مرحبا {name}! 👋\nعندنا {product} بـ {price} درهم.\nواش تحب تعرف أكثر؟"
-                            })(),
-                            hint: t('settings.outbound_template_hint') || "المتغيرات: {name}, {product}, {service}, {price}",
-                            onSave: (val) => setOutboundTemplate(val)
-                          })
-                          setModalOpen(true)
-                        }}
-                        className={cn("absolute top-3 text-muted-foreground hover:text-brand-600 transition-colors", isRTL ? "left-3" : "right-3")}
-                        title={t('settings.expand')}
-                      >
-                        <Maximize2 size={16} />
-                      </button>
-                    </div>
-                  </Field>
-                </div>
-              )}
-            </div>
           </Section>
 
           <button onClick={handleSaveAgent} disabled={saving}
@@ -1538,6 +1384,79 @@ export default function SettingsPage() {
                   className={textareaCls} />
               </Field>
 
+              <Field label={delayText.title} icon={Clock} hint={delayText.hint}>
+                <div className="grid grid-cols-2 gap-2">
+                  {replyDelayOptions.map((option) => {
+                    const active = replyDelayMode === option.value
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setReplyDelayMode(option.value)}
+                        className={cn(
+                          "rounded-xl border px-3 py-2.5 text-start transition-all",
+                          active
+                            ? "border-brand-600 bg-brand-600/10 text-brand-700 dark:text-brand-300"
+                            : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground hover:border-brand-600/30"
+                        )}
+                      >
+                        <span className="block text-sm font-semibold">{delayText[option.value]}</span>
+                        <span className="block text-[11px] mt-0.5">{option.seconds}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {replyDelayMode === "custom" && (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-[12px] font-medium text-muted-foreground">{delayText.min}</span>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          step="1"
+                          value={replyDelayMinSeconds}
+                          onChange={(e) => {
+                            const nextMin = clampReplyDelayInput(e.target.value)
+                            setReplyDelayMinSeconds(nextMin)
+                            setReplyDelayMaxSeconds((prev) => Math.max(nextMin, clampReplyDelayInput(prev)))
+                          }}
+                          className={cn(inputCls, "pr-16")}
+                        />
+                        <span className="absolute top-1/2 -translate-y-1/2 right-3 text-[11px] text-muted-foreground">
+                          {delayText.seconds}
+                        </span>
+                      </div>
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-[12px] font-medium text-muted-foreground">{delayText.max}</span>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="20"
+                          step="1"
+                          value={replyDelayMaxSeconds}
+                          onChange={(e) => {
+                            const nextMax = clampReplyDelayInput(e.target.value)
+                            setReplyDelayMaxSeconds(Math.max(replyDelayMinSeconds, nextMax))
+                          }}
+                          className={cn(inputCls, "pr-16")}
+                        />
+                        <span className="absolute top-1/2 -translate-y-1/2 right-3 text-[11px] text-muted-foreground">
+                          {delayText.seconds}
+                        </span>
+                      </div>
+                    </label>
+                    <p className="col-span-2 text-[12px] text-muted-foreground">
+                      {delayText.customHint}
+                    </p>
+                  </div>
+                )}
+              </Field>
+
               <button onClick={handleSaveAgent} disabled={saving}
                 className="w-full flex items-center gap-2 justify-center bg-brand-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-brand-700 active:scale-[0.98] transition-all disabled:opacity-50 shadow-md shadow-brand-600/25">
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -1556,7 +1475,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{t('settings.objection_desc')}</p>
                 <button onClick={() => setNewObjection({ trigger: "", reply: "" })} disabled={newObjection !== null}
-                  className="flex items-center gap-1.5 text-sm text-brand-600 font-semibold hover:text-brand-700 disabled:opacity-40 transition-colors bg-brand-600/8 hover:bg-brand-600/15 px-3 py-1.5 rounded-xl">
+                  className="flex items-center gap-1.5 text-sm text-brand-600 dark:text-brand-300 font-semibold hover:text-brand-700 dark:hover:text-brand-200 disabled:opacity-40 transition-colors bg-brand-600/8 hover:bg-brand-600/15 px-3 py-1.5 rounded-xl">
                   <Plus size={14} /> {t('settings.add_objection')}
                 </button>
               </div>
@@ -1691,21 +1610,21 @@ export default function SettingsPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-600" /> {t('settings.wa_guide')}
                 </p>
                 <div className="flex flex-col gap-2">
-                  <a href="https://developers.facebook.com/apps/1869784147010749/whatsapp-business-api/setup" 
+                  <a href="https://developers.facebook.com/apps/"
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 text-[12px] text-brand-600 hover:text-brand-800 hover:underline transition-colors">
                     <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">1</span>
                     <span>{t('settings.wa_step1')}</span>
                     <span className="text-[11px] opacity-60">{t('settings.wa_new_win')}</span>
                   </a>
-                  <a href="https://business.facebook.com/settings/system-users" 
+                  <a href="https://business.facebook.com/settings/system-users"
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 text-[12px] text-brand-600 hover:text-brand-800 hover:underline transition-colors">
                     <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">2</span>
                     <span>{t('settings.wa_step2')}</span>
                     <span className="text-[11px] opacity-60">(System User)</span>
                   </a>
-                  <a href="https://developers.facebook.com/apps/1869784147010749/whatsapp-business-api/webhooks" 
+                  <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks"
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 text-[12px] text-brand-600 hover:text-brand-800 hover:underline transition-colors">
                     <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">3</span>
@@ -1748,7 +1667,8 @@ export default function SettingsPage() {
                 </div>
               </Field>
 
-              {!isValidDomain(agent?.domain) && (
+              {/* Hint about webhook hosting — shows if app URL looks like a local/dev env */}
+              {(!APP_URL || APP_URL.includes("localhost") || APP_URL.includes("127.0.0.1")) && (
                 <div className="p-3 bg-brand-600/5 border border-brand-600/15 rounded-xl">
                   <p className="text-[11px] text-muted-foreground">
                     ℹ️ {t('settings.wa_env_hint')}
@@ -1770,16 +1690,33 @@ export default function SettingsPage() {
                 </div>
               </Field>
 
-              <button onClick={async () => {
-                const success = await updateAgent({ whatsappPhoneId: whatsappForm.whatsappPhoneId, whatsappToken: whatsappForm.whatsappToken })
-                if (success) showToast(t('settings.toast_wa_saved'))
-              }} className="w-full flex items-center gap-2 justify-center bg-brand-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-all shadow-md shadow-brand-600/25">
-                <Save size={15} /> {t('settings.save_whatsapp')}
+              <button
+                disabled={savingWA}
+                onClick={async () => {
+                  setSavingWA(true)
+                  try {
+                    const success = await updateAgent({
+                      whatsappPhoneId: whatsappForm.whatsappPhoneId?.trim(),
+                      whatsappToken: whatsappForm.whatsappToken?.trim(),
+                    })
+                    if (success === false) throw new Error("update failed")
+                    showToast(t('settings.toast_wa_saved'))
+                  } catch (err) {
+                    console.error("Save WhatsApp failed:", err)
+                    showToast(t('settings.toast_save_failed') || "فشل الحفظ", "error")
+                  } finally {
+                    setSavingWA(false)
+                  }
+                }}
+                className="w-full flex items-center gap-2 justify-center bg-brand-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-all shadow-md shadow-brand-600/25 disabled:opacity-50">
+                {savingWA ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                {savingWA ? t('settings.saving') : t('settings.save_whatsapp')}
               </button>
 
-              <button onClick={handleTestWhatsAppConnection}
-                className="w-full flex items-center gap-2 justify-center bg-secondary border border-border text-foreground py-3.5 rounded-xl text-sm font-semibold hover:bg-secondary/80 hover:border-brand-300/60 transition-all">
-                <Phone size={15} /> {t('settings.test_whatsapp')}
+              <button onClick={handleTestWhatsAppConnection} disabled={testingWA}
+                className="w-full flex items-center gap-2 justify-center bg-secondary border border-border text-foreground py-3.5 rounded-xl text-sm font-semibold hover:bg-secondary/80 hover:border-brand-300/60 transition-all disabled:opacity-50">
+                {testingWA ? <Loader2 size={15} className="animate-spin" /> : <Phone size={15} />}
+                {testingWA ? t('settings.testing') || "جاري الاختبار..." : t('settings.test_whatsapp')}
               </button>
             </div>
           </Section>
@@ -2025,6 +1962,7 @@ export default function SettingsPage() {
 
       {/* Textarea Modal */}
       <TextareaModal
+        key={`${modalConfig.title || "modal"}:${modalConfig.value || ""}`}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={modalConfig.title}

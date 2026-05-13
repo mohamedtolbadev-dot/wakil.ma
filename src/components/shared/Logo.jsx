@@ -2,12 +2,10 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { useTheme } from "next-themes"
+import { useAppTheme } from "@/hooks/useAppTheme"
 
 export function Logo({ href = "/" }) {
-  const { theme, resolvedTheme } = useTheme()
-  const currentTheme = resolvedTheme || theme
-  const isDark = currentTheme === "dark"
+  const { isDark } = useAppTheme()
 
   return (
     <Link href={href} dir="ltr" className="flex items-center">

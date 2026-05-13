@@ -6,6 +6,35 @@ import {
   unauthorizedResponse
 } from "@/lib/response"
 
+const ALLOWED_AGENT_LANGUAGES = new Set(["auto", "darija", "arabic", "french"])
+const ALLOWED_REPLY_DELAY_MODES = new Set(["instant", "short", "natural", "custom"])
+
+function clampReplyDelaySeconds(value) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return 0
+  return Math.min(20, Math.max(0, Math.round(number)))
+}
+
+function normalizeReplyDelay({ mode, minSeconds, maxSeconds }) {
+  const normalizedMode = ALLOWED_REPLY_DELAY_MODES.has(mode) ? mode : "instant"
+
+  if (normalizedMode === "short") {
+    return { replyDelayMode: "short", replyDelayMinSeconds: 3, replyDelayMaxSeconds: 7 }
+  }
+
+  if (normalizedMode === "natural") {
+    return { replyDelayMode: "natural", replyDelayMinSeconds: 8, replyDelayMaxSeconds: 18 }
+  }
+
+  if (normalizedMode === "custom") {
+    const min = clampReplyDelaySeconds(minSeconds)
+    const max = Math.max(min, clampReplyDelaySeconds(maxSeconds))
+    return { replyDelayMode: "custom", replyDelayMinSeconds: min, replyDelayMaxSeconds: max }
+  }
+
+  return { replyDelayMode: "instant", replyDelayMinSeconds: 0, replyDelayMaxSeconds: 0 }
+}
+
 export async function GET(request) {
   const user = await getUserFromRequest(request)
   if (!user) return unauthorizedResponse()
@@ -37,21 +66,41 @@ export async function PUT(request) {
     const body = await request.json()
     const {
       name, domain, style, language,
-      isActive, instructions, productInstructions, serviceInstructions,
+      isActive, instructions, productInstructions,
       whatsappPhoneId, whatsappToken,
-      selectedProductId, selectedServiceId,
-      mode,
+      selectedProductId,
       workHoursEnabled, workStart, workEnd, offlineMessage,
-      welcomeMessage, serviceWelcomeMessage, postSaleMessage,
-      appointmentConfirmMessage,
-      appointmentReminderMessage,
-      appointmentCancellationMessage,
+      welcomeMessage, postSaleMessage,
       orderConfirmMessage,
       orderShipMessage,
       orderDeliverMessage,
       orderCancelledMessage,
       trackingUrlTemplate,
+      replyDelayMode,
+      replyDelayMinSeconds,
+      replyDelayMaxSeconds,
     } = body
+
+    if (language !== undefined && !ALLOWED_AGENT_LANGUAGES.has(language)) {
+      return errorResponse("لغة الوكيل غير مدعومة", 400)
+    }
+
+    if (replyDelayMode !== undefined && !ALLOWED_REPLY_DELAY_MODES.has(replyDelayMode)) {
+      return errorResponse("Unsupported reply delay mode", 400)
+    }
+
+    const shouldUpdateReplyDelay = (
+      replyDelayMode !== undefined ||
+      replyDelayMinSeconds !== undefined ||
+      replyDelayMaxSeconds !== undefined
+    )
+    const normalizedReplyDelay = shouldUpdateReplyDelay
+      ? normalizeReplyDelay({
+          mode: replyDelayMode,
+          minSeconds: replyDelayMinSeconds,
+          maxSeconds: replyDelayMaxSeconds,
+        })
+      : null
 
     const agent = await prisma.agent.update({
       where: { userId: user.id },
@@ -68,42 +117,23 @@ export async function PUT(request) {
         ...(isActive !== undefined && { isActive }),
         ...(instructions !== undefined && { instructions }),
         ...(productInstructions !== undefined && { productInstructions }),
-        ...(serviceInstructions !== undefined && { serviceInstructions }),
         ...(whatsappPhoneId !== undefined && { whatsappPhoneId }),
         ...(whatsappToken !== undefined && { whatsappToken }),
-        // ✅ "" تتحول null — لا تحفظ string فارغة في DB
-        // aiAgent.js يتحقق بـ if(agent.selectedProductId)
-        // null = falsy مقبول، لكن "" = falsy أيضاً والفرق
-        // أن null في Prisma يعني "غير محدد" بشكل صريح
         ...(selectedProductId !== undefined && {
           selectedProductId: selectedProductId || null
         }),
-        ...(selectedServiceId !== undefined && {
-          selectedServiceId: selectedServiceId || null
-        }),
-        ...(mode !== undefined && { mode }),
         ...(workHoursEnabled !== undefined && { workHoursEnabled }),
         ...(workStart !== undefined && { workStart }),
         ...(workEnd !== undefined && { workEnd }),
         ...(offlineMessage !== undefined && { offlineMessage }),
         ...(welcomeMessage !== undefined && { welcomeMessage }),
-        ...(serviceWelcomeMessage !== undefined && { serviceWelcomeMessage }),
         ...(postSaleMessage !== undefined && { postSaleMessage }),
-        // ✅ الجديد
-        ...(appointmentConfirmMessage !== undefined && {
-          appointmentConfirmMessage
-        }),
-        ...(appointmentReminderMessage !== undefined && {
-          appointmentReminderMessage
-        }),
-        ...(appointmentCancellationMessage !== undefined && {
-          appointmentCancellationMessage
-        }),
         ...(orderConfirmMessage !== undefined && { orderConfirmMessage }),
         ...(orderShipMessage !== undefined && { orderShipMessage }),
         ...(orderDeliverMessage !== undefined && { orderDeliverMessage }),
         ...(orderCancelledMessage !== undefined && { orderCancelledMessage }),
         ...(trackingUrlTemplate !== undefined && { trackingUrlTemplate }),
+        ...(normalizedReplyDelay || {}),
       }
     })
 

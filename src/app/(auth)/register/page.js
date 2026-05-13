@@ -1,13 +1,36 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Script from "next/script"
 import Link from "next/link"
 import { authAPI } from "@/lib/api"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { cn } from "@/lib/utils"
-import { Loader2, User, Mail, Lock, ArrowLeft, CheckCircle, ShoppingBag, Wrench, Phone, ChevronDown } from "lucide-react"
+import { useAppTheme } from "@/hooks/useAppTheme"
+import { Loader2, User, Mail, Lock, ArrowLeft, CheckCircle, Phone, ChevronDown } from "lucide-react"
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
+async function verifySessionToken(token) {
+  const response = await fetch("/api/auth/me", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "same-origin",
+  })
+
+  let data = null
+  try {
+    data = await response.json()
+  } catch {}
+
+  if (!response.ok) {
+    throw new Error(data?.error || "Session verification failed")
+  }
+
+  return data?.data || data
+}
 
 function parseBiErr(msg, lang) {
   if (!msg || !msg.includes("||fr:") && !msg.includes("fr:")) return msg
@@ -34,21 +57,6 @@ const COUNTRIES = [
   { code: "CA", flag: "\uD83C\uDDE8\uD83C\uDDE6", fr: "Canada",           ar: "\u0643\u0646\u062f\u0627",        dial: "+1",   ph: "(555) XXX-XXXX" },
 ]
 
-// Theme hook for register page
-function useTheme() {
-  const [theme, setTheme] = useState("light")
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const initial = saved || (prefersDark ? "dark" : "light")
-    setTheme(initial)
-    if (initial === "dark") document.documentElement.classList.add("dark")
-  }, [])
-
-  return { theme }
-}
-
 // Google Icon Component - Brand Colors
 function GoogleIcon({ size = 20 }) {
   return (
@@ -64,14 +72,12 @@ function GoogleIcon({ size = 20 }) {
 export default function RegisterPage() {
   const router = useRouter()
   const { t, language, setLanguage, isRTL } = useLanguage()
-  const { theme } = useTheme()
-  const isDark = theme === "dark"
+  const { isDark } = useAppTheme()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     phone: "",
-    mode: "product",
   })
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -90,12 +96,42 @@ export default function RegisterPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  const handleGoogleResponse = useCallback(async (response) => {
+    try {
+      setGoogleLoading(true)
+      setError(null)
+
+      const result = await authAPI.googleLogin(response.credential)
+      const token = result?.data?.token || result?.token
+      const user = result?.data?.user || result?.user
+      if (!token || !user) {
+        throw new Error(t('auth.google_incomplete'))
+      }
+
+      localStorage.setItem("token", token)
+      localStorage.setItem("user", JSON.stringify(user))
+
+      await verifySessionToken(token)
+
+      router.push("/dashboard")
+    } catch (err) {
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+      setError(err.message || t('auth.google_error'))
+    } finally {
+      setGoogleLoading(false)
+    }
+  }, [router, t])
+
   // Initialize Google Sign-In
   useEffect(() => {
-    const GOOGLE_CLIENT_ID = "919613509554-k84i3jqdmviv7dj9gqmhkh8ffj0tepcg.apps.googleusercontent.com"
-    
     const initGoogle = () => {
-      if (typeof window !== "undefined" && window.google && GOOGLE_CLIENT_ID) {
+      if (!GOOGLE_CLIENT_ID) {
+        console.error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured")
+        setError(t('common.google_not_configured'))
+        return
+      }
+      if (typeof window !== "undefined" && window.google) {
         try {
           window.google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
@@ -110,25 +146,7 @@ export default function RegisterPage() {
     initGoogle()
     const timer = setTimeout(initGoogle, 1000)
     return () => clearTimeout(timer)
-  }, [])
-
-  async function handleGoogleResponse(response) {
-    try {
-      setGoogleLoading(true)
-      setError(null)
-
-      const result = await authAPI.googleLogin(response.credential)
-
-      localStorage.setItem("token", result.data.token)
-      localStorage.setItem("user", JSON.stringify(result.data.user))
-
-      router.push("/dashboard")
-    } catch (err) {
-      setError(err.message || t('auth.google_error'))
-    } finally {
-      setGoogleLoading(false)
-    }
-  }
+  }, [handleGoogleResponse, t])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -155,7 +173,6 @@ export default function RegisterPage() {
         email:    formData.email,
         password: formData.password,
         phone,
-        mode:     formData.mode,
       })
 
       sessionStorage.setItem("otp_email",  formData.email)
@@ -197,8 +214,12 @@ export default function RegisterPage() {
         src="https://accounts.google.com/gsi/client"
         strategy="lazyOnload"
         onLoad={() => {
-          const GOOGLE_CLIENT_ID = "919613509554-k84i3jqdmviv7dj9gqmhkh8ffj0tepcg.apps.googleusercontent.com"
-          if (typeof window !== "undefined" && window.google && GOOGLE_CLIENT_ID) {
+          if (!GOOGLE_CLIENT_ID) {
+            console.error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured")
+            return
+          }
+
+          if (typeof window !== "undefined" && window.google) {
             try {
               window.google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
@@ -267,13 +288,17 @@ export default function RegisterPage() {
           {/* Google Sign In Button */}
           <button
             onClick={() => {
+              if (!GOOGLE_CLIENT_ID) {
+                setError("Google Client ID is not configured")
+                return
+              }
               if (window.google) {
                 window.google.accounts.id.prompt()
               } else {
                 setError(t('auth.google_loading'))
               }
             }}
-            disabled={googleLoading}
+            disabled={googleLoading || !GOOGLE_CLIENT_ID}
             className={cn(
               "w-full flex items-center justify-center gap-3 border py-2.5 rounded-lg font-semibold transition-all mb-4",
               "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -314,39 +339,6 @@ export default function RegisterPage() {
                   placeholder={t('auth.name_placeholder')}
                   className="w-full pr-10 pl-4 py-2.5 bg-background border border-border rounded-lg text-sm outline-none focus:border-brand-400 transition-all"
                 />
-              </div>
-            </div>
-
-            {/* Mode Select */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">{t('auth.activity_type')}</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData(p => ({ ...p, mode: "product" }))}
-                  className={cn(
-                    "flex flex-col items-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all",
-                    formData.mode === "product"
-                      ? "border-brand-600 bg-brand-600/10 text-brand-700"
-                      : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  <ShoppingBag size={18} />
-                  {t('auth.mode_products')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData(p => ({ ...p, mode: "service" }))}
-                  className={cn(
-                    "flex flex-col items-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all",
-                    formData.mode === "service"
-                      ? "border-brand-600 bg-brand-600/10 text-brand-700"
-                      : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  <Wrench size={18} />
-                  {t('auth.mode_services')}
-                </button>
               </div>
             </div>
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { authAPI } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useAppTheme } from "@/hooks/useAppTheme"
 import { Loader2, Phone, ChevronDown, ShieldCheck, CheckCircle2, MessageCircle, RefreshCw } from "lucide-react"
 
 function parseBiErr(msg, lang) {
@@ -12,18 +13,6 @@ function parseBiErr(msg, lang) {
   const fr = msg.split("||ar:")[0]?.replace(/^fr:/, "")
   const ar = msg.split("||ar:")[1]
   return lang === "ar" ? (ar || msg) : (fr || msg)
-}
-
-function useTheme() {
-  const [theme, setTheme] = useState("light")
-  useEffect(() => {
-    const saved = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const initial = saved || (prefersDark ? "dark" : "light")
-    setTheme(initial)
-    if (initial === "dark") document.documentElement.classList.add("dark")
-  }, [])
-  return { theme }
 }
 
 const COUNTRIES = [
@@ -50,8 +39,7 @@ const STEP_OTP   = "otp"
 export default function PhoneSetupPage() {
   const router = useRouter()
   const { t, language, setLanguage, isRTL } = useLanguage()
-  const { theme } = useTheme()
-  const isDark = theme === "dark"
+  const { isDark } = useAppTheme()
 
   const [step, setStep]                     = useState(STEP_PHONE)
   const [localPhone, setLocalPhone]         = useState("")
@@ -137,7 +125,7 @@ export default function PhoneSetupPage() {
     } finally {
       setLoading(false)
     }
-  }, [digits, fullPhone, router, t])
+  }, [digits, fullPhone, router, t, language])
 
   useEffect(() => {
     if (step === STEP_OTP && digits.every(d => d !== "") && !loading) handleVerify()

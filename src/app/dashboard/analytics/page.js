@@ -6,8 +6,9 @@ import { formatAmount, translateObjectionReason } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
 import {
   TrendingUp, TrendingDown, Users, MessageCircle,
-  ShoppingBag, Zap, BarChart3, Clock, Smile,
+  ShoppingBag, Zap, BarChart3, Clock, Target,
   RefreshCcw, AlertCircle, RefreshCw, Activity,
+  ShoppingCart, XCircle,
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
@@ -624,11 +625,13 @@ export default function AnalyticsPage() {
       </div>
 
       {/* ── 6. Extra Stats ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: t('analytics.avg_response'), value: stats?.avgResponseTime > 0 ? `${stats.avgResponseTime}${t('analytics.seconds')}` : "-", icon: Clock, delay: 0 },
-          { label: t('analytics.satisfaction'),  value: (stats?.satisfactionRate || 0) + "%",  icon: Smile,      delay: 80  },
-          { label: t('analytics.return_rate'),   value: (stats?.returnRate || 0) + "%",        icon: RefreshCcw, delay: 160 },
+          { label: t('analytics.avg_response'),     value: stats?.avgResponseTime > 0 ? `${stats.avgResponseTime}${t('analytics.seconds')}` : "-",       icon: Clock,       delay: 0   },
+          { label: t('analytics.conversion_score') || t('analytics.satisfaction'), value: (stats?.conversionScore ?? stats?.satisfactionRate ?? 0) + "%", icon: Target,      delay: 80  },
+          { label: t('analytics.return_rate'),      value: (stats?.returnRate || 0) + "%",                                                                icon: RefreshCcw,  delay: 160 },
+          { label: t('analytics.abandoned_cart') || "محادثات متوقفة", value: String(stats?.abandonedCart || 0),                                      icon: ShoppingCart, delay: 240 },
+          { label: t('analytics.cancellation_rate') || "نسبة الإلغاء", value: (stats?.cancellationRate || 0) + "%",                               icon: XCircle,     delay: 320 },
         ].map(({ label, value, icon: Icon, delay }) => (
           <ExtraStatCard key={label} label={label} value={value} icon={Icon} delay={delay} />
         ))}

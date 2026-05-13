@@ -5,6 +5,7 @@ import {
   errorResponse,
   unauthorizedResponse
 } from "@/lib/response"
+import { withProductInsight } from "@/lib/productInsights"
 
 export async function GET(request, { params }) {
   const { id } = await params
@@ -18,7 +19,7 @@ export async function GET(request, { params }) {
 
     if (!product) return errorResponse("المنتج غير موجود", 404)
 
-    return successResponse(product)
+    return successResponse(withProductInsight(product))
   } catch (error) {
     return errorResponse("خطأ في جلب المنتج", 500)
   }
@@ -31,7 +32,7 @@ export async function PUT(request, { params }) {
 
   try {
     const body = await request.json()
-    const { name, price, description, isActive, images, stock } = body
+    const { name, price, salePrice, category, variants, askQuantity, description, isActive, images, stock } = body
 
     const product = await prisma.product.findFirst({
       where: { id, userId: user.id }
@@ -40,17 +41,52 @@ export async function PUT(request, { params }) {
 
     const LOW_STOCK_THRESHOLD = 5
 
+    // Resolve the final price so we can validate salePrice against it
+    const finalPrice = (() => {
+      if (price === undefined) return product.price
+      const parsed = parseFloat(price)
+      if (isNaN(parsed) || parsed < 0 || parsed > 1000000) return product.price
+      return parsed
+    })()
+
+    // Sale price handling: null clears it, number sets it
+    let saleUpdate = undefined
+    if (salePrice !== undefined) {
+      if (salePrice === null || salePrice === "") {
+        saleUpdate = null
+      } else {
+        const n = parseFloat(salePrice)
+        if (!isNaN(n) && n >= 0 && n < finalPrice) saleUpdate = n
+        else if (!isNaN(n) && n >= finalPrice) return errorResponse("سعر التخفيض يجب أن يكون أقل من السعر الأصلي", 400)
+      }
+    }
+
+    // Variants handling: array → json, null/[] → clear
+    let variantsUpdate = undefined
+    if (variants !== undefined) {
+      if (variants === null || (Array.isArray(variants) && variants.length === 0)) {
+        variantsUpdate = null
+      } else if (Array.isArray(variants)) {
+        const clean = variants
+          .filter(v => v && typeof v === "object" && v.name && Array.isArray(v.options))
+          .map(v => ({
+            name: String(v.name).trim().slice(0, 40),
+            options: v.options.map(o => String(o).trim().slice(0, 40)).filter(Boolean).slice(0, 20),
+          }))
+          .filter(v => v.name && v.options.length > 0)
+        variantsUpdate = clean.length > 0 ? JSON.stringify(clean) : null
+      }
+    }
+
     const updated = await prisma.product.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
-        ...(price !== undefined && {
-          price: (() => {
-            const parsed = parseFloat(price)
-            if (isNaN(parsed) || parsed < 0 || parsed > 1000000) return product.price
-            return parsed
-          })()
-        }),
+        ...(price !== undefined && { price: finalPrice }),
+        ...(saleUpdate !== undefined && { salePrice: saleUpdate }),
+        ...(category !== undefined && { category: category ? String(category).trim().slice(0, 50) || null : null }),
+        ...(variantsUpdate !== undefined && { variants: variantsUpdate }),
+        ...(askQuantity !== undefined && { askQuantity: askQuantity === false ? false : true }),
         ...(description !== undefined && { description }),
         ...(isActive !== undefined && { isActive }),
         ...(images !== undefined && { images: JSON.stringify(images) }),
@@ -88,7 +124,7 @@ export async function PUT(request, { params }) {
       })
     }
 
-    return successResponse(updated)
+    return successResponse(withProductInsight(updated))
   } catch (error) {
     console.error("PUT product error:", error)
     return errorResponse("خطأ في تعديل المنتج", 500)

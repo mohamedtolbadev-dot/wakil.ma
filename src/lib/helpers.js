@@ -18,10 +18,10 @@ export function timeAgo(dateStr, t = null) {
 }
 
 // لون وتسمية مرحلة المحادثة
-export function getStageConfig(stage, t = null, type = "product") {
+export function getStageConfig(stage, t = null) {
   if (stage === "CLOSED") {
     return {
-      label: t ? (type === "service" ? t('conv.stage_booked') : t('conv.stage_ordered')) : "مكتملة",
+      label: t ? t('conv.stage_ordered') : "تم الطلب",
       className: "bg-brand-50 text-brand-700 border-brand-200"
     }
   }
@@ -36,26 +36,16 @@ export function getStageConfig(stage, t = null, type = "product") {
   return configs[stage] || configs.GREETING
 }
 
-// ✅ دالة تعيد label حسب stage + type
-export function getStageLabel(stage, type = "product", t = null) {
+// ✅ دالة تعيد label حسب stage
+export function getStageLabel(stage, t = null) {
   if (stage === "CLOSED") {
-    if (t) {
-      return type === "service" ? t('conv.stage_booked') : t('conv.stage_ordered')
-    }
-    return type === "service"
-      ? "تم الحجز 📅"
-      : "تم الطلب ✅"
+    return t ? t('conv.stage_ordered') : "تم الطلب ✅"
   }
-  return getStageConfig(stage, t, type).label
+  return getStageConfig(stage, t).label
 }
 
-// ✅ دالة تعيد className حسب stage + type
-export function getStageClassName(stage, type = "product") {
-  if (stage === "CLOSED") {
-    return type === "service"
-      ? "bg-brand-50 text-brand-700 border-brand-200"
-      : "bg-brand-50 text-brand-700 border-brand-200"
-  }
+// ✅ دالة تعيد className حسب stage
+export function getStageClassName(stage) {
   return getStageConfig(stage).className
 }
 
@@ -175,7 +165,6 @@ export function sanitizeInput(text) {
     .replace(/[<>]/g, "")
     .replace(/\[STAGE:\w+\]/g, "")
     .replace(/\[ORDER_CONFIRMED\]/g, "")
-    .replace(/\[BOOKING_CONFIRMED\]/g, "")
     .replace(/\[SEND_IMAGES\]/g, "")
     .slice(0, 1000)
     .trim()

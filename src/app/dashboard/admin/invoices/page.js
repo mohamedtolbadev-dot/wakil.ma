@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { adminAPI } from "@/lib/api"
+import { PLAN_TRANSLATION_KEYS } from "@/lib/billingPlans"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { cn } from "@/lib/utils"
 import {
@@ -19,8 +20,6 @@ const STATUS_CONFIG = {
   OVERDUE:   { labelKey: "invoices.overdue",   color: "text-red-500",     icon: AlertCircle  },
   CANCELLED: { labelKey: "invoices.cancelled", color: "text-zinc-400",    icon: XCircle      },
 }
-const PLAN_KEYS = { FREE: "invoices.plan_free", PRO: "invoices.plan_pro", ENTERPRISE: "invoices.plan_enterprise" }
-
 /* ─────────────────────────────────────────────
    StatusBadge — لون على النص والأيقونة فقط
 ───────────────────────────────────────────── */
@@ -177,6 +176,7 @@ function InvoiceForm({ initialValues, users, disableClient = false, saving, erro
           <select className={inputCls} value={form.plan} onChange={e => set("plan", e.target.value)}>
             <option value="FREE">{t('invoices.plan_free')}</option>
             <option value="PRO">{t('invoices.plan_pro')}</option>
+            <option value="BUSINESS">{t('invoices.plan_business')}</option>
             <option value="ENTERPRISE">{t('invoices.plan_enterprise')}</option>
           </select>
         </div>
@@ -340,7 +340,7 @@ function InvoiceCard({ invoice, onStatusChange, onDelete, onSend, onEdit }) {
         {/* Meta */}
         <div className="flex flex-col gap-1.5 text-[13px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <CreditCard size={12} /> {PLAN_KEYS[invoice.plan] ? t(PLAN_KEYS[invoice.plan]) : invoice.plan}
+            <CreditCard size={12} /> {PLAN_TRANSLATION_KEYS[invoice.plan] ? t(PLAN_TRANSLATION_KEYS[invoice.plan]) : invoice.plan}
           </span>
           <span className={cn("flex items-center gap-1.5", isOverdue && "text-red-500")}>
             <CalendarDays size={12} /> {t('admin.card_due')} {dueDate}

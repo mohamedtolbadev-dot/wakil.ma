@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
-import { comparePassword, generateToken } from "@/lib/auth"
+import { comparePassword, generateToken, AUTH_USER_SELECT } from "@/lib/auth"
+import { getEffectivePlan } from "@/lib/billingPlans"
 import { successResponse, errorResponse } from "@/lib/response"
 import { rateLimit } from "@/lib/rateLimit"
 import { validators, ValidationError } from "@/lib/validation"
@@ -36,7 +37,10 @@ export async function POST(request) {
     // البحث عن المستخدم
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { agent: true }
+      select: {
+        ...AUTH_USER_SELECT,
+        password: true,
+      }
     })
 
     if (!user) {
@@ -50,6 +54,7 @@ export async function POST(request) {
     }
 
     const token = generateToken(user.id)
+    const effectivePlan = getEffectivePlan(user)
 
     return successResponse({
       token,
@@ -58,7 +63,9 @@ export async function POST(request) {
         name:      user.name,
         email:     user.email,
         storeName: user.storeName,
-        plan:      user.plan,
+        plan:      effectivePlan,
+        rawPlan:   user.plan,
+        planExpiresAt: user.planExpiresAt,
         role:      user.role,
         agent: user.agent ? {
           id:       user.agent.id,

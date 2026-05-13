@@ -1,27 +1,35 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Script from "next/script"
 import Link from "next/link"
 import { authAPI } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useAppTheme } from "@/hooks/useAppTheme"
 import { Loader2, Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react"
 
-// Theme hook for login page
-function useTheme() {
-  const [theme, setTheme] = useState("light")
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
-  useEffect(() => {
-    const saved = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const initial = saved || (prefersDark ? "dark" : "light")
-    setTheme(initial)
-    if (initial === "dark") document.documentElement.classList.add("dark")
-  }, [])
+async function verifySessionToken(token) {
+  const response = await fetch("/api/auth/me", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "same-origin",
+  })
 
-  return { theme }
+  let data = null
+  try {
+    data = await response.json()
+  } catch {}
+
+  if (!response.ok) {
+    throw new Error(data?.error || "Session verification failed")
+  }
+
+  return data?.data || data
 }
 
 // Google Icon Component - Brand Colors
@@ -39,8 +47,7 @@ function GoogleIcon({ size = 20 }) {
 export default function LoginPage() {
   const router = useRouter()
   const { t } = useLanguage()
-  const { theme } = useTheme()
-  const isDark = theme === "dark"
+  const { isDark } = useAppTheme()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -48,43 +55,7 @@ export default function LoginPage() {
   const [error, setError] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  // Initialize Google Sign-In - with mobile check
-  useEffect(() => {
-    const GOOGLE_CLIENT_ID = "919613509554-k84i3jqdmviv7dj9gqmhkh8ffj0tepcg.apps.googleusercontent.com"
-    
-    // Check if mobile
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    
-    const initGoogle = () => {
-      if (typeof window !== "undefined" && window.google && GOOGLE_CLIENT_ID) {
-        console.log("Initializing Google Sign-In...", isMobile ? "(Mobile detected)" : "(Desktop)")
-        try {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleGoogleResponse,
-            // Disable auto-select on mobile to prevent white space issues
-            auto_select: !isMobile,
-            // Use redirect mode on mobile instead of popup
-            ux_mode: isMobile ? "redirect" : "popup",
-          })
-          console.log("Google Sign-In initialized successfully")
-        } catch (err) {
-          console.error("Error initializing Google Sign-In:", err)
-        }
-      } else {
-        console.log("Google not ready yet or missing client_id")
-      }
-    }
-
-    // Try to initialize immediately
-    initGoogle()
-    
-    // Also try after a short delay in case script is still loading
-    const timer = setTimeout(initGoogle, 1000)
-    return () => clearTimeout(timer)
-  }, [])
-
-  async function handleGoogleResponse(response) {
+  const handleGoogleResponse = useCallback(async (response) => {
     try {
       setGoogleLoading(true)
       setError(null)
@@ -93,16 +64,58 @@ export default function LoginPage() {
 
       const token = result?.data?.token || result?.token
       const user = result?.data?.user || result?.user
+      if (!token || !user) {
+        throw new Error(t('auth.google_incomplete'))
+      }
+
       if (token) localStorage.setItem("token", token)
       if (user) localStorage.setItem("user", JSON.stringify(user))
 
+      await verifySessionToken(token)
+
       router.push("/dashboard")
     } catch (err) {
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
       setError(err.message || t('auth.google_error'))
     } finally {
       setGoogleLoading(false)
     }
-  }
+  }, [router, t])
+
+  // Initialize Google Sign-In - with mobile check
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+    const initGoogle = () => {
+      if (!GOOGLE_CLIENT_ID) {
+        console.error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured")
+        setError(t('common.google_not_configured'))
+        return
+      }
+
+      if (typeof window !== "undefined" && window.google) {
+        console.log("Initializing Google Sign-In...", isMobile ? "(Mobile detected)" : "(Desktop)")
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleResponse,
+            auto_select: !isMobile,
+            ux_mode: isMobile ? "redirect" : "popup",
+          })
+          console.log("Google Sign-In initialized successfully")
+        } catch (err) {
+          console.error("Error initializing Google Sign-In:", err)
+        }
+      } else if (typeof window !== "undefined") {
+        console.log("Google not ready yet or missing client_id")
+      }
+    }
+
+    initGoogle()
+    const timer = setTimeout(initGoogle, 1000)
+    return () => clearTimeout(timer)
+  }, [handleGoogleResponse, t])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -120,11 +133,19 @@ export default function LoginPage() {
       
       const token = response?.data?.token || response?.token
       const user = response?.data?.user || response?.user
-      if (token) localStorage.setItem("token", token)
-      if (user) localStorage.setItem("user", JSON.stringify(user))
+      if (!token || !user) {
+        throw new Error(t('auth.login_incomplete'))
+      }
+
+      localStorage.setItem("token", token)
+      localStorage.setItem("user", JSON.stringify(user))
+
+      await verifySessionToken(token)
 
       router.push("/dashboard")
     } catch (err) {
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
       setError(err.message || t('auth.login_error'))
     } finally {
       setLoading(false)
@@ -155,8 +176,12 @@ export default function LoginPage() {
         strategy="lazyOnload"
         onLoad={() => {
           console.log("Google Script loaded!")
-          const GOOGLE_CLIENT_ID = "919613509554-k84i3jqdmviv7dj9gqmhkh8ffj0tepcg.apps.googleusercontent.com"
-          if (typeof window !== "undefined" && window.google && GOOGLE_CLIENT_ID) {
+          if (!GOOGLE_CLIENT_ID) {
+            console.error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured")
+            return
+          }
+
+          if (typeof window !== "undefined" && window.google) {
             try {
               window.google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
@@ -216,6 +241,10 @@ export default function LoginPage() {
           {/* Google Sign In Button */}
           <button
             onClick={() => {
+              if (!GOOGLE_CLIENT_ID) {
+                setError("Google Client ID is not configured")
+                return
+              }
               if (window.google) {
                 // Check if mobile
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -235,7 +264,7 @@ export default function LoginPage() {
                 setError(t('auth.google_loading'))
               }
             }}
-            disabled={googleLoading}
+            disabled={googleLoading || !GOOGLE_CLIENT_ID}
             className={cn(
               "w-full flex items-center justify-center gap-3 border py-2.5 rounded-lg font-semibold transition-all mb-4",
               "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -281,7 +310,15 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">{t('auth.password')}</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-muted-foreground">{t('auth.password')}</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-[11px] font-semibold text-brand-600 hover:text-brand-800 transition-colors"
+                >
+                  {t('auth.forgot_password') || "نسيت كلمة السر؟"}
+                </Link>
+              </div>
               <div className="relative group">
                 <Lock size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-brand-600 transition-colors" />
                 <input

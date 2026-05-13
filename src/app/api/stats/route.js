@@ -5,6 +5,7 @@ import {
   errorResponse,
   unauthorizedResponse
 } from "@/lib/response"
+import { getConversationRecoveryState } from "@/lib/conversationRecovery"
 
 // تحليل أسباب الاعتراض من نص الرسالة
 function analyzeObjectionReason(content) {
@@ -119,16 +120,18 @@ export async function GET(request) {
       }
     })
 
-    // محادثات مغلقة في الفترة (للإيرادات ونسبة التحويل)
-    const periodClosed = await prisma.conversation.findMany({
+    // ✅ INTEGRITY FIX: Revenue calculated from ORDERS (not conversations)
+    //   Excludes drafts (incomplete) and cancelled orders
+    const periodOrders = await prisma.order.findMany({
       where: {
         userId: user.id,
-        stage: "CLOSED",
-        createdAt: { gte: periodStart }
+        createdAt: { gte: periodStart },
+        isDraft: false,
+        status: { not: "CANCELLED" },
       },
       select: { totalAmount: true }
     })
-    const weekRevenue = periodClosed.reduce((sum, c) => sum + (c.totalAmount || 0), 0)
+    const weekRevenue = periodOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
 
     const pitching = await prisma.conversation.count({
       where: {
@@ -177,7 +180,8 @@ export async function GET(request) {
       return acc
     }, {})
 
-    // رضا الزبائن - متوسط score المحادثات المغلقة
+    // ✅ متوسط score المحادثات المغلقة (funnel progression — NOT satisfaction)
+    //   يعكس مدى وصول الـ AI للإقفال، ماشي رضا الزبون الحقيقي.
     const closedConversations = await prisma.conversation.findMany({
       where: {
         userId: user.id,
@@ -186,7 +190,7 @@ export async function GET(request) {
       select: { score: true }
     })
     const totalScore = closedConversations.reduce((sum, c) => sum + (c.score || 0), 0)
-    const satisfactionRate = closedConversations.length > 0
+    const conversionScore = closedConversations.length > 0
       ? Math.round(totalScore / closedConversations.length)
       : 0
 
@@ -230,18 +234,16 @@ export async function GET(request) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
 
-    // ─── إحصائيات المنتجات والخدمات ───
+    // ─── إحصائيات المنتجات ───
     // Sequential لتخفيف فتح connections متوازية
     const totalProducts = await prisma.product.count({ where: { userId: user.id } })
     const activeProducts = await prisma.product.count({ where: { userId: user.id, isActive: true } })
     const outOfStockProducts = await prisma.product.count({ where: { userId: user.id, stock: 0 } })
-    const totalServices = await prisma.service.count({ where: { userId: user.id } })
-    const activeServices = await prisma.service.count({ where: { userId: user.id, isActive: true } })
 
     // أكثر المنتجات مبيعاً (من الطلبيات)
     const ordersByProduct = await prisma.order.groupBy({
       by: ["productName"],
-      where: { userId: user.id },
+      where: { userId: user.id, isDraft: false, status: { not: "CANCELLED" } },
       _count: { id: true },
       _sum: { totalAmount: true },
       orderBy: { _count: { id: "desc" } },
@@ -261,26 +263,136 @@ export async function GET(request) {
       select: { name: true, questions: true },
     })
 
+    // Recovery opportunities: same calculation used by the conversations page.
+    const recoveryCandidates = await prisma.conversation.findMany({
+      where: {
+        userId: user.id,
+        stage: { in: ["GREETING", "DISCOVERY", "PITCHING", "OBJECTION", "CLOSING"] },
+      },
+      select: {
+        stage: true,
+        score: true,
+        updatedAt: true,
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { role: true, createdAt: true },
+        },
+      },
+    })
+    const abandonedCartCount = recoveryCandidates
+      .filter(conversation => getConversationRecoveryState(conversation).needsRecovery)
+      .length
+
+    // ✅ Cancellation rate: نسبة الطلبيات الملغاة للفترة
+    //   KPI حاسم في السوق المغربي (COD → معدل الإلغاء عادة ~15-30%)
+    const cancelledCount = await prisma.order.count({
+      where: {
+        userId: user.id,
+        createdAt: { gte: periodStart },
+        status: "CANCELLED",
+      }
+    })
+    const totalOrdersPeriod = await prisma.order.count({
+      where: {
+        userId: user.id,
+        createdAt: { gte: periodStart },
+        isDraft: false,
+      }
+    })
+    const cancellationRate = totalOrdersPeriod > 0
+      ? Math.round((cancelledCount / totalOrdersPeriod) * 100)
+      : 0
+
+    const deliveryReadyToExport = await prisma.order.count({
+      where: {
+        userId: user.id,
+        isDraft: false,
+        status: "CONFIRMED",
+        deliveryReference: null,
+      }
+    })
+    const deliveryExportedPending = await prisma.order.count({
+      where: {
+        userId: user.id,
+        isDraft: false,
+        status: "CONFIRMED",
+        deliveryReference: { not: null },
+      }
+    })
+    const deliveryMissingTracking = await prisma.order.count({
+      where: {
+        userId: user.id,
+        isDraft: false,
+        status: "SHIPPED",
+        OR: [
+          { trackingNumber: null },
+          { trackingNumber: "" },
+        ],
+      }
+    })
+    const deliveryStatusCounts = await prisma.order.groupBy({
+      by: ["status"],
+      where: {
+        userId: user.id,
+        isDraft: false,
+        updatedAt: { gte: periodStart },
+        status: { in: ["SHIPPED", "DELIVERED", "CANCELLED"] },
+      },
+      _count: { id: true },
+    })
+    const deliveryStatusMap = deliveryStatusCounts.reduce((acc, row) => {
+      acc[row.status] = row._count.id
+      return acc
+    }, {})
+    const deliveryInTransit = deliveryStatusMap.SHIPPED || 0
+    const deliveryDelivered = deliveryStatusMap.DELIVERED || 0
+    const deliveryReturnedOrCancelled = deliveryStatusMap.CANCELLED || 0
+    const deliveryTerminal = deliveryDelivered + deliveryReturnedOrCancelled
+    const deliverySuccessRate = deliveryTerminal > 0
+      ? Math.round((deliveryDelivered / deliveryTerminal) * 100)
+      : 0
+
     // الحسابات النهائية للفترة
     const periodRevenue = weekRevenue
+    const periodOrdersCount = periodOrders.length
     const conversionRate = weekConversations > 0
-      ? Math.round((periodClosed.length / weekConversations) * 100)
+      ? Math.round((periodOrdersCount / weekConversations) * 100)
       : 0
 
     return successResponse({
+      // Period totals
+      periodConversations: weekConversations,
+      periodSales: periodOrdersCount,
+      periodRevenue: Math.round(periodRevenue),
+      // Backward-compat aliases (old UI still reads these)
       todayConversations: weekConversations,
-      todaySales: periodClosed.length,
-      conversionRate,
+      todaySales: periodOrdersCount,
       todayRevenue: Math.round(periodRevenue),
-      pitching,
-      customers,
       weekConversations,
       weekRevenue: Math.round(weekRevenue),
-      avgOrderValue: periodClosed.length > 0
-        ? Math.round(periodRevenue / periodClosed.length)
+
+      conversionRate,
+      cancellationRate,                 // ✅ NEW: % of orders cancelled in period
+      abandonedCart: abandonedCartCount, // Recovery opportunities needing follow-up
+      deliveryStats: {
+        readyToExport: deliveryReadyToExport,
+        exportedPending: deliveryExportedPending,
+        inTransit: deliveryInTransit,
+        delivered: deliveryDelivered,
+        returnedOrCancelled: deliveryReturnedOrCancelled,
+        missingTracking: deliveryMissingTracking,
+        successRate: deliverySuccessRate,
+      },
+
+      pitching,
+      customers,
+      avgOrderValue: periodOrdersCount > 0
+        ? Math.round(periodRevenue / periodOrdersCount)
         : 0,
       avgResponseTime: avgResponseTime > 0 ? avgResponseTime : 0,
-      satisfactionRate,
+      conversionScore,          // ✅ RENAMED from satisfactionRate (funnel progression)
+      satisfactionRate: conversionScore,  // backward-compat alias
       returnRate,
       objectionReasons: objectionReasons.length > 0 ? objectionReasons : [],
       stages: {
@@ -297,10 +409,6 @@ export async function GET(request) {
         total: totalProducts,
         active: activeProducts,
         outOfStock: outOfStockProducts,
-      },
-      serviceStats: {
-        total: totalServices,
-        active: activeServices,
       },
       topProducts,
       topQuestionsProducts,

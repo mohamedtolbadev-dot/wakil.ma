@@ -225,7 +225,6 @@ export default function CustomersPage() {
   const [stats, setStats]         = useState(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
-  const [typeFilter, setTypeFilter] = useState("all") // "all" | "product" | "service"
   const [tagFilter, setTagFilter] = useState("all")
   const [search, setSearch]       = useState("")
   const [conversations, setConversations] = useState([])
@@ -297,17 +296,6 @@ export default function CustomersPage() {
     }
   }
 
-  // عدادات النوع — بدون fallback غلط
-  const productCustomersCount = customersWithType.filter(c =>
-    c.conversationType === "product" ||
-    c.type === "product"
-  ).length
-
-  const serviceCustomersCount = customersWithType.filter(c =>
-    c.conversationType === "service" ||
-    c.type === "service"
-  ).length
-
   const tagButtons = [
     { key: "all",      label: t('common.all'),             icon: null,     count: customers.length },
     { key: "VIP",      label: "VIP",                       icon: Crown,    count: customers.filter(c => c.tag === "VIP").length },
@@ -318,19 +306,6 @@ export default function CustomersPage() {
 
   const filtered = useMemo(() => {
     let list = customersWithType
-
-    // فلترة حسب النوع أولاً
-    if (typeFilter === "product") {
-      list = list.filter(c =>
-        c.conversationType === "product" ||
-        c.type === "product"
-      )
-    } else if (typeFilter === "service") {
-      list = list.filter(c =>
-        c.conversationType === "service" ||
-        c.type === "service"
-      )
-    }
 
     // فلترة حسب Tag
     if (tagFilter !== "all") {
@@ -346,7 +321,7 @@ export default function CustomersPage() {
     }
 
     return list
-  }, [customersWithType, typeFilter, tagFilter, search])
+  }, [customersWithType, tagFilter, search])
 
   const avgSpent = Math.round(
     customers.reduce((s, c) => s + (c.totalSpent || 0), 0) /
@@ -397,37 +372,6 @@ export default function CustomersPage() {
 
       {/* ── Filters + Search ── */}
       <div className="flex flex-col gap-2.5">
-
-        {/* ✅ Type Tabs — منتجات / خدمات */}
-        <div className="flex gap-1 p-1 bg-secondary/50 border border-border/60 rounded-xl w-fit">
-          {[
-            { key: "all",     label: t('common.all'),                count: customers.length },
-            { key: "product", label: t('nav.products'),  count: productCustomersCount },
-            { key: "service", label: t('nav.services'),  count: serviceCustomersCount },
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTypeFilter(t.key)}
-              className={cn(
-                "flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg",
-                "text-[12px] sm:text-[13px] font-semibold transition-all duration-200",
-                typeFilter === t.key
-                  ? "bg-background text-foreground shadow-sm border border-border/80"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t.label}
-              <span className={cn(
-                "text-[11px] px-1.5 py-0.5 rounded-md font-bold tabular-nums",
-                typeFilter === t.key
-                  ? "bg-brand-600/10 text-brand-600"
-                  : "bg-border/80 text-muted-foreground"
-              )}>
-                {t.count}
-              </span>
-            </button>
-          ))}
-        </div>
 
         {/* Tag Filter Buttons */}
         <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">

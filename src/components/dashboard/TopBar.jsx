@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import {
   Bell, LogOut, Loader2, X, CheckCheck, Menu,
   LayoutDashboard, MessageCircle, BarChart3,
-  ShoppingBag, Users, Settings, Calendar, ClipboardList,
+  ShoppingBag, Users, Settings, ClipboardList,
   ShoppingCart, AlertTriangle, FileBarChart,
   WifiOff, Info, Mail, FileText,
 } from "lucide-react"
@@ -20,12 +20,12 @@ const PAGE_MAP_KEYS = {
   "/dashboard":               { key: "nav.dashboard",     icon: LayoutDashboard },
   "/dashboard/conversations": { key: "nav.conversations", icon: MessageCircle   },
   "/dashboard/orders":        { key: "nav.orders",        icon: ClipboardList   },
-  "/dashboard/appointments":  { key: "nav.appointments",  icon: Calendar        },
   "/dashboard/analytics":     { key: "nav.analytics",     icon: BarChart3       },
   "/dashboard/products":      { key: "nav.products",      icon: ShoppingBag     },
   "/dashboard/customers":     { key: "nav.customers",     icon: Users           },
   "/dashboard/settings":      { key: "nav.settings",      icon: Settings        },
   "/dashboard/invoices":      { key: "nav.invoices",      icon: FileText        },
+  "/dashboard/admin/blogs":   { key: "nav.blogs",         icon: FileText        },
 }
 
 /* ─────────────── Notification navigation ─────────────── */
@@ -40,10 +40,6 @@ const NOTIF_LINKS = {
 
 function getNotifLink(notif) {
   if (notif.type === "NEW_ORDER") {
-    const raw = notif.title || ""
-    const t = raw.replace(/^fr:|^ar:/, "").toLowerCase()
-    if (t.includes("r\u00e9servation") || t.includes("reservation") || t.includes("\u062d\u062c\u0632"))
-      return "/dashboard/appointments"
     return "/dashboard/orders"
   }
   if (notif.type === "SYSTEM") {
@@ -198,7 +194,7 @@ export function TopBar() {
   }
 
   return (
-    <header className="h-14 bg-card border-b border-border/50 px-3 md:px-5 flex items-center justify-between sticky top-0 z-30 shrink-0 gap-2">
+    <header className="h-14 bg-card/95 backdrop-blur border-b border-border/60 px-3 md:px-5 flex items-center justify-between sticky top-0 z-30 shrink-0 gap-2 shadow-sm shadow-black/[0.03] dark:shadow-black/20">
 
       {/* ── Right: Menu button (mobile) + Page title ── */}
       <div className="flex items-center gap-2 min-w-0">
@@ -206,7 +202,7 @@ export function TopBar() {
         {/* Menu button — mobile only */}
         <button
           onClick={openMenu}
-          className="md:hidden p-2 rounded-xl bg-secondary/60 border border-border/50 active:scale-95 transition-all duration-200 shrink-0"
+          className="md:hidden p-2 rounded-xl bg-secondary/70 border border-border/60 active:scale-95 transition-all duration-200 shrink-0 hover:bg-secondary"
           aria-label="Menu"
         >
           <Menu size={17} className="text-foreground" />
@@ -214,7 +210,7 @@ export function TopBar() {
 
         {/* Page title with icon — desktop */}
         <div className="hidden md:flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-secondary border border-border/50 flex items-center justify-center shrink-0">
             <PageIcon size={14} className="text-brand-600" />
           </div>
           <h1 className="text-[15px] font-semibold text-foreground truncate">{pageLabel}</h1>
@@ -222,7 +218,7 @@ export function TopBar() {
 
         {/* Page title — mobile: icon + text */}
         <div className="md:hidden flex items-center gap-2 min-w-0">
-          <div className="w-6 h-6 rounded-md bg-secondary flex items-center justify-center shrink-0">
+          <div className="w-6 h-6 rounded-md bg-secondary border border-border/50 flex items-center justify-center shrink-0">
             <PageIcon size={12} className="text-brand-600" />
           </div>
           <h1 className="text-[14px] font-semibold text-foreground truncate">{pageLabel}</h1>
@@ -233,7 +229,7 @@ export function TopBar() {
       <div className="flex items-center gap-1 md:gap-2 shrink-0">
 
         {/* Language switcher */}
-        <div className="flex items-center rounded-lg border border-border/50 overflow-hidden text-[11px] font-bold">
+        <div className="flex items-center rounded-lg border border-border/60 bg-card overflow-hidden text-[11px] font-bold">
           <button
             onClick={() => setLanguage('fr')}
             className={cn(
@@ -262,7 +258,7 @@ export function TopBar() {
         <div className="relative">
           <button
             onClick={openNotifs}
-            className="relative p-2 rounded-lg hover:bg-secondary border border-transparent hover:border-border/50 transition-all duration-200"
+            className="relative p-2 rounded-lg hover:bg-secondary border border-transparent hover:border-border/60 transition-all duration-200"
           >
             <Bell size={15} className="text-muted-foreground" />
             {unreadCount > 0 && (

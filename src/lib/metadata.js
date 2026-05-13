@@ -1,70 +1,63 @@
-// Metadata helpers for Wakil.ma
-// Helper functions to generate consistent metadata across pages
+// Central metadata helpers for Wakil.ma pages.
 
 export const siteConfig = {
-  name: "Wakil",
+  name: "Wakil.ma",
+  shortName: "Wakil",
   domain: "wakil.ma",
+  url: "https://wakil.ma",
+  ogImage: "/og-image.jpg",
+  twitter: "@wakilma",
+  verification: {
+    google: "FQR2XC0zOF9fi9ihgcZ4uJ3zhEEgh3XA5N0DfwXoPSo",
+  },
   description: {
-    fr: "Wakil.ma — Votre agent de vente intelligent sur WhatsApp. Automatisez vos ventes, gérez vos rendez-vous et suivez vos commandes 24h/24.",
-    ar: "وكيل.ما — وكيل مبيعاتك الذكي على واتساب. أتمت مبيعاتك، أدر مواعيدك، وتتبع طلباتك على مدار الساعة.",
+    fr: "Wakil.ma est un agent commercial IA pour WhatsApp: il repond aux clients, presente vos produits, collecte les informations de livraison et cree les commandes.",
+    ar: "Wakil.ma وكيل مبيعات بالذكاء الاصطناعي على واتساب: يرد على العملاء، يعرض المنتجات، يجمع معلومات التوصيل وينشئ الطلبيات.",
   },
   keywords: {
     fr: [
-      "agent whatsapp",
-      "vente automatique",
-      "e-commerce maroc",
-      "chatbot commerce",
-      "gestion rendez-vous",
-      "automatisation ventes",
+      "agent IA WhatsApp",
+      "vente WhatsApp Maroc",
+      "automatisation commandes",
+      "chatbot e-commerce Maroc",
+      "CRM WhatsApp",
+      "gestion commandes WhatsApp",
     ],
     ar: [
-      "وكيل واتساب",
-      "مبيعات تلقائية",
+      "وكيل مبيعات واتساب",
+      "ذكاء اصطناعي واتساب",
+      "إدارة طلبيات",
       "تجارة إلكترونية المغرب",
-      "شات بوت",
-      "إدارة المواعيد",
-      "أتمتة المبيعات",
+      "أتمتة واتساب",
+      "CRM واتساب",
     ],
   },
-  twitter: "@wakilma",
-  ogImage: "/og-image.jpg",
 }
 
-/**
- * Generate metadata for a page
- * @param {Object} options
- * @param {string} options.title - Page title (without site name)
- * @param {string} options.description - Page description
- * @param {string} options.lang - 'fr' | 'ar'
- * @param {string} options.path - Page path for canonical URL
- * @param {boolean} options.noIndex - Whether to prevent indexing
- */
 export function generateMetadata({
   title,
   description,
   lang = "fr",
   path = "",
   noIndex = false,
-}) {
+} = {}) {
+  const isAr = lang === "ar"
   const siteName = siteConfig.name
-  const fullTitle = title ? `${title} | ${siteName}` : `${siteName}.ma`
-  const fullDescription = description || siteConfig.description[lang]
-  const keywords = siteConfig.keywords[lang]
-  const url = path ? `https://${siteConfig.domain}${path}` : `https://${siteConfig.domain}`
+  const fullTitle = title ? `${title} | ${siteName}` : `${siteName} | Agent commercial IA WhatsApp`
+  const fullDescription = description || siteConfig.description[lang] || siteConfig.description.fr
+  const url = `${siteConfig.url}${path || ""}`
 
   return {
     title: fullTitle,
     description: fullDescription,
-    keywords,
+    keywords: siteConfig.keywords[lang] || siteConfig.keywords.fr,
+    applicationName: siteName,
     authors: [{ name: siteName }],
     creator: siteName,
-    metadataBase: new URL(`https://${siteConfig.domain}`),
+    publisher: siteName,
+    metadataBase: new URL(siteConfig.url),
     alternates: {
-      canonical: url,
-      languages: {
-        "fr-MA": `/fr${path}`,
-        "ar-MA": `/ar${path}`,
-      },
+      canonical: path || "/",
     },
     openGraph: {
       title: fullTitle,
@@ -79,7 +72,7 @@ export function generateMetadata({
           alt: fullTitle,
         },
       ],
-      locale: lang === "ar" ? "ar_MA" : "fr_MA",
+      locale: isAr ? "ar_MA" : "fr_MA",
       type: "website",
     },
     twitter: {
@@ -93,6 +86,10 @@ export function generateMetadata({
       ? {
           index: false,
           follow: false,
+          googleBot: {
+            index: false,
+            follow: false,
+          },
         }
       : {
           index: true,
@@ -105,110 +102,193 @@ export function generateMetadata({
             "max-snippet": -1,
           },
         },
-    verification: {
-      google: "Vkp6avL1wZROXOvuakVPo_INQznais58cP0k-2gcOIg",
-    },
+    verification: siteConfig.verification,
   }
 }
 
-// Predefined metadata for common pages
 export const pageMetadata = {
-  // Auth pages
+  home: {
+    fr: {
+      title: "Agent commercial IA pour WhatsApp",
+      description: siteConfig.description.fr,
+    },
+    ar: {
+      title: "وكيل مبيعات ذكي على واتساب",
+      description: siteConfig.description.ar,
+    },
+    path: "/",
+  },
+
+  features: {
+    fr: {
+      title: "Fonctionnalites WhatsApp pour e-commerce au Maroc",
+      description:
+        "Decouvrez les fonctionnalites Wakil.ma: agent IA WhatsApp, catalogue produits, conversations, commandes, clients, livraison CSV, campagnes et analytics.",
+    },
+    ar: {
+      title: "مميزات وكيل لإدارة البيع على واتساب",
+      description:
+        "اكتشف مميزات Wakil.ma: وكيل ذكاء اصطناعي على واتساب، كاتالوغ المنتجات، المحادثات، الطلبيات، العملاء، التوصيل CSV، الحملات والتحليلات.",
+    },
+    path: "/features",
+  },
+
   login: {
-    fr: { title: "Connexion", description: "Connectez-vous à votre compte Wakil.ma" },
-    ar: { title: "تسجيل الدخول", description: "سجل الدخول إلى حسابك في وكيل.ما" },
+    fr: { title: "Connexion", description: "Connectez-vous a votre compte Wakil.ma." },
+    ar: { title: "تسجيل الدخول", description: "سجل الدخول إلى حسابك في Wakil.ma." },
     path: "/login",
+    noIndex: true,
   },
   register: {
-    fr: { title: "Créer un compte", description: "Rejoignez Wakil.ma et commencez à vendre sur WhatsApp" },
-    ar: { title: "إنشاء حساب", description: "انضم إلى وكيل.ما وابدأ البيع على واتساب" },
+    fr: { title: "Creer un compte", description: "Creez votre compte Wakil.ma et connectez votre boutique WhatsApp." },
+    ar: { title: "إنشاء حساب", description: "أنشئ حسابك في Wakil.ma واربط متجرك بواتساب." },
     path: "/register",
+    noIndex: true,
   },
   verify: {
-    fr: { title: "Vérification", description: "Vérifiez votre email pour sécuriser votre compte" },
-    ar: { title: "التحقق", description: "تحقق من بريدك الإلكتروني لتأمين حسابك" },
+    fr: { title: "Verification", description: "Verifiez votre compte Wakil.ma." },
+    ar: { title: "التحقق", description: "تحقق من حسابك في Wakil.ma." },
     path: "/verify",
+    noIndex: true,
   },
   phoneSetup: {
-    fr: { title: "Configuration WhatsApp", description: "Connectez votre numéro WhatsApp à Wakil" },
-    ar: { title: "إعداد واتساب", description: "اربط رقم واتسابك بوكيل" },
+    fr: { title: "Configuration WhatsApp", description: "Configurez votre numero WhatsApp Business." },
+    ar: { title: "إعداد واتساب", description: "اضبط رقم WhatsApp Business الخاص بك." },
     path: "/phone-setup",
+    noIndex: true,
+  },
+  forgotPassword: {
+    fr: { title: "Mot de passe oublie", description: "Recuperez l'acces a votre compte Wakil.ma." },
+    ar: { title: "نسيت كلمة المرور", description: "استرجع الوصول إلى حسابك في Wakil.ma." },
+    path: "/forgot-password",
+    noIndex: true,
+  },
+  resetPassword: {
+    fr: { title: "Reinitialiser le mot de passe", description: "Choisissez un nouveau mot de passe pour Wakil.ma." },
+    ar: { title: "إعادة تعيين كلمة المرور", description: "اختر كلمة مرور جديدة لحساب Wakil.ma." },
+    path: "/reset-password",
+    noIndex: true,
   },
 
-  // Dashboard pages
   dashboard: {
-    fr: { title: "Tableau de bord", description: "Gérez vos ventes, rendez-vous et conversations" },
-    ar: { title: "لوحة التحكم", description: "أدر مبيعاتك ومواعيدك ومحادثاتك" },
+    fr: { title: "Tableau de bord", description: "Vue d'ensemble de vos ventes, commandes et conversations WhatsApp." },
+    ar: { title: "لوحة التحكم", description: "نظرة عامة على المبيعات والطلبيات ومحادثات واتساب." },
     path: "/dashboard",
+    noIndex: true,
   },
   conversations: {
-    fr: { title: "Conversations", description: "Discutez avec vos clients sur WhatsApp" },
-    ar: { title: "المحادثات", description: "تحدث مع عملائك على واتساب" },
+    fr: { title: "Conversations", description: "Suivez et gerez les conversations WhatsApp avec vos clients." },
+    ar: { title: "المحادثات", description: "تابع وأدر محادثات واتساب مع العملاء." },
     path: "/dashboard/conversations",
+    noIndex: true,
   },
-  appointments: {
-    fr: { title: "Rendez-vous", description: "Gérez vos rendez-vous et réservations" },
-    ar: { title: "المواعيد", description: "أدر مواعيدك وحجوزاتك" },
-    path: "/dashboard/appointments",
+  archive: {
+    fr: { title: "Archive", description: "Conversations archivees de votre espace Wakil.ma." },
+    ar: { title: "الأرشيف", description: "المحادثات المؤرشفة في حساب Wakil.ma." },
+    path: "/dashboard/archive",
+    noIndex: true,
   },
   orders: {
-    fr: { title: "Commandes", description: "Suivez et gérez vos commandes" },
-    ar: { title: "الطلبيات", description: "تتبع وأدر طلبياتك" },
+    fr: { title: "Commandes", description: "Gerez les commandes, statuts, suivi et informations de livraison." },
+    ar: { title: "الطلبيات", description: "أدر الطلبيات والحالات والتتبع ومعلومات التوصيل." },
     path: "/dashboard/orders",
+    noIndex: true,
   },
   products: {
-    fr: { title: "Produits", description: "Gérez votre catalogue de produits" },
-    ar: { title: "المنتجات", description: "أدر كتالوج منتجاتك" },
+    fr: { title: "Produits", description: "Gerez les produits, prix, images, variantes et stock." },
+    ar: { title: "المنتجات", description: "أدر المنتجات والأسعار والصور والخيارات والمخزون." },
     path: "/dashboard/products",
+    noIndex: true,
   },
   services: {
-    fr: { title: "Services", description: "Gérez vos services et disponibilités" },
-    ar: { title: "الخدمات", description: "أدر خدماتك وتوفرك" },
+    fr: { title: "Services", description: "Gerez les services et les disponibilites si ce module est active." },
+    ar: { title: "الخدمات", description: "أدر الخدمات والتوفر إذا كان هذا الموديل مفعلاً." },
     path: "/dashboard/services",
+    noIndex: true,
+  },
+  appointments: {
+    fr: { title: "Rendez-vous", description: "Gerez les rendez-vous et confirmations si ce module est active." },
+    ar: { title: "المواعيد", description: "أدر المواعيد والتأكيدات إذا كان هذا الموديل مفعلاً." },
+    path: "/dashboard/appointments",
+    noIndex: true,
   },
   customers: {
-    fr: { title: "Clients", description: "Votre base de clients et leurs historiques" },
-    ar: { title: "العملاء", description: "قاعدة عملائك وتواريخهم" },
+    fr: { title: "Clients", description: "Consultez vos clients, commandes et historique d'achat." },
+    ar: { title: "العملاء", description: "تابع العملاء والطلبيات وسجل الشراء." },
     path: "/dashboard/customers",
+    noIndex: true,
   },
   analytics: {
-    fr: { title: "Analytiques", description: "Statistiques et performances de votre boutique" },
-    ar: { title: "التحليلات", description: "إحصائيات وأداء متجرك" },
+    fr: { title: "Analytiques", description: "Analysez les ventes, commandes, clients et performances de l'agent IA." },
+    ar: { title: "التحليلات", description: "حلل المبيعات والطلبيات والعملاء وأداء وكيل الذكاء الاصطناعي." },
     path: "/dashboard/analytics",
+    noIndex: true,
+  },
+  campaigns: {
+    fr: { title: "Campagnes", description: "Gerez vos campagnes WhatsApp et vos segments clients." },
+    ar: { title: "الحملات", description: "أدر حملات واتساب وشرائح العملاء." },
+    path: "/dashboard/campaigns",
+    noIndex: true,
+  },
+  invoices: {
+    fr: { title: "Factures", description: "Consultez vos factures et paiements Wakil.ma." },
+    ar: { title: "الفواتير", description: "تابع فواتير ومدفوعات Wakil.ma." },
+    path: "/dashboard/invoices",
+    noIndex: true,
   },
   settings: {
-    fr: { title: "Paramètres", description: "Configurez votre agent IA et WhatsApp" },
-    ar: { title: "الإعدادات", description: "اضبط وكيلك الذكي وواتساب" },
+    fr: { title: "Parametres", description: "Configurez l'agent IA, WhatsApp, messages et suivi des commandes." },
+    ar: { title: "الإعدادات", description: "اضبط وكيل الذكاء الاصطناعي وواتساب ورسائل الطلبيات." },
     path: "/dashboard/settings",
+    noIndex: true,
+  },
+  onboarding: {
+    fr: { title: "Configuration initiale", description: "Configurez votre boutique, WhatsApp et vos premiers produits." },
+    ar: { title: "الإعداد الأولي", description: "اضبط المتجر وواتساب وأول المنتجات." },
+    path: "/onboarding",
+    noIndex: true,
+  },
+  admin: {
+    fr: { title: "Administration", description: "Espace d'administration Wakil.ma." },
+    ar: { title: "الإدارة", description: "مساحة إدارة Wakil.ma." },
+    path: "/dashboard/admin",
+    noIndex: true,
+  },
+  adminBlogs: {
+    fr: { title: "Administration blogs", description: "Creez et gerez les articles SEO Wakil.ma." },
+    ar: { title: "إدارة المدونة", description: "أنشئ وأدر مقالات SEO الخاصة بـ Wakil.ma." },
+    path: "/dashboard/admin/blogs",
+    noIndex: true,
   },
 
-  // Static pages
   privacy: {
-    fr: { title: "Politique de confidentialité", description: "Comment nous protégeons vos données" },
-    ar: { title: "سياسة الخصوصية", description: "كيف نحمي بياناتك" },
+    fr: { title: "Politique de confidentialite", description: "Comment Wakil.ma collecte, utilise et protege vos donnees." },
+    ar: { title: "سياسة الخصوصية", description: "كيف تجمع Wakil.ma بياناتك وتستعملها وتحميها." },
     path: "/privacy",
   },
   terms: {
-    fr: { title: "Conditions d'utilisation", description: "Règles d'utilisation de Wakil.ma" },
-    ar: { title: "شروط الاستخدام", description: "قواعد استخدام وكيل.ما" },
+    fr: { title: "Conditions d'utilisation", description: "Conditions d'utilisation de la plateforme Wakil.ma." },
+    ar: { title: "شروط الاستخدام", description: "شروط استعمال منصة Wakil.ma." },
     path: "/terms",
   },
   deleteData: {
-    fr: { title: "Suppression de données", description: "Demander la suppression de vos données" },
-    ar: { title: "حذف البيانات", description: "اطلب حذف بياناتك" },
+    fr: { title: "Suppression des donnees", description: "Demandez la suppression de vos donnees Wakil.ma." },
+    ar: { title: "حذف البيانات", description: "اطلب حذف بياناتك من Wakil.ma." },
     path: "/delete-data",
+    noIndex: true,
   },
 }
 
-// Helper to get metadata for a specific page
 export function getPageMetadata(pageKey, lang = "fr") {
   const page = pageMetadata[pageKey]
-  if (!page) return generateMetadata({ lang })
+  if (!page) return generateMetadata({ lang, noIndex: true })
 
+  const localized = page[lang] || page.fr
   return generateMetadata({
-    title: page[lang].title,
-    description: page[lang].description,
+    title: localized.title,
+    description: localized.description,
     lang,
     path: page.path,
+    noIndex: page.noIndex,
   })
 }

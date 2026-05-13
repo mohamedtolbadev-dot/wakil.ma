@@ -112,6 +112,18 @@ export const authAPI = {
       body: JSON.stringify({ email }),
     }),
 
+  forgotPassword: (email) =>
+    fetchAPI("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token, password) =>
+    fetchAPI("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
+
   phoneSetupSend: (phone) =>
     fetchAPI("/api/auth/phone-setup/send", {
       method: "POST",
@@ -153,25 +165,6 @@ export const productsAPI = {
     }),
   delete: (id) =>
     fetchAPI(`/api/products/${id}`, {
-      method: "DELETE",
-    }),
-}
-
-// Services APIs
-export const servicesAPI = {
-  getAll: () => fetchAPI("/api/services"),
-  create: (data) =>
-    fetchAPI("/api/services", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  update: (id, data) =>
-    fetchAPI(`/api/services/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  delete: (id) =>
-    fetchAPI(`/api/services/${id}`, {
       method: "DELETE",
     }),
 }
@@ -263,6 +256,54 @@ export const notificationsAPI = {
     }),
 }
 
+// Campaigns APIs
+export const campaignsAPI = {
+  getAll: () => fetchAPI("/api/campaigns"),
+  getById: (id) => fetchAPI(`/api/campaigns/${id}`),
+  create: (data) =>
+    fetchAPI("/api/campaigns", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id, data) =>
+    fetchAPI(`/api/campaigns/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  preview: (data) =>
+    fetchAPI("/api/campaigns/preview", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  dispatch: (id) =>
+    fetchAPI(`/api/campaigns/${id}/dispatch`, {
+      method: "POST",
+    }),
+  restart: (id) =>
+    fetchAPI(`/api/campaigns/${id}/restart`, {
+      method: "POST",
+    }),
+  delete: (id) =>
+    fetchAPI(`/api/campaigns/${id}`, {
+      method: "DELETE",
+    }),
+  getTemplates: () => fetchAPI("/api/campaigns/templates"),
+  createTemplate: (data) =>
+    fetchAPI("/api/campaigns/templates", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateTemplate: (id, data) =>
+    fetchAPI(`/api/campaigns/templates/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deleteTemplate: (id) =>
+    fetchAPI(`/api/campaigns/templates/${id}`, {
+      method: "DELETE",
+    }),
+}
+
 // WhatsApp APIs
 export const whatsappAPI = {
   connect: (data) =>
@@ -279,49 +320,6 @@ export const whatsappAPI = {
     fetchAPI("/api/whatsapp/test", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
-}
-
-// Appointments APIs
-export const appointmentsAPI = {
-  getAll: (params = {}) => {
-    const cleanParams = Object.fromEntries(
-      Object.entries(params).filter(([_, v]) => v != null)
-    )
-    const query = new URLSearchParams(cleanParams).toString()
-    return fetchAPI(`/api/appointments${query ? `?${query}` : ""}`)
-  },
-  getById: (id) => fetchAPI(`/api/appointments/${id}`),
-  create: (data) =>
-    fetchAPI("/api/appointments", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  update: (id, data) =>
-    fetchAPI(`/api/appointments/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  updateStatus: (id, status) =>
-    fetchAPI(`/api/appointments/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    }),
-  // ✅ تحديث الحالة مع إرسال رسالة AI تلقائية
-  updateStatusWithMessage: (id, status, sendMessage = true) =>
-    fetchAPI(`/api/appointments/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status, sendMessage }),
-    }),
-  delete: (id) =>
-    fetchAPI(`/api/appointments/${id}`, {
-      method: "DELETE",
-    }),
-  // ✅ إرسال رسالة تأكيد أو تذكير
-  sendMessage: (appointmentId, type) =>
-    fetchAPI("/api/appointments/send-message", {
-      method: "POST",
-      body: JSON.stringify({ appointmentId, type }),
     }),
 }
 
@@ -344,6 +342,21 @@ export const ordersAPI = {
       method: "PATCH",
       body: JSON.stringify({ status, ...extra }),
     }),
+  exportDelivery: (data = {}) =>
+    fetchAPI("/api/orders/delivery/export", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  importDeliveryTracking: (data = {}) =>
+    fetchAPI("/api/orders/delivery/import", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  bulkDeliveryStatus: (data = {}) =>
+    fetchAPI("/api/orders/delivery/bulk-status", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   delete: (id) =>
     fetchAPI(`/api/orders/${id}`, { method: "DELETE" }),
 }
@@ -351,12 +364,29 @@ export const ordersAPI = {
 // Invoices API (client view)
 export const invoicesAPI = {
   getAll: () => fetchAPI("/api/invoices"),
+  requestPlan: (plan) =>
+    fetchAPI("/api/billing/plan-request", {
+      method: "POST",
+      body: JSON.stringify({ plan }),
+    }),
 }
 
 // Admin APIs
 export const adminAPI = {
   getUsers: () => fetchAPI("/api/admin/users"),
   deleteUser: (id) => fetchAPI(`/api/admin/users?id=${id}`, { method: "DELETE" }),
+  getBlogs: (params = {}) => {
+    const query = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([_, v]) => v))
+    ).toString()
+    return fetchAPI(`/api/admin/blogs${query ? `?${query}` : ""}`)
+  },
+  createBlog: (data) =>
+    fetchAPI("/api/admin/blogs", { method: "POST", body: JSON.stringify(data) }),
+  updateBlog: (id, data) =>
+    fetchAPI(`/api/admin/blogs/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteBlog: (id) =>
+    fetchAPI(`/api/admin/blogs/${id}`, { method: "DELETE" }),
   getInvoices: (params = {}) => {
     const query = new URLSearchParams(
       Object.fromEntries(Object.entries(params).filter(([_, v]) => v))

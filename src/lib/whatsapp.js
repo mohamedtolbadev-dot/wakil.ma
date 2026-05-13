@@ -2,6 +2,37 @@
 
 const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL ||
   "https://graph.facebook.com/v19.0"
+const OPENAI_AUDIO_API_URL = "https://api.openai.com/v1/audio"
+const OPENAI_AUDIO_UPLOAD_LIMIT_BYTES = 25 * 1024 * 1024
+const OPENAI_CHAT_API_URL = "https://api.openai.com/v1/chat/completions"
+const OPENAI_IMAGE_ANALYSIS_LIMIT_BYTES = 8 * 1024 * 1024
+
+function toBuffer(value) {
+  if (!value) return Buffer.alloc(0)
+  if (Buffer.isBuffer(value)) return value
+  if (value instanceof ArrayBuffer) return Buffer.from(value)
+  if (ArrayBuffer.isView(value)) return Buffer.from(value.buffer, value.byteOffset, value.byteLength)
+  return Buffer.from(value)
+}
+
+function audioExtensionFromMime(mimeType = "") {
+  const normalized = String(mimeType).toLowerCase()
+  if (normalized.includes("mpeg") || normalized.includes("mp3")) return "mp3"
+  if (normalized.includes("mp4")) return "mp4"
+  if (normalized.includes("mpga")) return "mpga"
+  if (normalized.includes("m4a")) return "m4a"
+  if (normalized.includes("wav")) return "wav"
+  if (normalized.includes("webm")) return "webm"
+  if (normalized.includes("ogg") || normalized.includes("opus")) return "ogg"
+  return "bin"
+}
+
+// Whisper supports: mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg
+// WhatsApp sends ogg/opus — works directly, no conversion needed.
+function isOpenAITranscriptionSupportedMime(mimeType = "") {
+  const ext = audioExtensionFromMime(mimeType)
+  return ["mp3", "mp4", "mpga", "m4a", "wav", "webm", "ogg"].includes(ext)
+}
 
 // 🔧 FIX: Added imageId parameter for media upload support
 // 📍 LOCATION: sendWhatsAppMessage signature
@@ -245,6 +276,90 @@ export async function sendWhatsAppOTPTemplate({ phoneId, token, to, code }) {
   }
 }
 
+export async function sendWhatsAppTemplateMessage({
+  phoneId,
+  token,
+  to,
+  templateName,
+  language = "fr",
+  bodyParameters = [],
+}) {
+  if (!phoneId || !token || !to || !templateName) {
+    console.error("❌ sendWhatsAppTemplateMessage: Missing parameters")
+    return { success: false, error: "Missing parameters" }
+  }
+
+  try {
+    const components = []
+    if (Array.isArray(bodyParameters) && bodyParameters.length > 0) {
+      components.push({
+        type: "body",
+        parameters: bodyParameters.map((value) => ({
+          type: "text",
+          text: String(value ?? ""),
+        })),
+      })
+    }
+
+    const body = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: language || "fr" },
+        ...(components.length ? { components } : {}),
+      },
+    }
+
+    const maskedTo = to.length > 4 ? "******" + to.slice(-4) : "****"
+    console.log(`📤 Sending template "${templateName}" to ${maskedTo}...`)
+
+    const response = await fetch(
+      `${WHATSAPP_API_URL}/${phoneId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    )
+
+    const raw = await response.text()
+    let data = null
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      data = { raw: raw.substring(0, 200) }
+    }
+
+    if (!response.ok) {
+      const msg = (data?.error?.message || "").toLowerCase()
+      const isTokenExpired =
+        response.status === 401 ||
+        data?.error?.code === 190 ||
+        msg.includes("token") ||
+        msg.includes("expired") ||
+        msg.includes("invalid")
+
+      console.error("❌ Template send error:", {
+        status: response.status,
+        code: data?.error?.code,
+      })
+
+      return { success: false, error: data, isTokenExpired }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error("❌ sendWhatsAppTemplateMessage error:", error?.message || error)
+    return { success: false, error: error?.message || "Unknown error" }
+  }
+}
+
 // إرسال رسالة مع أزرار (Quick Reply)
 export async function sendWhatsAppButtons({
   phoneId,
@@ -366,12 +481,16 @@ export function parseAllIncomingMessages(body) {
             const caption = message.document?.caption || ""
             text = caption ? `[مستند: ${docName}] ${caption}` : `[مستند: ${docName}]`
             mediaId = message.document?.id || null
+          } else if (message.type === "video") {
+            const caption = message.video?.caption || ""
+            text = caption ? `[فيديو] ${caption}` : "[فيديو]"
+            mediaId = message.video?.id || null
           } else if (message.type === "audio") {
             text = "[رسالة صوتية]"
             mediaId = message.audio?.id || null
           }
 
-          if (!text.trim() && !["image", "document"].includes(message.type)) {
+          if (!text.trim() && !["image", "document", "video"].includes(message.type)) {
             continue // تجاهل الرسائل الفارغة
           }
 
@@ -430,55 +549,297 @@ export async function downloadWhatsAppMedia({ token, mediaId }) {
   }
 }
 
-// 🎤 تحويل رسالة صوتية لنص عبر Whisper API (اختياري — مدفوع)
-export async function transcribeWhatsAppAudio({ token, audioId }) {
-  if (!token || !audioId) return null
+export async function analyzeWhatsAppImage({ token, imageId, caption = "" }) {
+  if (!token || !imageId) return null
 
-  const openaiKey = process.env.OPENAI_API_KEY
-  if (!openaiKey) {
-    console.warn("⚠️ OPENAI_API_KEY not set — voice messages cannot be transcribed")
+  const openaiApiKey = process.env.OPENAI_API_KEY
+  if (!openaiApiKey) {
+    console.warn("⚠️ OPENAI_API_KEY not set - image analysis skipped")
     return null
   }
 
   try {
-    const downloaded = await downloadWhatsAppMedia({ token, mediaId: audioId })
-    if (!downloaded) return null
-    const { buffer: audioBuffer, mimeType } = downloaded
-
-    // إرسال للـ Whisper API — امتداد يطابق الـ MIME (واتساب غالباً ogg/opus أو aac)
-    const ext =
-      /mpeg|mp3/i.test(mimeType) ? "mp3"
-      : /mp4|m4a/i.test(mimeType) ? "m4a"
-      : /aac/i.test(mimeType) ? "aac"
-      : /wav/i.test(mimeType) ? "wav"
-      : "ogg"
-    const formData = new FormData()
-    formData.append("file", new Blob([audioBuffer], { type: mimeType }), `audio.${ext}`)
-    formData.append("model", "whisper-1")
-
-    const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${openaiKey}` },
-      body: formData,
-    })
-
-    if (!whisperRes.ok) {
-      const err = await whisperRes.json()
-      console.error("❌ Whisper API error:", err?.error?.message || err)
+    const downloaded = await downloadWhatsAppMedia({ token, mediaId: imageId })
+    if (!downloaded) {
+      console.error("❌ [Vision] Failed to download WhatsApp image")
       return null
     }
 
-    const whisperData = await whisperRes.json()
-    const transcription = whisperData.text?.trim()
+    const imageBuffer = toBuffer(downloaded.buffer)
+    const mimeType = downloaded.mimeType || "image/jpeg"
+    if (!imageBuffer.length || !mimeType.startsWith("image/")) {
+      console.warn(`⚠️ [Vision] Unsupported media for image analysis: ${mimeType}`)
+      return null
+    }
 
-    // ✅ Transcription privacy: log only metadata (length, success)
+    if (imageBuffer.length > OPENAI_IMAGE_ANALYSIS_LIMIT_BYTES) {
+      console.warn(`⚠️ [Vision] Image too large (${imageBuffer.length} bytes) - skipped`)
+      return null
+    }
+
+    const dataUrl = `data:${mimeType};base64,${imageBuffer.toString("base64")}`
+    const response = await fetch(OPENAI_CHAT_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openaiApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_VISION_MODEL || "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You analyze customer product photos for a WhatsApp sales agent. Return a concise factual description in French/Darija-friendly wording. Include visible product type, brand/text, color, material, shape, size hints, packaging, and any uncertainty. Do not invent exact matches.",
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Customer caption: ${caption || "(none)"}\nDescribe the product in this image for catalog matching.`,
+              },
+              {
+                type: "image_url",
+                image_url: { url: dataUrl, detail: "low" },
+              },
+            ],
+          },
+        ],
+        max_tokens: 220,
+        temperature: 0.2,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "")
+      console.error(`❌ [Vision] OpenAI API Error (${response.status}): ${errorText.slice(0, 400)}`)
+      return null
+    }
+
+    const data = await response.json()
+    const text = data?.choices?.[0]?.message?.content?.trim()
+    return text || null
+  } catch (error) {
+    console.error("❌ [Vision] Image analysis failed:", error?.message || error)
+    return null
+  }
+}
+
+// 🎤 تحويل رسالة صوتية لنص عبر Google Cloud Speech-to-Text (مجاني — 60 دقيقة/شهر)
+export async function transcribeWhatsAppAudioGoogleLegacy({ token, audioId }) {
+  if (!token || !audioId) {
+    console.error("❌ transcribeWhatsAppAudio: Missing token or audioId")
+    return null
+  }
+
+  // استخدم Google API بدل OpenAI (مجاني!)
+  const googleApiKey = process.env.GOOGLE_CLOUD_SPEECH_API_KEY
+  if (!googleApiKey) {
+    console.warn("⚠️ GOOGLE_CLOUD_SPEECH_API_KEY not set — using fallback")
+    return null
+  }
+
+  try {
+    console.log(`🎤 [Whisper] Starting transcription for audioId: ${audioId}`)
+
+    const downloaded = await downloadWhatsAppMedia({ token, mediaId: audioId })
+    if (!downloaded) {
+      console.error("❌ [Whisper] Failed to download media from WhatsApp")
+      return null
+    }
+
+    const { buffer: audioBuffer, mimeType } = downloaded
+    console.log(`📦 [Whisper] Downloaded: ${audioBuffer.length} bytes, MIME: ${mimeType}`)
+
+    // تحويل الصوت لـ base64 (معالجة جميع أنواع البيانات)
+    let audioContent
+    if (typeof audioBuffer === 'string') {
+      audioContent = audioBuffer
+    } else if (Buffer.isBuffer(audioBuffer)) {
+      audioContent = audioBuffer.toString('base64')
+    } else if (audioBuffer instanceof ArrayBuffer) {
+      audioContent = Buffer.from(audioBuffer).toString('base64')
+    } else {
+      // Uint8Array أو أي نوع آخر
+      audioContent = Buffer.from(new Uint8Array(audioBuffer)).toString('base64')
+    }
+
+    console.log(`📝 [Whisper] Base64 encoded: ${audioContent.substring(0, 50)}...`)
+
+    console.log(`🔄 [Whisper] Sending to Google Cloud Speech API...`)
+
+    const response = await fetch(
+      `https://speech.googleapis.com/v1/speech:recognize?key=${googleApiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config: {
+            encoding: "OGG_OPUS", // WhatsApp format
+            sampleRateHertz: 48000,
+            languageCode: "ar-SA", // عربي
+            alternativeLanguageCodes: ["ar", "en-US"],
+          },
+          audio: { content: audioContent },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      const errorMsg = err?.error?.message || JSON.stringify(err)
+      console.error(`❌ [Whisper] API Error (${response.status}): ${errorMsg}`)
+
+      if (response.status === 403) {
+        console.error("🚨 Google API key invalid or quota exceeded!")
+      }
+
+      return null
+    }
+
+    const data = await response.json()
+    const transcription = data.results
+      ?.map((result) => result.alternatives?.[0]?.transcript)
+      ?.filter(Boolean)
+      ?.join(" ")
+      ?.trim()
+
     if (transcription) {
-      console.log(`🎤 Whisper transcription: success (length: ${transcription.length})`)
+      console.log(`✅ [Whisper] Success! Transcribed ${transcription.length} chars`)
+      console.log(`📝 [Whisper] Text: "${transcription.substring(0, 50)}..."`)
+    } else {
+      console.warn(`⚠️ [Whisper] Empty transcription returned`)
     }
 
     return transcription || null
   } catch (error) {
-    console.error("❌ transcribeWhatsAppAudio error:", error.message)
+    console.error(`❌ [Whisper] Fatal error: ${error.message}`)
+    console.error(`Stack: ${error.stack}`)
+    return null
+  }
+}
+
+export async function transcribeWhatsAppAudio({ token, audioId }) {
+  if (!token || !audioId) {
+    console.error("❌ transcribeWhatsAppAudio: Missing token or audioId")
+    return null
+  }
+
+  const openaiApiKey = process.env.OPENAI_API_KEY
+  if (!openaiApiKey) {
+    console.warn("⚠️ OPENAI_API_KEY not set - voice transcription skipped")
+    return null
+  }
+
+  try {
+    console.log(`🎤 [OpenAI STT] Starting transcription for audioId: ${audioId}`)
+
+    const downloaded = await downloadWhatsAppMedia({ token, mediaId: audioId })
+    if (!downloaded) {
+      console.error("❌ [OpenAI STT] Failed to download media from WhatsApp")
+      return null
+    }
+
+    let audioBuffer = toBuffer(downloaded.buffer)
+    let mimeType = downloaded.mimeType || "application/octet-stream"
+    let extension = audioExtensionFromMime(mimeType)
+
+    console.log(`📦 [OpenAI STT] Downloaded: ${audioBuffer.length} bytes, MIME: ${mimeType}`)
+
+    if (audioBuffer.length > OPENAI_AUDIO_UPLOAD_LIMIT_BYTES) {
+      console.error("❌ [OpenAI STT] Audio is larger than 25MB")
+      return null
+    }
+
+    if (!isOpenAITranscriptionSupportedMime(mimeType)) {
+      console.warn(`⚠️ [OpenAI STT] Unsupported MIME type: ${mimeType}. Skipping transcription.`)
+      return null
+    }
+
+    const formData = new FormData()
+    const uint8Array = new Uint8Array(audioBuffer)
+    const blob = new Blob([uint8Array], { type: mimeType })
+    formData.append("file", blob, `whatsapp-voice.${extension}`)
+    formData.append("model", process.env.OPENAI_TRANSCRIBE_MODEL || "gpt-4o-mini-transcribe")
+    formData.append(
+      "prompt",
+      "The audio may contain Moroccan Arabic Darija, Arabic, French, English, or a mix. Preserve product names, city names, quantities, and phone numbers."
+    )
+
+    const response = await fetch(`${OPENAI_AUDIO_API_URL}/transcriptions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${openaiApiKey}` },
+      body: formData,
+    })
+
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      const errorMessage = data?.error?.message || JSON.stringify(data)
+      console.error(`❌ [OpenAI STT] API Error (${response.status}): ${errorMessage}`)
+      return null
+    }
+
+    const transcription = String(data?.text || "").trim()
+    if (transcription) {
+      console.log(`✅ [OpenAI STT] Success! Transcribed ${transcription.length} chars`)
+      console.log(`📝 [OpenAI STT] Text: "${transcription.substring(0, 50)}..."`)
+    } else {
+      console.warn("⚠️ [OpenAI STT] Empty transcription returned")
+    }
+
+    return transcription || null
+  } catch (error) {
+    console.error(`❌ [OpenAI STT] Fatal error: ${error.message}`)
+    return null
+  }
+}
+
+export async function synthesizeOpenAISpeech({ text }) {
+  const input = String(text || "").trim()
+  if (!input) return null
+
+  const openaiApiKey = process.env.OPENAI_API_KEY
+  if (!openaiApiKey) {
+    console.warn("⚠️ OPENAI_API_KEY not set - voice reply skipped")
+    return null
+  }
+
+  try {
+    const response = await fetch(`${OPENAI_AUDIO_API_URL}/speech`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openaiApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts",
+        voice: process.env.OPENAI_TTS_VOICE || "alloy",
+        input: input.slice(0, 4096),
+        response_format: "mp3",
+        instructions: "Speak naturally and clearly in the same language as the input. Keep a friendly WhatsApp sales tone.",
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "")
+      console.error(`❌ [OpenAI TTS] API Error (${response.status}): ${errorText.slice(0, 500)}`)
+      return null
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer())
+    if (!buffer.length) {
+      console.warn("⚠️ [OpenAI TTS] Empty audio returned")
+      return null
+    }
+
+    return {
+      buffer,
+      mimeType: "audio/mpeg",
+      filename: `ai-reply-${Date.now()}.mp3`,
+    }
+  } catch (error) {
+    console.error(`❌ [OpenAI TTS] Fatal error: ${error.message}`)
     return null
   }
 }

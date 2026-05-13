@@ -37,11 +37,12 @@ export async function POST(request) {
     const code           = generateOTP()
     const expiresAt      = new Date(Date.now() + 15 * 60 * 1000)
 
-    // Use email as the identifier in the phone field
-    await prisma.verificationToken.deleteMany({ where: { phone: email } })
+    // Use email as the identifier in the phone field (normalized for consistency)
+    const normalizedEmail = email.toLowerCase()
+    await prisma.verificationToken.deleteMany({ where: { phone: normalizedEmail } })
     await prisma.verificationToken.create({
       data: {
-        phone: email,
+        phone: normalizedEmail,
         code,
         data: JSON.stringify({ name, email, hashedPassword, mode, phone }),
         expiresAt,

@@ -1,38 +1,45 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import Link from "next/link"
 import { Logo } from "@/components/shared/Logo"
 import { cn } from "@/lib/utils"
-import { conversationsAPI, ordersAPI, appointmentsAPI } from "@/lib/api"
+import { conversationsAPI, ordersAPI } from "@/lib/api"
 import fetchAPI from "@/lib/api"
 import { useMobileMenu } from "@/contexts/MobileMenuContext"
 import { useLanguage } from "@/contexts/LanguageContext"
 import {
   MessageCircle, BarChart3, ShoppingBag,
-  Users, Settings, LayoutDashboard, Wrench, Calendar, ClipboardList,
-  FileText, ShieldCheck, UserCog, Send,
+  Users, Settings, LayoutDashboard, ClipboardList,
+  FileText, ShieldCheck, UserCog, Megaphone,
 } from "lucide-react"
 
 const navItems = [
   { key: "nav.dashboard",     href: "/dashboard",               icon: LayoutDashboard },
   { key: "nav.conversations", href: "/dashboard/conversations",  icon: MessageCircle   },
   { key: "nav.orders",        href: "/dashboard/orders",         icon: ClipboardList   },
-  { key: "nav.appointments",  href: "/dashboard/appointments",   icon: Calendar        },
   { key: "nav.analytics",     href: "/dashboard/analytics",      icon: BarChart3       },
   { key: "nav.products",      href: "/dashboard/products",       icon: ShoppingBag     },
-  { key: "nav.services",      href: "/dashboard/services",       icon: Wrench          },
+  { key: "nav.campaigns",     href: "/dashboard/campaigns",      icon: Megaphone       },
   { key: "nav.customers",     href: "/dashboard/customers",      icon: Users           },
-  { key: "nav.outbound",      href: "/dashboard/outbound",       icon: Send            },
   { key: "nav.invoices",      href: "/dashboard/invoices",       icon: FileText        },
+  // { key: "nav.billing",    href: "/dashboard/billing",        icon: TrendingUp      },  // hidden for now
   { key: "nav.settings",      href: "/dashboard/settings",       icon: Settings        },
 ]
 
 const adminNavItems = [
   { key: "nav.admin_invoices", href: "/dashboard/admin/invoices", icon: ShieldCheck },
   { key: "nav.admin_users",    href: "/dashboard/admin/users",    icon: UserCog     },
+  { key: "nav.blogs",          href: "/dashboard/admin/blogs",     icon: FileText    },
 ]
+
+const PLAN_LABEL_KEYS = {
+  FREE: "plan.free",
+  PRO: "plan.pro",
+  BUSINESS: "plan.business",
+  ENTERPRISE: "plan.enterprise",
+}
 
 function getLastSeen(key) {
   if (typeof window === "undefined") return new Date(0).toISOString()
@@ -42,46 +49,66 @@ function markSeen(key) {
   if (typeof window !== "undefined") localStorage.setItem(key, new Date().toISOString())
 }
 
-function getUserRoleFromStorage() {
-  if (typeof window === "undefined") return "USER"
+function getStoredUser() {
+  if (typeof window === "undefined") return {}
   try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}")
-    return user?.role || "USER"
-  } catch { return "USER" }
+    return JSON.parse(localStorage.getItem("user") || "{}")
+  } catch { return {} }
 }
 
-async function fetchAndSyncRole() {
+function getUserRoleFromStorage() {
+  return getStoredUser()?.role || "USER"
+}
+
+function getUserPlanFromStorage() {
+  const user = getStoredUser()
+  return user?.effectivePlan || user?.plan || "FREE"
+}
+
+async function fetchAndSyncUser() {
   try {
     const res = await fetchAPI("/api/auth/me")
-    const role = res?.data?.role || res?.role || "USER"
+    const data = res?.data || res || {}
     const stored = JSON.parse(localStorage.getItem("user") || "{}")
-    localStorage.setItem("user", JSON.stringify({ ...stored, role }))
-    return role
-  } catch { return getUserRoleFromStorage() }
+    const nextUser = { ...stored, ...data }
+    localStorage.setItem("user", JSON.stringify(nextUser))
+    return {
+      role: nextUser.role || "USER",
+      plan: nextUser.effectivePlan || nextUser.plan || "FREE",
+    }
+  } catch {
+    return {
+      role: getUserRoleFromStorage(),
+      plan: getUserPlanFromStorage(),
+    }
+  }
 }
 
 /* ══════════════════════════════════════
    Unified Hook: role + counts + markAsSeen + polling
 ══════════════════════════════════════ */
 function useNavCountsAndRole({ pollingMs = null } = {}) {
-  const [role, setRole] = useState("USER")
+  const [role, setRole] = useState(() => getUserRoleFromStorage())
+  const [plan, setPlan] = useState(() => getUserPlanFromStorage())
   const [unreadCount, setUnreadCount] = useState(0)
   const [newOrdersBadge, setNewOrdersBadge] = useState(0)
-  const [newApptsBadge, setNewApptsBadge] = useState(0)
-  const [todayOutboundCount, setTodayOutboundCount] = useState(0)
-  const [mounted, setMounted] = useState(false)
+  const mountedRef = useRef(false)
 
   useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
   }, [])
 
   // Role fetch with sync (guarded)
   useEffect(() => {
     let cancelled = false
-    setRole(getUserRoleFromStorage())
-    fetchAndSyncRole().then((r) => {
-      if (!cancelled) setRole(r)
+    fetchAndSyncUser().then(({ role: nextRole, plan: nextPlan }) => {
+      if (!cancelled) {
+        setRole(nextRole)
+        setPlan(nextPlan)
+      }
     })
     return () => { cancelled = true }
   }, [])
@@ -91,7 +118,7 @@ function useNavCountsAndRole({ pollingMs = null } = {}) {
     // Conversations
     conversationsAPI.getAll()
       .then((res) => {
-        if (!mounted) return
+        if (!mountedRef.current) return
         const convs = res.data?.conversations || []
         setUnreadCount(convs.filter(c => !c.isRead).length)
       })
@@ -100,31 +127,18 @@ function useNavCountsAndRole({ pollingMs = null } = {}) {
     // Orders
     ordersAPI.getAll()
       .then((res) => {
-        if (!mounted) return
-        const orders = Array.isArray(res.data) ? res.data : []
+        if (!mountedRef.current) return
+        const orders = Array.isArray(res.data?.orders)
+          ? res.data.orders
+          : Array.isArray(res.data)
+            ? res.data
+            : []
         const last = getLastSeen('sb_seenOrders')
         setNewOrdersBadge(orders.filter(o => new Date(o.createdAt) > new Date(last)).length)
       })
       .catch(() => {})
 
-    // Appointments
-    appointmentsAPI.getAll()
-      .then((res) => {
-        if (!mounted) return
-        const appts = Array.isArray(res.data) ? res.data : []
-        const last = getLastSeen('sb_seenAppts')
-        setNewApptsBadge(appts.filter(a => new Date(a.createdAt) > new Date(last)).length)
-      })
-      .catch(() => {})
-
-    // Outbound leads (today count)
-    fetchAPI("/api/outbound/leads?limit=1")
-      .then((res) => {
-        if (!mounted) return
-        setTodayOutboundCount(res.data?.stats?.todayCount || 0)
-      })
-      .catch(() => {})
-  }, [mounted])
+  }, [])
 
   // Initial fetch + optional polling
   useEffect(() => {
@@ -149,18 +163,14 @@ function useNavCountsAndRole({ pollingMs = null } = {}) {
     } else if (type === "orders") {
       markSeen('sb_seenOrders')
       setNewOrdersBadge(0)
-    } else if (type === "appointments") {
-      markSeen('sb_seenAppts')
-      setNewApptsBadge(0)
     }
   }, [])
 
   return {
     role,
+    plan,
     unreadCount,
     newOrdersBadge,
-    newApptsBadge,
-    todayOutboundCount,
     markAsSeen,
     refresh,
   }
@@ -173,9 +183,9 @@ export function MobileNav() {
   const pathname = usePathname()
   const { isOpen, close } = useMobileMenu()
   const { t, isRTL } = useLanguage()
-  const { role, unreadCount, newOrdersBadge, newApptsBadge, todayOutboundCount, markAsSeen } = useNavCountsAndRole()
+  const { role, plan, unreadCount, newOrdersBadge, markAsSeen } = useNavCountsAndRole()
 
-  useEffect(() => { close() }, [pathname])
+  useEffect(() => { close() }, [pathname, close])
 
   return (
     <>
@@ -225,7 +235,7 @@ export function MobileNav() {
               const active = item.href === "/dashboard"
                 ? pathname === "/dashboard"
                 : pathname.startsWith(item.href)
-              const badge = ({"/dashboard/conversations": unreadCount, "/dashboard/orders": newOrdersBadge, "/dashboard/appointments": newApptsBadge, "/dashboard/outbound": todayOutboundCount})[item.href] || 0
+              const badge = ({"/dashboard/conversations": unreadCount, "/dashboard/orders": newOrdersBadge})[item.href] || 0
               return (
                 <Link
                   key={item.href}
@@ -234,12 +244,11 @@ export function MobileNav() {
                     close()
                     if (item.href === "/dashboard/conversations") { markAsSeen("conversations") }
                     if (item.href === "/dashboard/orders") { markAsSeen("orders") }
-                    if (item.href === "/dashboard/appointments") { markAsSeen("appointments") }
                   }}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200",
                     active
-                      ? "bg-brand-600/10 text-brand-700 font-semibold"
+                      ? "bg-brand-600/10 text-brand-700 dark:text-brand-300 font-semibold"
                       : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
                   )}
                 >
@@ -267,7 +276,7 @@ export function MobileNav() {
                   <Link key={item.href} href={item.href} onClick={close}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200",
-                      active ? "bg-brand-600/10 text-brand-700 font-semibold" : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
+                      active ? "bg-brand-600/10 text-brand-700 dark:text-brand-300 font-semibold" : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 hover:text-foreground"
                     )}>
                     <Icon size={20} className={cn("shrink-0", active ? "text-brand-600" : "text-muted-foreground")} />
                     <span className="flex-1">{t(item.key)}</span>
@@ -289,7 +298,7 @@ export function MobileNav() {
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">Wakil.ma</p>
-              <p className="text-xs text-muted-foreground">{t('plan.pro')}</p>
+              <p className="text-xs text-muted-foreground">{t(PLAN_LABEL_KEYS[plan] || "plan.free")}</p>
             </div>
           </div>
         </div>
@@ -297,9 +306,7 @@ export function MobileNav() {
 
       {/* CSS variable for drawer background */}
       <style>{`
-        :root                { --drawer-bg: #ffffff; }
-        .dark                { --drawer-bg: #0f0f0f; }
-        [data-theme="dark"]  { --drawer-bg: #0f0f0f; }
+        :root { --drawer-bg: hsl(var(--card)); }
       `}</style>
     </>
   )
@@ -311,10 +318,10 @@ export function MobileNav() {
 export function Sidebar() {
   const pathname = usePathname()
   const { t } = useLanguage()
-  const { role, unreadCount, newOrdersBadge, newApptsBadge, todayOutboundCount, markAsSeen } = useNavCountsAndRole({ pollingMs: 30_000 })
+  const { role, plan, unreadCount, newOrdersBadge, markAsSeen } = useNavCountsAndRole({ pollingMs: 30_000 })
 
   return (
-    <aside className="hidden md:flex w-[200px] h-screen flex-col bg-card border-l border-border/50 shrink-0 overflow-hidden">
+    <aside className="hidden md:flex w-[200px] h-screen flex-col bg-card border-l border-border/50 shrink-0 overflow-hidden shadow-sm dark:shadow-black/20">
       <div className="flex items-center px-4 h-14 border-b border-border/50 shrink-0">
         <Logo href="/dashboard" />
       </div>
@@ -327,19 +334,18 @@ export function Sidebar() {
             const active = item.href === "/dashboard"
               ? pathname === "/dashboard"
               : pathname.startsWith(item.href)
-            const badge = ({"/dashboard/conversations": unreadCount, "/dashboard/orders": newOrdersBadge, "/dashboard/appointments": newApptsBadge, "/dashboard/outbound": todayOutboundCount})[item.href] || 0
+            const badge = ({"/dashboard/conversations": unreadCount, "/dashboard/orders": newOrdersBadge})[item.href] || 0
             return (
               <Link key={item.href} href={item.href}
                 onClick={() => {
                   if (item.href === "/dashboard/conversations") { markAsSeen("conversations") }
                   if (item.href === "/dashboard/orders") { markAsSeen("orders") }
-                  if (item.href === "/dashboard/appointments") { markAsSeen("appointments") }
                 }}
                 className={cn(
                   "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium",
                   "transition-all duration-200 border border-transparent",
                   active
-                    ? "bg-brand-600/10 text-brand-700 font-semibold border-brand-600/30 shadow-sm shadow-brand-600/10"
+                    ? "bg-brand-600/10 text-brand-700 dark:text-brand-300 font-semibold border-brand-600/30 shadow-sm shadow-brand-600/10"
                     : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground hover:border-border/50"
                 )}>
                 <Icon size={16} className={cn("shrink-0 transition-colors", active ? "text-brand-600" : "text-muted-foreground")} />
@@ -365,7 +371,7 @@ export function Sidebar() {
                     "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium",
                     "transition-all duration-200 border border-transparent",
                     active
-                      ? "bg-brand-600/10 text-brand-700 font-semibold border-brand-600/30 shadow-sm"
+                      ? "bg-brand-600/10 text-brand-700 dark:text-brand-300 font-semibold border-brand-600/30 shadow-sm"
                       : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground hover:border-border/50"
                   )}>
                   <Icon size={16} className={cn("shrink-0", active ? "text-brand-600" : "text-muted-foreground")} />
@@ -384,7 +390,7 @@ export function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-foreground truncate">Wakil.ma</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{t('plan.pro')}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{t(PLAN_LABEL_KEYS[plan] || "plan.free")}</p>
           </div>
         </div>
       </div>

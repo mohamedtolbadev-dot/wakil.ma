@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { verifyToken } from "@/lib/auth"
 import { sendWhatsAppMessage, uploadWhatsAppMedia } from "@/lib/whatsapp"
 import { generateInvoicePDF } from "@/lib/pdfGenerator"
+import { getInvoicePlanLabel } from "@/lib/invoiceHelpers"
 
 async function getSuperAdmin(request) {
   const token = request.headers.get("authorization")?.split(" ")[1]
@@ -58,10 +59,7 @@ export async function POST(request, { params }) {
       { day: "numeric", month: "long", year: "numeric" }
     )
 
-    const planLabels = isFr
-      ? { FREE: "Gratuit", PRO: "Pro", ENTERPRISE: "Entreprise" }
-      : { FREE: "مجاني", PRO: "احترافي", ENTERPRISE: "مؤسسي" }
-    const planLabel = planLabels[invoice.plan] || invoice.plan
+    const planLabel = getInvoicePlanLabel(invoice.plan, locale)
 
     // ── بناء رسالة النص حسب اللغة ──
     let message

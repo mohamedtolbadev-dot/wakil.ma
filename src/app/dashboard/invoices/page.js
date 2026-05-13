@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import { invoicesAPI } from "@/lib/api"
 import { formatAmount } from "@/lib/helpers"
+import { BILLING_PLANS, PLAN_TRANSLATION_KEYS, SELF_SERVICE_PLAN_KEYS } from "@/lib/billingPlans"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { cn } from "@/lib/utils"
 import {
   FileText, Clock, CheckCircle2, XCircle,
   AlertCircle, CalendarDays, DollarSign, CreditCard,
+  Loader2, Send,
 } from "lucide-react"
 
 /* ─────────────────────────────────────────────
@@ -20,7 +22,58 @@ const STATUS_CONFIG = {
   CANCELLED: { labelKey: "invoices.cancelled", color: "text-zinc-400",    icon: XCircle      },
 }
 
-const PLAN_KEYS = { FREE: "invoices.plan_free", PRO: "invoices.plan_pro", ENTERPRISE: "invoices.plan_enterprise" }
+function PlanRequestCards({ invoices, onRequest, requesting }) {
+  const { locale } = useLanguage()
+  const isAr = String(locale).startsWith("ar")
+  const pendingPlans = new Set(invoices.filter(i => i.status === "PENDING").map(i => i.plan))
+  const pendingSelfService = invoices.find(
+    i => i.status === "PENDING" && SELF_SERVICE_PLAN_KEYS.includes(i.plan)
+  )
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {SELF_SERVICE_PLAN_KEYS.map((key) => {
+        const plan = BILLING_PLANS[key]
+        const pending = pendingPlans.has(key)
+        const disabledByOtherPending = Boolean(pendingSelfService) && !pending
+        const busy = requesting === key
+
+        return (
+          <div key={key} className="bg-card border border-border/60 rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-bold text-foreground">{plan.label}</p>
+                <p className="text-sm text-muted-foreground">
+                  {plan.aiReplies.toLocaleString(locale)} {isAr ? "رد AI / شهر" : "reponses IA / mois"}
+                </p>
+              </div>
+              <p className="text-xl font-bold text-brand-600">
+                {plan.priceDh.toLocaleString(locale)} DH
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={busy || pending || disabledByOtherPending}
+              onClick={() => onRequest(key)}
+              className={cn(
+                "h-10 rounded-xl inline-flex items-center justify-center gap-2 text-sm font-semibold transition-colors",
+                pending || disabledByOtherPending
+                  ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                  : "bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-70"
+              )}
+            >
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {pending || disabledByOtherPending
+                ? (isAr ? "فاتورة في الانتظار" : "Facture en attente")
+                : (isAr ? "طلب فاتورة" : "Demander une facture")}
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 /* ─────────────────────────────────────────────
    StatusBadge — لون على النص والأيقونة فقط
@@ -76,7 +129,7 @@ function InvoiceCard({ invoice }) {
       {/* ── Meta rows ── */}
       <div className="px-5 py-4 flex flex-col gap-2.5 text-sm">
         <Row icon={<CreditCard size={15} />} label={t('invoices.plan')}>
-          <span className="font-semibold text-foreground">{PLAN_KEYS[invoice.plan] ? t(PLAN_KEYS[invoice.plan]) : invoice.plan}</span>
+          <span className="font-semibold text-foreground">{PLAN_TRANSLATION_KEYS[invoice.plan] ? t(PLAN_TRANSLATION_KEYS[invoice.plan]) : invoice.plan}</span>
         </Row>
 
         <Row icon={<CalendarDays size={15} />} label={t('invoices.due_date')}>
@@ -231,13 +284,30 @@ export default function InvoicesPage() {
   const { t, locale, dir } = useLanguage()
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading]   = useState(true)
+  const [requesting, setRequesting] = useState(null)
+
+  async function refreshInvoices() {
+    const res = await invoicesAPI.getAll()
+    setInvoices(res.data ?? [])
+  }
 
   useEffect(() => {
-    invoicesAPI.getAll()
-      .then(res => setInvoices(res.data ?? []))
+    refreshInvoices()
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
+
+  async function handlePlanRequest(plan) {
+    setRequesting(plan)
+    try {
+      await invoicesAPI.requestPlan(plan)
+      await refreshInvoices()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setRequesting(null)
+    }
+  }
 
   if (loading) return <Skeleton />
 
@@ -264,6 +334,8 @@ export default function InvoicesPage() {
           <p className="text-sm text-muted-foreground">{invoices.length} {t('invoices.count')}</p>
         </div>
       </div>
+
+      <PlanRequestCards invoices={invoices} onRequest={handlePlanRequest} requesting={requesting} />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2">

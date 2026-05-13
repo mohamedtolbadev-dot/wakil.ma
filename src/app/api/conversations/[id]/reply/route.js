@@ -3,12 +3,27 @@ import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/response"
 import { sendWhatsAppMessage } from "@/lib/whatsapp"
 import { sanitizeInput } from "@/lib/helpers"
+import { rateLimit } from "@/lib/rateLimit"
 
 export const dynamic = "force-dynamic"
+
+function maskPhone(phone) {
+  if (!phone) return "****"
+  return phone.length > 4 ? `******${phone.slice(-4)}` : "****"
+}
 
 export async function POST(request, { params }) {
   const user = await getUserFromRequest(request)
   if (!user) return unauthorizedResponse()
+
+  // ✅ Rate limiting — prevent spam (5 replies per minute per user)
+  const rateLimitResult = rateLimit(request)
+  if (!rateLimitResult.success) {
+    return errorResponse(
+      `تم تجاوز الحد. حاول بعد ${Math.ceil(rateLimitResult.retryAfter / 60)} دقيقة`,
+      429
+    )
+  }
 
   try {
     const resolvedParams = await Promise.resolve(params)
@@ -44,7 +59,8 @@ export async function POST(request, { params }) {
       return errorResponse("رقم هاتف العميل غير متوفر", 400)
     }
 
-    console.log(`✅ [reply] Sending to customer ${conversation.customer.phone}...`)
+    const maskedPhone = maskPhone(conversation.customer.phone)
+    console.log(`✅ [reply] Sending to customer ${maskedPhone}...`)
 
     const sent = await sendWhatsAppMessage({
       phoneId: agent.whatsappPhoneId,
@@ -58,7 +74,7 @@ export async function POST(request, { params }) {
       return errorResponse("فشل إرسال الرسالة عبر واتساب", 500)
     }
 
-    console.log(`✅ [reply] Message sent successfully to ${conversation.customer.phone}`)
+    console.log(`✅ [reply] Message sent successfully to ${maskedPhone}`)
 
     // ✅ After WhatsApp send succeeds, DB save failures should NOT surface as "send failed"
     // We return success with saved=false so the UI doesn't show a scary error.

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { ordersAPI, productsAPI } from "@/lib/api"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { cn } from "@/lib/utils"
@@ -8,22 +8,30 @@ import {
   ClipboardList, Search, Plus, Loader2, Trash2, ChevronDown,
   Package, Truck, CheckCircle2, Clock, XCircle, RefreshCw,
   Phone, User, Tag, DollarSign, MapPin, StickyNote, Hash, AlertTriangle, X,
-  MessageCircle, Download,
+  MessageCircle, Download, ImageIcon, MoreHorizontal, Upload,
 } from "lucide-react"
 
 /* ─── Status config (labels resolved via t() at render time) ─── */
 const STATUS_CONFIG = {
-  PENDING:   { key: "orders.pending",   color: "text-amber-600",  bg: "bg-amber-500/10 border-amber-500/20",   icon: Clock       },
-  CONFIRMED: { key: "orders.confirmed", color: "text-blue-600",   bg: "bg-blue-500/10 border-blue-500/20",     icon: CheckCircle2 },
-  SHIPPED:   { key: "orders.shipped",   color: "text-purple-600", bg: "bg-purple-500/10 border-purple-500/20", icon: Truck       },
-  DELIVERED: { key: "orders.delivered", color: "text-green-600",  bg: "bg-green-500/10 border-green-500/20",  icon: Package     },
-  CANCELLED: { key: "orders.cancelled", color: "text-red-500",    bg: "bg-red-500/10 border-red-500/20",      icon: XCircle     },
+  PENDING:   { key: "orders.pending",   color: "text-amber-600",  bg: "bg-transparent border-border/70", icon: Clock       },
+  CONFIRMED: { key: "orders.confirmed", color: "text-blue-600",   bg: "bg-transparent border-border/70", icon: CheckCircle2 },
+  SHIPPED:   { key: "orders.shipped",   color: "text-purple-600", bg: "bg-transparent border-border/70", icon: Truck       },
+  DELIVERED: { key: "orders.delivered", color: "text-green-600",  bg: "bg-transparent border-border/70", icon: Package     },
+  CANCELLED: { key: "orders.cancelled", color: "text-red-500",    bg: "bg-transparent border-border/70", icon: XCircle     },
 }
 
 const STATUS_ORDER = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"]
+const ALLOWED_STATUS_TRANSITIONS = {
+  PENDING: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["DELIVERED", "CANCELLED"],
+  DELIVERED: [],
+  CANCELLED: ["PENDING"],
+}
 
 /* ─── Skeleton ──────────────────────────────────────────── */
 function OrdersSkeleton() {
+  const rows = [1, 2, 3, 4, 5, 6]
   return (
     <div className="flex flex-col gap-4 pb-8">
       <style>{`
@@ -52,7 +60,12 @@ function OrdersSkeleton() {
             <div className="sk h-3 w-16 rounded-md" />
           </div>
         </div>
-        <div className="sk h-9 w-28 rounded-xl" />
+        <div className="flex items-center gap-2">
+          <div className="sk h-9 w-9 rounded-xl" />
+          <div className="sk h-9 w-32 rounded-xl hidden sm:block" />
+          <div className="sk h-9 w-36 rounded-xl hidden sm:block" />
+          <div className="sk h-9 w-28 rounded-xl" />
+        </div>
       </div>
 
       {/* Stats row */}
@@ -68,12 +81,95 @@ function OrdersSkeleton() {
         ))}
       </div>
 
-      {/* Search bar */}
-      <div className="sk h-10 rounded-xl" />
+      {/* Draft chips */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="sk h-8 w-16 rounded-lg" />
+        <div className="sk h-8 w-28 rounded-lg" />
+        <div className="sk h-8 w-32 rounded-lg" />
+      </div>
 
-      {/* Orders grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {[1,2,3,4,5,6].map((_, i) => (
+      {/* Filters bar */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="sk h-10 rounded-xl flex-1" />
+        <div className="sk h-10 w-full sm:w-44 rounded-xl" />
+      </div>
+
+      {/* Delivery workflow */}
+      <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card px-3 py-3">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="sk h-8 w-8 rounded-lg" />
+            <div className="flex flex-col gap-1.5">
+              <div className="sk h-3.5 w-36 rounded-md" />
+              <div className="sk h-3 w-24 rounded-md" />
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 lg:ms-auto">
+            <div className="sk h-9 w-full sm:w-56 rounded-lg" />
+            <div className="flex gap-2">
+              <div className="sk h-9 w-28 rounded-lg" />
+              <div className="sk h-9 w-32 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden lg:block overflow-hidden rounded-lg border border-border/70 bg-card">
+        <table className="w-full border-collapse text-left">
+          <thead className="bg-secondary/40">
+            <tr className="h-7 border-b border-border/70">
+              <th className="w-8 px-2"><div className="sk h-3.5 w-3.5 rounded" /></th>
+              <th className="px-2"><div className="sk h-2.5 w-20 rounded" /></th>
+              <th className="px-2"><div className="sk h-2.5 w-14 rounded" /></th>
+              <th className="px-2"><div className="sk h-2.5 w-16 rounded" /></th>
+              <th className="px-2"><div className="sk h-2.5 w-20 rounded" /></th>
+              <th className="px-2"><div className="sk h-2.5 w-14 rounded" /></th>
+              <th className="px-3"><div className="sk h-2.5 w-20 rounded ms-auto" /></th>
+              <th className="w-10 px-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((_, i) => (
+              <tr key={i} className="h-[62px] border-b border-border/50 last:border-b-0">
+                <td className="px-2"><div className="sk h-3.5 w-3.5 rounded" /></td>
+                <td className="px-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="sk w-9 h-9 rounded-md" />
+                    <div className="min-w-0 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="sk h-3.5 w-24 rounded-md" />
+                        <div className="sk h-5 w-14 rounded-md" />
+                      </div>
+                      <div className="sk h-3 w-52 rounded-md" />
+                    </div>
+                  </div>
+                </td>
+                <td className="px-2"><div className="sk h-3.5 w-28 rounded-md" /></td>
+                <td className="px-2">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="sk h-3.5 w-28 rounded-md" />
+                    <div className="sk h-3 w-24 rounded-md" />
+                  </div>
+                </td>
+                <td className="px-2">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="sk h-3.5 w-40 rounded-md" />
+                    <div className="sk h-3 w-24 rounded-md" />
+                  </div>
+                </td>
+                <td className="px-2"><div className="sk h-6 w-24 rounded-lg" /></td>
+                <td className="px-3"><div className="sk h-4 w-24 rounded-md ms-auto" /></td>
+                <td className="px-2"><div className="sk h-8 w-8 rounded-md" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+        {rows.map((_, i) => (
           <div key={i} className="bg-card border border-border/50 rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between">
               <div className="sk w-10 h-10 rounded-xl" />
@@ -113,19 +209,116 @@ function StatusBadge({ status }) {
   )
 }
 
+function DeliveryBadge({ order }) {
+  const label = order?.deliveryReference || order?.deliveryStatus || ""
+  if (!label) return null
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-cyan-700">
+      <Truck size={11} />
+      {label}
+    </span>
+  )
+}
+
+function getConfidenceCopy(confidence, language) {
+  if (!confidence) return language === "ar" ? "غير محسوبة" : "Non calculée"
+  if (confidence.level === "high") return language === "ar" ? "جاهزة" : "Fiable"
+  if (confidence.level === "medium") return language === "ar" ? "تحتاج مراجعة" : "À vérifier"
+  return language === "ar" ? "ناقصة" : "Incomplète"
+}
+
+function getMissingFieldLabel(field, language) {
+  const ar = {
+    name: "الاسم",
+    phone: "الهاتف",
+    product: "المنتج",
+    quantity: "الكمية",
+    city: "المدينة",
+    address: "العنوان",
+    total: "المجموع",
+  }
+  const fr = {
+    name: "nom",
+    phone: "téléphone",
+    product: "produit",
+    quantity: "quantité",
+    city: "ville",
+    address: "adresse",
+    total: "total",
+  }
+  return (language === "ar" ? ar : fr)[field] || field
+}
+
+function ConfidenceBadge({ confidence }) {
+  const { language } = useLanguage()
+  if (!confidence) return null
+
+  const cfg = confidence.level === "high"
+    ? "border-emerald-500/30 bg-transparent text-emerald-700"
+    : confidence.level === "medium"
+      ? "border-amber-500/30 bg-transparent text-amber-700"
+      : "border-red-500/30 bg-transparent text-red-600"
+
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border", cfg)}>
+      <CheckCircle2 size={12} />
+      {confidence.score}% {getConfidenceCopy(confidence, language)}
+    </span>
+  )
+}
+
+function getOrderImage(order) {
+  return order?.productImage || (Array.isArray(order?.productImages) ? order.productImages[0] : null) || ""
+}
+
+function OrderProductThumb({ order, size = "md" }) {
+  const image = getOrderImage(order)
+  const sizeClass = size === "lg" ? "w-16 h-16" : "w-9 h-9"
+  return (
+    <div className={cn(sizeClass, "rounded-md overflow-hidden bg-secondary border border-border/60 flex items-center justify-center shrink-0")}>
+      {image ? (
+        <div
+          aria-label={order?.productName || "Product"}
+          className="w-full h-full bg-cover bg-center"
+          style={{ backgroundImage: `url("${image.replace(/"/g, "%22")}")` }}
+        />
+      ) : (
+        <ImageIcon size={size === "lg" ? 24 : 16} className="text-muted-foreground/50" />
+      )}
+    </div>
+  )
+}
+
+function formatOrderDate(value, language) {
+  if (!value) return "—"
+  const date = new Date(value)
+  const now = new Date()
+  const sameDay = date.toDateString() === now.toDateString()
+  const time = date.toLocaleTimeString(language === "ar" ? "ar-MA" : "fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+  if (sameDay) return language === "ar" ? `اليوم في ${time}` : `Aujourd'hui à ${time}`
+  return date.toLocaleDateString(language === "ar" ? "ar-MA" : "fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+}
+
 /* ─── Status Dropdown ─────────────────────────────────────── */
 function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, trackingNumber }) {
   const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const allowedStatuses = new Set([currentStatus, ...(ALLOWED_STATUS_TRANSITIONS[currentStatus] || [])])
 
   async function changeStatus(newStatus) {
     if (newStatus === currentStatus) { setOpen(false); return }
     setLoading(true)
     try {
-      console.log("[DEBUG Frontend] Sending trackingNumber:", trackingNumber)
-      await ordersAPI.updateStatus(orderId, newStatus, { sendMessage, trackingNumber })
-      onUpdated(orderId, newStatus)
+      const res = await ordersAPI.updateStatus(orderId, newStatus, { sendMessage, trackingNumber })
+      onUpdated(orderId, newStatus, res?.data || null)
     } catch (err) {
       console.error(err)
     } finally {
@@ -151,13 +344,16 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
             {STATUS_ORDER.map(s => {
               const cfg = STATUS_CONFIG[s]
               const Icon = cfg.icon
+              const disabled = !allowedStatuses.has(s)
               return (
                 <button
                   key={s}
-                  onClick={() => changeStatus(s)}
+                  onClick={() => { if (!disabled) changeStatus(s) }}
+                  disabled={disabled}
                   className={cn(
                     "w-full flex items-center gap-2 px-4 py-2.5 text-[13px] transition-colors hover:bg-secondary",
-                    s === currentStatus ? "bg-secondary/60 font-semibold" : ""
+                    s === currentStatus ? "bg-secondary/60 font-semibold" : "",
+                    disabled ? "opacity-40 cursor-not-allowed hover:bg-transparent" : ""
                   )}
                 >
                   <Icon size={14} className={cfg.color} />
@@ -236,6 +432,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
   })
   const [savingTracking, setSavingTracking] = useState(false)
   const [savingEdits, setSavingEdits] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   useEffect(() => {
     setForm({
@@ -250,31 +447,53 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
       trackingNumber: order?.trackingNumber || "",
     })
     setIsEditing(false)
-  }, [order?.id])
+  }, [
+    order?.id,
+    order?.customerName,
+    order?.customerPhone,
+    order?.productName,
+    order?.quantity,
+    order?.totalAmount,
+    order?.city,
+    order?.address,
+    order?.notes,
+    order?.trackingNumber,
+  ])
 
   if (!order) return null
 
   async function saveTrackingNumber() {
+    setSaveError(null)
     setSavingTracking(true)
     try {
       const updated = await ordersAPI.update(order.id, { trackingNumber: form.trackingNumber })
       onStatusChange?.(order.id, order.status, updated?.data)
     } catch (err) {
-      console.error(err)
+      console.error("Save tracking failed:", err)
+      setSaveError(err?.response?.data?.error || t('orders.err_save_failed') || "فشل الحفظ")
     } finally {
       setSavingTracking(false)
     }
   }
 
   async function saveEdits() {
+    setSaveError(null)
+    const quantity = Number(form.quantity)
+    const totalAmount = Number(form.totalAmount)
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      setSaveError(t('orders.err_qty_invalid') || "الكمية غير صالحة"); return
+    }
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) {
+      setSaveError(t('orders.err_amount_invalid') || "المبلغ غير صالح"); return
+    }
     setSavingEdits(true)
     try {
       const payload = {
         customerName: form.customerName,
         customerPhone: form.customerPhone,
         productName: form.productName,
-        quantity: Number(form.quantity) || 1,
-        totalAmount: Number(form.totalAmount) || 0,
+        quantity,
+        totalAmount,
         city: form.city,
         address: form.address,
         notes: form.notes,
@@ -284,7 +503,8 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
       onStatusChange?.(order.id, order.status, updated?.data)
       setIsEditing(false)
     } catch (err) {
-      console.error(err)
+      console.error("Save edits failed:", err)
+      setSaveError(err?.response?.data?.error || t('orders.err_save_failed') || "فشل الحفظ")
     } finally {
       setSavingEdits(false)
     }
@@ -298,12 +518,13 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
     : null
 
   const isRtl = language === 'ar'
+  const confidence = order.confidence
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/60 dark:bg-black/80" onClick={onClose} />
       <div
-        className="relative w-full sm:max-w-md border border-border shadow-2xl bg-card flex flex-col max-h-[95dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-2xl overflow-hidden"
+        className="relative w-full sm:max-w-3xl lg:max-w-4xl border border-border shadow-2xl bg-card flex flex-col max-h-[95dvh] sm:max-h-[88dvh] rounded-t-3xl sm:rounded-2xl overflow-hidden"
         dir={isRtl ? 'rtl' : 'ltr'}
       >
         {/* Drag handle - mobile only */}
@@ -313,10 +534,8 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3 border-b border-border bg-secondary/50 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center shadow-sm">
-              <Package size={18} className="text-white" />
-            </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <OrderProductThumb order={order} />
             <div>
               <p className="text-sm font-bold text-foreground">{t('common.details')}</p>
               <p className="text-xs text-muted-foreground font-medium">#{order.id.slice(-8).toUpperCase()}</p>
@@ -334,17 +553,63 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] gap-4 items-start">
+
+          {saveError && (
+            <div className="lg:col-span-2 flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[13px] text-red-600">
+              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+              <span>{saveError}</span>
+            </div>
+          )}
 
           {/* ─── Edit / Save Bar ─── */}
-          <div className="flex items-center justify-between gap-2 border border-border/60 rounded-lg px-3 py-2 bg-secondary/20">
+          <div className="lg:col-span-2 flex items-center gap-3 rounded-lg border border-border/60 bg-secondary/25 p-3">
+            <OrderProductThumb order={order} size="lg" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-foreground">{order.productName || "—"}</p>
+              {order.variant && <p className="truncate text-xs text-muted-foreground">{order.variant}</p>}
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+                <span>{order.quantity || 1} ×</span>
+                <span className="font-semibold text-brand-600">{order.totalAmount || 0} {t('common.currency')}</span>
+                <span>•</span>
+                <span className="truncate">{order.customerName || "—"}</span>
+              </div>
+            </div>
+          </div>
+
+          {confidence && (
+            <div className={cn(
+              "lg:col-span-2 flex items-start gap-2 p-2.5 rounded-lg border text-[13px]",
+              confidence.level === "high"
+                ? "bg-transparent border-emerald-500/30 text-emerald-700"
+                : confidence.level === "medium"
+                  ? "bg-transparent border-amber-500/30 text-amber-700"
+                  : "bg-transparent border-red-500/30 text-red-600"
+            )}>
+              <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="font-semibold">
+                  {confidence.score}% {getConfidenceCopy(confidence, language)}
+                </p>
+                {confidence.missingFields?.length > 0 && (
+                  <p className="text-xs mt-0.5 opacity-80">
+                    {language === "ar" ? "ناقص: " : "Manquant: "}
+                    {confidence.missingFields.map(field => getMissingFieldLabel(field, language)).join(", ")}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="lg:col-span-2 flex items-center justify-between gap-2 border border-border/60 rounded-lg px-3 py-2 bg-secondary/20">
             <p className="text-xs text-muted-foreground">
               {isEditing ? (t('common.edit') || "Modifier") : (t('common.details') || "Détails")}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsEditing(v => !v)}
-                className="px-2.5 py-1.5 rounded-lg border border-brand-600/25 bg-brand-600/10 text-xs font-semibold text-brand-700 hover:bg-brand-600/15 hover:border-brand-600/35 transition-colors"
+                className="px-2.5 py-1.5 rounded-lg border border-brand-600/25 bg-brand-600/10 text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-600/15 hover:border-brand-600/35 transition-colors"
               >
                 {isEditing ? t('common.cancel') : (t('common.edit') || "Modifier")}
               </button>
@@ -362,7 +627,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
           </div>
 
           {/* ─── Compact Info Grid ─── */}
-          <div className="border border-border/60 rounded-lg overflow-hidden text-sm">
+          <div className="lg:row-span-2 border border-border/60 rounded-lg overflow-hidden text-sm">
             {/* Customer Name */}
             <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40 bg-secondary/20">
               <User size={14} className="text-muted-foreground shrink-0" />
@@ -406,6 +671,13 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
                 <span className="font-semibold text-foreground ms-auto truncate">{order.productName || "—"}</span>
               )}
             </div>
+            {/* Variant (size/color) */}
+            {order.variant && (
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40">
+                <span className="text-muted-foreground text-xs">🎨 {t('orders.variant') || "الخيار"}</span>
+                <span className="font-medium text-foreground ms-auto text-xs">{order.variant}</span>
+              </div>
+            )}
             {/* Qty & Amount */}
             <div className="grid grid-cols-2 border-b border-border/40">
               <div className="flex items-center gap-2 px-3 py-2 border-e border-border/40">
@@ -457,7 +729,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
 
             {/* City */}
             <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40">
-              <MapPin size={14} className="text-muted-foreground shrink-0" />
+              <span className="text-sm shrink-0" aria-hidden="true">🏙️</span>
               <span className="text-muted-foreground text-xs">{t('common.city') || "Ville"}</span>
               {isEditing ? (
                 <input
@@ -475,6 +747,19 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
               <span className="text-muted-foreground text-xs">{t('common.date')}</span>
               <span className="font-medium text-foreground ms-auto">{date}</span>
             </div>
+            {(order.deliveryReference || order.deliveryStatus || order.deliveryProviderName) && (
+              <div className="grid grid-cols-1 gap-1 px-3 py-2 border-t border-border/40 bg-cyan-500/5">
+                <div className="flex items-center gap-2">
+                  <Truck size={14} className="text-cyan-700 shrink-0" />
+                  <span className="text-muted-foreground text-xs">{t('orders.delivery_reference') || "Delivery ref"}</span>
+                  <span className="font-semibold text-foreground ms-auto">{order.deliveryReference || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{order.deliveryStatus || "—"}</span>
+                  {order.deliveryProviderName && <span>· {order.deliveryProviderName}</span>}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ─── Tracking Number ─── */}
@@ -502,7 +787,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
           </div>
 
           {/* ─── Notes ─── */}
-          <div className="flex items-start gap-2 px-3 py-2.5 border border-amber-200/50 rounded-lg bg-amber-50/30">
+          <div className="flex items-start gap-2 px-3 py-2.5 border border-border/60 rounded-lg bg-card">
             <StickyNote size={14} className="text-amber-600 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground mb-0.5">{t('common.notes')}</p>
@@ -518,6 +803,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
               )}
             </div>
           </div>
+        </div>
         </div>
 
         {/* Footer */}
@@ -565,11 +851,15 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
 }
 
 /* ─── Order Card ──────────────────────────────────────────── */
-function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpenDetail }) {
+function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpenDetail, selected, onToggleSelect }) {
   const { t, language } = useLanguage()
-  const [trackingNumber] = useState(order?.trackingNumber || "")
+  // Derive from props — avoids stale state after edits in detail modal
+  const trackingNumber = order?.trackingNumber || ""
+  const confidence = order?.confidence
 
   const needsReview =
+    confidence?.needsReview ||
+    order.isDraft === true ||
     (!order.city || !String(order.city).trim()) ||
     (!order.address || !String(order.address).trim()) ||
     (order.notes && String(order.notes).includes("⚠️ DRAFT_ORDER"))
@@ -587,21 +877,39 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
       <div className="p-4 flex flex-col gap-3 flex-1">
         {/* Icon + Status */}
         <div className="flex items-start justify-between gap-2">
-          <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shrink-0">
-            <Package size={18} className="text-white" />
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={Boolean(selected)}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => onToggleSelect?.(order.id)}
+              className="mt-1 h-4 w-4 accent-brand-600"
+              aria-label="Select order"
+            />
+            <OrderProductThumb order={order} size="lg" />
           </div>
           <div className="flex items-center gap-2">
             {needsReview && (
-              <span className="text-[11px] font-bold px-2 py-1 rounded-lg border border-amber-400/30 bg-amber-500/10 text-amber-700">
+              <span className="text-[11px] font-bold px-2 py-1 rounded-lg border border-amber-400/40 bg-transparent text-amber-700">
                 {t('orders.needs_review') || "Needs review"}
               </span>
             )}
+            <ConfidenceBadge confidence={confidence} />
             <StatusBadge status={order.status} />
           </div>
         </div>
 
-        {/* Product name */}
-        <p className="text-[14px] font-semibold text-foreground leading-snug line-clamp-2">{order.productName}</p>
+        {/* Product name + variant */}
+        <div className="flex flex-col gap-0.5">
+          <p className="text-[14px] font-semibold text-foreground leading-snug line-clamp-2">{order.productName}</p>
+          {order.variant && (
+            <p className="text-[11px] text-muted-foreground leading-snug">🎨 {order.variant}</p>
+          )}
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            {t('common.quantity')}: <span className="font-semibold text-foreground">{order.quantity || 1}</span>
+          </p>
+          <DeliveryBadge order={order} />
+        </div>
 
         {/* Customer info */}
         <div className="flex flex-col gap-1 text-[13px] text-muted-foreground">
@@ -611,6 +919,11 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
           <span className="flex items-center gap-1.5">
             <Phone size={13} className="shrink-0" /> {order.customerPhone}
           </span>
+          {order.city && (
+            <span className="flex items-center gap-1.5 truncate">
+              <span className="shrink-0" aria-hidden="true">🏙️</span> {order.city}
+            </span>
+          )}
           {order.address && (
             <span className="flex items-center gap-1.5 truncate">
               <MapPin size={13} className="shrink-0" /> {order.address}
@@ -663,6 +976,110 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
 }
 
 /* ─── Add Order Modal ─────────────────────────────────────────── */
+function OrdersTable({ orders, onDeleteRequest, onOpenDetail, selectedOrderIds = [], onToggleSelect, onToggleAllVisible }) {
+  const { t, language } = useLanguage()
+  const selectedSet = new Set(selectedOrderIds)
+  const allVisibleSelected = orders.length > 0 && orders.every(order => selectedSet.has(order.id))
+
+  return (
+    <div className="hidden lg:block overflow-hidden rounded-lg border border-border/70 bg-card">
+      <table className="w-full border-collapse text-left">
+        <thead className="bg-secondary/40">
+          <tr className="h-7 border-b border-border/70 text-[11px] uppercase text-muted-foreground">
+            <th className="w-8 px-2">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={() => onToggleAllVisible?.()}
+                className="h-3.5 w-3.5 accent-brand-600"
+                aria-label="Select visible orders"
+              />
+            </th>
+            <th className="px-2 font-semibold">Commande</th>
+            <th className="px-2 font-semibold">Date</th>
+            <th className="px-2 font-semibold">Client</th>
+            <th className="px-2 font-semibold">Adresse</th>
+            <th className="px-2 font-semibold">Statut</th>
+            <th className="px-3 text-right font-semibold">Montant dû</th>
+            <th className="w-10 px-2" />
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => {
+            const needsReview =
+              order?.confidence?.needsReview ||
+              order.isDraft === true ||
+              (!order.city || !String(order.city).trim()) ||
+              (!order.address || !String(order.address).trim())
+
+            return (
+              <tr
+                key={order.id}
+                onClick={() => onOpenDetail(order)}
+                className="h-[62px] cursor-pointer border-b border-border/50 last:border-b-0 hover:bg-brand-600/[0.04] transition-colors"
+              >
+                <td className="px-2" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedSet.has(order.id)}
+                    onChange={() => onToggleSelect?.(order.id)}
+                    className="h-3.5 w-3.5 accent-brand-600"
+                    aria-label="Select order"
+                  />
+                </td>
+                <td className="px-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <OrderProductThumb order={order} />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-bold text-foreground">#{order.id.slice(-8).toUpperCase()}</p>
+                        <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                          {order.quantity || 1} article{Number(order.quantity || 1) > 1 ? "s" : ""}
+                        </span>
+                        {needsReview && <span className="rounded-md border border-amber-400/40 bg-transparent px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Review</span>}
+                        <DeliveryBadge order={order} />
+                      </div>
+                      <p className="max-w-[260px] truncate text-[12px] text-muted-foreground">
+                        {order.productName}{order.variant ? ` · ${order.variant}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-2 text-[13px] text-muted-foreground whitespace-nowrap">
+                  {formatOrderDate(order.createdAt, language)}
+                </td>
+                <td className="px-2">
+                  <p className="max-w-[180px] truncate text-[13px] font-medium text-foreground">{order.customerName || "—"}</p>
+                  <p className="text-[12px] font-medium text-cyan-700">{order.customerPhone || "—"}</p>
+                </td>
+                <td className="px-2">
+                  <p className="max-w-[230px] truncate text-[13px] text-foreground">{order.address || "—"}</p>
+                  <p className="max-w-[230px] truncate text-[12px] text-muted-foreground">{order.city || "—"}</p>
+                </td>
+                <td className="px-2">
+                  <StatusBadge status={order.status} />
+                </td>
+                <td className="px-3 text-right text-[14px] font-bold text-foreground whitespace-nowrap">
+                  MAD {Number(order.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+                <td className="px-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => onDeleteRequest(order.id, order.productName)}
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                    title={t('common.delete')}
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function AddOrderModal({ onClose, onCreated }) {
   const { t } = useLanguage()
   const [form, setForm] = useState({
@@ -672,6 +1089,13 @@ function AddOrderModal({ onClose, onCreated }) {
   const [products, setProducts] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  function getProductUnitPrice(product) {
+    if (!product) return null
+    return product.salePrice != null && product.salePrice < product.price
+      ? product.salePrice
+      : product.price
+  }
 
   useEffect(() => {
     let mounted = true
@@ -691,16 +1115,31 @@ function AddOrderModal({ onClose, onCreated }) {
     return () => { mounted = false }
   }, [])
 
+  const [submitError, setSubmitError] = useState(null)
+
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.customerName || !form.customerPhone || (!form.productName && !form.productId) || !form.totalAmount) return
+    setSubmitError(null)
+    if (!form.customerName?.trim() || !form.customerPhone?.trim() || (!form.productName && !form.productId) || !form.totalAmount) {
+      setSubmitError(t('orders.err_missing_fields') || "حقول إلزامية ناقصة")
+      return
+    }
+    const quantity = Number(form.quantity)
+    const totalAmount = Number(form.totalAmount)
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      setSubmitError(t('orders.err_qty_invalid') || "الكمية غير صالحة"); return
+    }
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) {
+      setSubmitError(t('orders.err_amount_invalid') || "المبلغ غير صالح"); return
+    }
     setSaving(true)
     try {
-      const res = await ordersAPI.create({ ...form, quantity: Number(form.quantity), totalAmount: Number(form.totalAmount) })
+      const res = await ordersAPI.create({ ...form, quantity, totalAmount })
       onCreated(res.data)
       onClose()
     } catch (err) {
-      console.error(err)
+      console.error("Create order failed:", err)
+      setSubmitError(err?.response?.data?.error || t('orders.err_save_failed') || "فشل إنشاء الطلب")
     } finally {
       setSaving(false)
     }
@@ -711,7 +1150,7 @@ function AddOrderModal({ onClose, onCreated }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-3xl border border-border rounded-3xl shadow-2xl bg-card">
+      <div className="relative w-full max-w-3xl max-h-[88dvh] border border-border rounded-3xl shadow-2xl bg-card overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/50 bg-secondary/50">
           <div className="flex items-center gap-2">
             <span className="w-1 h-4 rounded-full bg-brand-600" />
@@ -719,7 +1158,13 @@ function AddOrderModal({ onClose, onCreated }) {
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-sm">✕</button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 sm:p-5 flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 flex flex-col gap-3 overflow-y-auto">
+          {submitError && (
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[13px] text-red-600">
+              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+              <span>{submitError}</span>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Left column */}
             <div className="flex flex-col gap-3">
@@ -739,11 +1184,14 @@ function AddOrderModal({ onClose, onCreated }) {
                   onChange={(e) => {
                     const id = e.target.value || ""
                     const p = products.find(x => x.id === id)
+                    // Use salePrice if set and valid, otherwise base price — consistent with AI logic
+                    const unitPrice = getProductUnitPrice(p)
+                    const qty = Math.max(1, Number(form.quantity) || 1)
                     setForm(prev => ({
                       ...prev,
                       productId: id || null,
                       productName: p?.name || prev.productName,
-                      totalAmount: p?.price ? String(p.price) : prev.totalAmount,
+                      totalAmount: unitPrice != null ? String(unitPrice * qty) : prev.totalAmount,
                     }))
                   }}
                   disabled={loadingProducts}
@@ -758,7 +1206,23 @@ function AddOrderModal({ onClose, onCreated }) {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[13px] font-medium text-muted-foreground">{t('common.quantity')}</label>
-                  <input type="number" min="1" className={inputCls} value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
+                  <input
+                    type="number"
+                    min="1"
+                    className={inputCls}
+                    value={form.quantity}
+                    onChange={(e) => {
+                      const quantity = e.target.value
+                      const p = products.find(x => x.id === form.productId)
+                      const unitPrice = getProductUnitPrice(p)
+                      const qty = Math.max(1, Number(quantity) || 1)
+                      setForm(prev => ({
+                        ...prev,
+                        quantity,
+                        totalAmount: unitPrice != null ? String(unitPrice * qty) : prev.totalAmount,
+                      }))
+                    }}
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[13px] font-medium text-muted-foreground">{t('orders.price')} *</label>
@@ -806,32 +1270,64 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filterStatus, setFilterStatus] = useState("")
+  const [draftFilter, setDraftFilter] = useState("")  // "" | "true" | "false"
   const [showAdd, setShowAdd] = useState(false)
   const [detailOrder, setDetailOrder] = useState(null)
   const [sendMessage, setSendMessage] = useState(true)
   const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: "", deleting: false })
   const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [selectedOrderIds, setSelectedOrderIds] = useState([])
+  const [deliveryProviderName, setDeliveryProviderName] = useState("")
+  const [bulkStatus, setBulkStatus] = useState("SHIPPED")
+  const [deliveryNotice, setDeliveryNotice] = useState(null)
+  const importFileRef = useRef(null)
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true)
+  const fetchOrders = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     try {
       const params = {}
       if (filterStatus) params.status = filterStatus
+      if (draftFilter) params.draft = draftFilter
       if (search.trim()) params.search = search.trim()
       const res = await ordersAPI.getAll(params)
-      console.log("[DEBUG] Frontend - Orders from API:", res.data?.map(o => ({ id: o.id.slice(-6), address: o.address })))
-      setOrders(res.data || [])
+      const list = Array.isArray(res.data?.orders)
+        ? res.data.orders
+        : Array.isArray(res.data)
+          ? res.data
+          : []
+      setOrders(list)
+      setDetailOrder(prev => {
+        if (!prev) return prev
+        const fresh = list.find(order => order.id === prev.id)
+        return fresh ? { ...prev, ...fresh } : prev
+      })
     } catch (err) {
       console.error(err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }, [filterStatus, search])
+  }, [filterStatus, draftFilter, search])
 
   useEffect(() => {
     const t = setTimeout(fetchOrders, 300)
     return () => clearTimeout(t)
   }, [fetchOrders])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchOrders({ silent: true })
+      }
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [fetchOrders])
+
+  useEffect(() => {
+    const visibleIds = new Set(orders.map(order => order.id))
+    setSelectedOrderIds(prev => prev.filter(id => visibleIds.has(id)))
+  }, [orders])
 
   // onStatusChange is used both for status updates and for refreshing an order after edits
   function handleStatusChange(orderId, newStatus, updatedOrder = null) {
@@ -849,7 +1345,7 @@ export default function OrdersPage() {
   }
 
   function handleDeleteRequest(id, name) {
-    setDeleteModal({ open: true, id, name: name || "هذه الطلبية", deleting: false })
+    setDeleteModal({ open: true, id, name: name || "", deleting: false })
   }
 
   async function confirmDelete() {
@@ -859,7 +1355,8 @@ export default function OrdersPage() {
       setOrders(prev => prev.filter(o => o.id !== deleteModal.id))
       setDeleteModal({ open: false, id: null, name: "", deleting: false })
     } catch (err) {
-      console.error(err)
+      console.error("Delete order failed:", err)
+      // Keep modal open + reset deleting flag so user can retry
       setDeleteModal(prev => ({ ...prev, deleting: false }))
     }
   }
@@ -872,40 +1369,113 @@ export default function OrdersPage() {
     setOrders(prev => [order, ...prev])
   }
 
-  function handleExportCSV() {
-    const confirmed = orders.filter(o => o.status === "CONFIRMED")
-    if (confirmed.length === 0) return
+  function toggleOrderSelection(orderId) {
+    setSelectedOrderIds(prev => (
+      prev.includes(orderId)
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    ))
+  }
+
+  function toggleVisibleSelection() {
+    const visibleIds = orders.map(order => order.id)
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedOrderIds.includes(id))
+    setSelectedOrderIds(prev => {
+      if (allVisibleSelected) return prev.filter(id => !visibleIds.includes(id))
+      return [...new Set([...prev, ...visibleIds])]
+    })
+  }
+
+  function downloadCsv(csv, filename) {
+    const BOM = "\uFEFF"
+    const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = filename || `delivery-orders-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleExportCSV() {
+    const confirmedVisibleIds = orders
+      .filter(order => order.status === "CONFIRMED" && !order.isDraft)
+      .map(order => order.id)
+    const selectedConfirmedIds = selectedOrderIds.filter(id => confirmedVisibleIds.includes(id))
+    const orderIds = selectedOrderIds.length > 0 ? selectedConfirmedIds : confirmedVisibleIds
+
+    if (orderIds.length === 0) {
+      setDeliveryNotice(t('orders.delivery_no_confirmed') || "No confirmed orders selected for delivery export.")
+      return
+    }
+
     setExporting(true)
     try {
-      const headers = [t('orders.customer_name'), t('orders.customer_phone'), t('orders.product_name'), t('common.quantity'), t('common.amount') + " COD", t('common.address'), t('common.notes'), t('common.date')]
-      const rows = confirmed.map(o => [
-        o.customerName || "",
-        o.customerPhone || "",
-        o.productName || "",
-        o.quantity || 1,
-        o.totalAmount || 0,
-        o.address || "",
-        o.notes || "",
-        new Date(o.createdAt).toLocaleDateString(),
-      ])
-      const csvContent = [
-        headers.join(","),
-        ...rows.map(row =>
-          row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-        ),
-      ].join("\n")
-      const BOM = "\uFEFF"
-      const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `orders-confirmed-${new Date().toLocaleDateString().replace(/\//g, "-")}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      const res = await ordersAPI.exportDelivery({
+        orderIds,
+        providerName: deliveryProviderName,
+      })
+      if (res?.data?.csv) {
+        downloadCsv(res.data.csv, res.data.filename)
+      }
+      setDeliveryNotice(`${res?.data?.count || orderIds.length} ${t('orders.delivery_exported') || "orders exported for delivery."}`)
+      setSelectedOrderIds(prev => prev.filter(id => !orderIds.includes(id)))
+      await fetchOrders({ silent: true })
+    } catch (err) {
+      console.error("Delivery CSV export failed:", err)
+      setDeliveryNotice(err?.message || "Delivery CSV export failed.")
     } finally {
       setExporting(false)
+    }
+  }
+
+  async function handleImportTrackingCsv(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+
+    setImporting(true)
+    try {
+      const csvText = await file.text()
+      const res = await ordersAPI.importDeliveryTracking({ csvText, sendMessage })
+      const data = res?.data || {}
+      setDeliveryNotice(`Import: ${data.updated || 0} updated, ${data.notified || 0} WhatsApp, ${data.skipped || 0} skipped.`)
+      await fetchOrders({ silent: true })
+    } catch (err) {
+      console.error("Delivery CSV import failed:", err)
+      setDeliveryNotice(err?.message || "Tracking CSV import failed.")
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  async function handleBulkDeliveryStatus() {
+    if (selectedOrderIds.length === 0) {
+      setDeliveryNotice(t('orders.delivery_select_first') || "Select orders first.")
+      return
+    }
+
+    const ok = window.confirm(`${t('orders.delivery_bulk_confirm') || "Apply delivery status to selected orders?"} (${selectedOrderIds.length})`)
+    if (!ok) return
+
+    setBulkUpdating(true)
+    try {
+      const res = await ordersAPI.bulkDeliveryStatus({
+        orderIds: selectedOrderIds,
+        status: bulkStatus,
+        sendMessage,
+      })
+      const data = res?.data || {}
+      setDeliveryNotice(`Bulk: ${data.updated || 0} updated, ${data.notified || 0} WhatsApp, ${data.skipped || 0} skipped.`)
+      setSelectedOrderIds([])
+      await fetchOrders({ silent: true })
+    } catch (err) {
+      console.error("Bulk delivery status failed:", err)
+      setDeliveryNotice(err?.message || "Bulk delivery status update failed.")
+    } finally {
+      setBulkUpdating(false)
     }
   }
 
@@ -919,8 +1489,14 @@ export default function OrdersPage() {
     bg: STATUS_CONFIG[s].bg,
   }))
   const totalRevenue = orders
-    .filter(o => o.status !== "CANCELLED")
+    .filter(o => o.status !== "CANCELLED" && !o.isDraft)
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+  const selectedCount = selectedOrderIds.length
+  const confirmedVisibleCount = orders.filter(o => o.status === "CONFIRMED" && !o.isDraft).length
+  const exportableSelectedCount = selectedOrderIds.filter(id =>
+    orders.some(order => order.id === id && order.status === "CONFIRMED" && !order.isDraft)
+  ).length
+  const exportTargetCount = selectedCount > 0 ? exportableSelectedCount : confirmedVisibleCount
 
   if (loading && orders.length === 0) return <OrdersSkeleton />
 
@@ -939,6 +1515,13 @@ export default function OrdersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={handleImportTrackingCsv}
+          />
           <button
             onClick={fetchOrders}
             disabled={loading}
@@ -948,12 +1531,21 @@ export default function OrdersPage() {
           </button>
           <button
             onClick={handleExportCSV}
-            disabled={exporting || orders.filter(o => o.status === "CONFIRMED").length === 0}
-            title={`${t('common.export')} CSV (${orders.filter(o => o.status === "CONFIRMED").length} ${t('orders.confirmed')})`}
+            disabled={exporting || exportTargetCount === 0}
+            title={`${t('orders.delivery_export_csv') || "Export Delivery CSV"} (${exportTargetCount})`}
             className="flex items-center gap-1.5 border border-border px-3.5 py-2 rounded-xl text-sm font-medium text-foreground hover:border-brand-300 hover:text-brand-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-            <span className="hidden sm:inline">{t('common.export')}</span>
+            <span className="hidden sm:inline">{t('orders.delivery_export_csv') || "Delivery CSV"}</span>
+          </button>
+          <button
+            onClick={() => importFileRef.current?.click()}
+            disabled={importing}
+            title={t('orders.delivery_import_tracking') || "Import Tracking CSV"}
+            className="flex items-center gap-1.5 border border-border px-3.5 py-2 rounded-xl text-sm font-medium text-foreground hover:border-cyan-300 hover:text-cyan-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            <span className="hidden sm:inline">{t('orders.delivery_import_tracking') || "Import Tracking"}</span>
           </button>
           <button
             onClick={() => setShowAdd(true)}
@@ -993,6 +1585,44 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* ── Draft filter chips ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setDraftFilter("")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all",
+            draftFilter === ""
+              ? "bg-brand-600 text-white border-brand-600"
+              : "bg-card border-border hover:border-brand-600/40 text-foreground"
+          )}
+        >
+          {t('orders.filter_all') || "الكل"}
+        </button>
+        <button
+          onClick={() => setDraftFilter("true")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all flex items-center gap-1.5",
+            draftFilter === "true"
+              ? "bg-card text-amber-700 border-amber-500 ring-1 ring-amber-500/20"
+              : "bg-card border-border text-amber-700 hover:border-amber-500/40"
+          )}
+        >
+          <AlertTriangle size={13} />
+          {t('orders.filter_drafts') || "طلبيات ناقصة"}
+        </button>
+        <button
+          onClick={() => setDraftFilter("false")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all",
+            draftFilter === "false"
+              ? "bg-card text-green-700 border-green-600 ring-1 ring-green-600/20"
+              : "bg-card border-border hover:border-green-600/40 text-green-700"
+          )}
+        >
+          {t('orders.filter_complete') || "طلبيات مكتملة"}
+        </button>
+      </div>
+
       {/* ── Filters bar ── */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
@@ -1015,6 +1645,58 @@ export default function OrdersPage() {
         </label>
       </div>
 
+      <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card px-3 py-3">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Truck size={16} className="text-cyan-700 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold text-foreground">{t('orders.delivery_workflow') || "Delivery CSV Workflow"}</p>
+              <p className="text-[12px] text-muted-foreground truncate">
+                {selectedCount > 0
+                  ? `${selectedCount} ${t('orders.selected') || "selected"}`
+                  : `${confirmedVisibleCount} ${t('orders.confirmed')}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 lg:ms-auto">
+            <input
+              value={deliveryProviderName}
+              onChange={(e) => setDeliveryProviderName(e.target.value)}
+              placeholder={t('orders.delivery_provider_optional') || "Provider name (optional)"}
+              className="w-full sm:w-56 px-3 py-2 bg-secondary/50 border border-border rounded-lg text-[13px] focus:outline-none focus:border-brand-600 transition-colors"
+            />
+            <div className="flex gap-2">
+              <select
+                value={bulkStatus}
+                onChange={(e) => setBulkStatus(e.target.value)}
+                className="px-3 py-2 bg-secondary/50 border border-border rounded-lg text-[13px] focus:outline-none focus:border-brand-600 transition-colors"
+              >
+                <option value="SHIPPED">{t('orders.shipped')}</option>
+                <option value="DELIVERED">{t('orders.delivered')}</option>
+                <option value="CANCELLED">{t('orders.cancelled')}</option>
+              </select>
+              <button
+                onClick={handleBulkDeliveryStatus}
+                disabled={bulkUpdating || selectedCount === 0}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-[13px] font-semibold text-foreground hover:border-cyan-300 hover:text-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {bulkUpdating ? <Loader2 size={14} className="animate-spin" /> : <Truck size={14} />}
+                {t('orders.delivery_bulk_update') || "Bulk update"}
+              </button>
+            </div>
+          </div>
+        </div>
+        {deliveryNotice && (
+          <div className="flex items-start justify-between gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[12px] font-medium text-cyan-800">
+            <span>{deliveryNotice}</span>
+            <button onClick={() => setDeliveryNotice(null)} className="text-cyan-800/60 hover:text-cyan-900">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* ── Orders list ── */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -1034,17 +1716,29 @@ export default function OrdersPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {orders.map(order => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onStatusChange={handleStatusChange}
-              onDeleteRequest={handleDeleteRequest}
-              sendMessage={sendMessage}
-              onOpenDetail={setDetailOrder}
-            />
-          ))}
+        <div className="flex flex-col gap-3">
+          <OrdersTable
+            orders={orders}
+            onDeleteRequest={handleDeleteRequest}
+            onOpenDetail={setDetailOrder}
+            selectedOrderIds={selectedOrderIds}
+            onToggleSelect={toggleOrderSelection}
+            onToggleAllVisible={toggleVisibleSelection}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+            {orders.map(order => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                onStatusChange={handleStatusChange}
+                onDeleteRequest={handleDeleteRequest}
+                sendMessage={sendMessage}
+                onOpenDetail={setDetailOrder}
+                selected={selectedOrderIds.includes(order.id)}
+                onToggleSelect={toggleOrderSelection}
+              />
+            ))}
+          </div>
         </div>
       )}
 

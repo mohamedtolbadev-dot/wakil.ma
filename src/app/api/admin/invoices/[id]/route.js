@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyToken } from "@/lib/auth"
+import { addBillingMonths, getBillingPlan } from "@/lib/billingPlans"
+import { getInvoicePlanLabel } from "@/lib/invoiceHelpers"
 
 async function getSuperAdmin(request) {
   const token = request.headers.get("authorization")?.split(" ")[1]
@@ -27,20 +29,55 @@ export async function PATCH(request, { params }) {
     const existing = await prisma.invoice.findUnique({ where: { id } })
     if (!existing) return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
 
-    const updated = await prisma.invoice.update({
-      where: { id },
-      data: {
-        ...(status && { status }),
-        ...(status === "PAID" && !existing.paidAt && { paidAt: new Date() }),
-        ...(amount !== undefined && { amount: Number(amount) }),
-        ...(dueDate && { dueDate: new Date(dueDate) }),
-        ...(notes !== undefined && { notes }),
-        ...(bankInfo !== undefined && { bankInfo }),
-        ...(plan && { plan }),
-      },
-      include: {
-        client: { select: { id: true, name: true, email: true, phone: true, storeName: true, plan: true } },
-      },
+    // Detect PAID transition — only trigger auto-upgrade on status flip, not on idempotent PATCH
+    const isTransitioningToPaid = status === "PAID" && existing.status !== "PAID"
+    const finalInvoicePlan = getBillingPlan(plan || existing.plan).key
+
+    // Atomic: invoice update + (if PAID transition) user plan upgrade + notification
+    const updated = await prisma.$transaction(async (tx) => {
+      const inv = await tx.invoice.update({
+        where: { id },
+        data: {
+          ...(status && { status }),
+          ...(isTransitioningToPaid && { paidAt: new Date() }),
+          ...(amount !== undefined && { amount: Number(amount) }),
+          ...(dueDate && { dueDate: new Date(dueDate) }),
+          ...(notes !== undefined && { notes }),
+          ...(bankInfo !== undefined && { bankInfo }),
+          ...(plan && { plan: finalInvoicePlan }),
+        },
+        include: {
+          client: { select: { id: true, name: true, email: true, phone: true, storeName: true, plan: true, planExpiresAt: true } },
+        },
+      })
+
+      if (isTransitioningToPaid && finalInvoicePlan && finalInvoicePlan !== "FREE") {
+        const currentExpiry = inv.client.planExpiresAt ? new Date(inv.client.planExpiresAt) : null
+        const startsAt = currentExpiry && currentExpiry > new Date() ? currentExpiry : new Date()
+        const planExpiresAt = finalInvoicePlan === "ENTERPRISE" ? null : addBillingMonths(startsAt, 1)
+
+        await tx.user.update({
+          where: { id: inv.clientId },
+          data: { plan: finalInvoicePlan, planExpiresAt },
+        })
+
+        const planLabelFr = getInvoicePlanLabel(finalInvoicePlan, "fr")
+        const planLabelAr = getInvoicePlanLabel(finalInvoicePlan, "ar")
+        await tx.notification.create({
+          data: {
+            userId:  inv.clientId,
+            type:    "SYSTEM",
+            title:   "fr:Paiement confirmé||ar:تم تأكيد الدفع",
+            message: `fr:Votre plan ${planLabelFr} est actif jusqu'au ${planExpiresAt ? planExpiresAt.toLocaleDateString("fr-MA") : "renouvellement manuel"}.||ar:تم تفعيل خطة ${planLabelAr} حتى ${planExpiresAt ? planExpiresAt.toLocaleDateString("ar-MA") : "تجديد يدوي"}.`,
+          },
+        })
+
+        console.log(
+          `[Invoice->Plan] userId=${inv.clientId.slice(0, 8)} invoice=${inv.invoiceNumber} plan=${finalInvoicePlan}`
+        )
+      }
+
+      return inv
     })
 
     return NextResponse.json({ data: updated })

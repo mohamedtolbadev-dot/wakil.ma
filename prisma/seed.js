@@ -35,26 +35,8 @@ async function main() {
           style: "friendly",
           language: "darija",
           isActive: true,
-          instructions: "دائماً رحب بالزبون بالاسم. اذكر التوصيل المجاني. لا تعطي تخفيض أكثر من 10%.",
-          objectionReplies: {
-            create: [
-              {
-                trigger: "غالي شوية",
-                reply: "نفهمك 😊 لكن القماش يدوم +3 سنين + توصيل مجاني اليوم فقط 🎁",
-                order: 1,
-              },
-              {
-                trigger: "نفكر فيها",
-                reply: "خدي وقتك 😊 لكن خبرك أن هذا المقاس كاين غير 2 قطع باقيين ⏰",
-                order: 2,
-              },
-              {
-                trigger: "مش محتاجة",
-                reply: "لا بأس 😊 لكن عندنا عرض خاص ينتهي الليلة — 15% تخفيض 🌟",
-                order: 3,
-              },
-            ],
-          },
+          // ✅ بدون تعليمات مفروضة ولا objection replies
+          // التعليمات تأتي من Settings > Instructions personnalisées (Produits)
         },
       },
     },

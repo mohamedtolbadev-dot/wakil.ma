@@ -9,12 +9,14 @@ import {
   Users, Trash2, Loader2, RefreshCw, Search, X, Eye,
   ShieldCheck, Mail, Phone, Crown, Sparkles, User,
   MessageCircle, ShoppingCart, FileText, CalendarDays, AlertTriangle,
+  Zap, DollarSign, TrendingUp,
 } from "lucide-react"
 
 /* ── Plan badge ─────────────────────────────── */
 const PLAN_CFG = {
   FREE:       { label: "Free",       cls: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",      icon: User   },
-  PRO:        { label: "Pro",        cls: "bg-brand-600/10 text-brand-700",                                      icon: Crown  },
+  PRO:        { label: "Pro",        cls: "bg-brand-600/10 text-brand-700 dark:text-brand-300",                   icon: Crown  },
+  BUSINESS:   { label: "Business",   cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", icon: Crown },
   ENTERPRISE: { label: "Enterprise", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: Sparkles },
 }
 
@@ -122,11 +124,14 @@ function ConfirmDialog({ user, onConfirm, onCancel, loading }) {
 export default function AdminUsersPage() {
   const { t } = useLanguage()
   const [users, setUsers]         = useState([])
+  const [totals, setTotals]       = useState(null)
+  const [month, setMonth]         = useState("")
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState("")
   const [deleting, setDeleting]   = useState(null)
   const [confirmUser, setConfirmUser] = useState(null)
   const [toast, setToast]         = useState(null)
+  const [sortBy, setSortBy]       = useState("recent")  // recent | usage | cost
 
   function showToast(msg, type = "success") {
     setToast({ msg, type })
@@ -138,11 +143,14 @@ export default function AdminUsersPage() {
       setLoading(true)
       const res = await adminAPI.getUsers()
       setUsers(res.data || [])
+      setTotals(res.totals || null)
+      setMonth(res.month || "")
     } catch {
       showToast(t('admin.toast_fetch_fail'), "error")
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
@@ -162,14 +170,20 @@ export default function AdminUsersPage() {
     }
   }
 
-  const filtered = users.filter(u => {
-    const q = search.toLowerCase()
-    return (
-      u.name?.toLowerCase().includes(q) ||
-      u.email?.toLowerCase().includes(q) ||
-      u.phone?.includes(q)
-    )
-  })
+  const filtered = users
+    .filter(u => {
+      const q = search.toLowerCase()
+      return (
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.phone?.includes(q)
+      )
+    })
+    .sort((a, b) => {
+      if (sortBy === "usage") return (b.usage?.aiReplies || 0) - (a.usage?.aiReplies || 0)
+      if (sortBy === "cost")  return (b.usage?.costUsd || 0)   - (a.usage?.costUsd || 0)
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
 
   if (loading) return <Skeleton />
 
@@ -209,7 +223,7 @@ export default function AdminUsersPage() {
               {t('admin.users_title')}
             </h1>
             <p className="text-[12px] text-muted-foreground">
-              {users.length} {t('admin.users_registered')}
+              {users.length} {t('admin.users_registered')}{month ? ` • ${month}` : ""}
             </p>
           </div>
         </div>
@@ -217,6 +231,66 @@ export default function AdminUsersPage() {
           className="w-9 h-9 flex items-center justify-center rounded-xl border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
           <RefreshCw size={15} />
         </button>
+      </div>
+
+      {/* Platform Totals Strip */}
+      {totals && (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Users size={12} className="text-brand-600" />
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Users</span>
+            </div>
+            <p className="text-lg font-bold text-foreground tabular-nums">{totals.users}</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Zap size={12} className="text-brand-600" />
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">AI Replies</span>
+            </div>
+            <p className="text-lg font-bold text-foreground tabular-nums">{totals.aiReplies.toLocaleString()}</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <DollarSign size={12} className="text-green-600" />
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">AI Cost</span>
+            </div>
+            <p className="text-lg font-bold text-foreground tabular-nums">${totals.costUsd.toFixed(3)}</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingUp size={12} className={totals.nearQuota > 0 ? "text-amber-500" : "text-muted-foreground"} />
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Near quota (≥80%)</span>
+            </div>
+            <p className="text-lg font-bold text-foreground tabular-nums">{totals.nearQuota}</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <AlertTriangle size={12} className={totals.overQuota > 0 ? "text-red-500" : "text-muted-foreground"} />
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Over quota</span>
+            </div>
+            <p className="text-lg font-bold text-foreground tabular-nums">{totals.overQuota}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Sort tabs */}
+      <div className="flex items-center gap-1 p-1 bg-secondary/50 border border-border rounded-xl self-start">
+        {[
+          { key: "recent", label: t('admin.sort_recent') || "الأحدث" },
+          { key: "usage",  label: t('admin.sort_usage')  || "استهلاك AI" },
+          { key: "cost",   label: t('admin.sort_cost')   || "التكلفة" },
+        ].map(s => (
+          <button key={s.key} onClick={() => setSortBy(s.key)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all",
+              sortBy === s.key
+                ? "bg-background text-foreground shadow-sm border border-border"
+                : "text-muted-foreground hover:text-foreground"
+            )}>
+            {s.label}
+          </button>
+        ))}
       </div>
 
       {/* Search */}
@@ -270,7 +344,7 @@ export default function AdminUsersPage() {
                     <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                   </div>
                 </div>
-                <PlanBadge plan={user.plan} />
+                <PlanBadge plan={user.effectivePlan || user.plan} />
               </div>
 
               {/* Info */}
@@ -300,7 +374,41 @@ export default function AdminUsersPage() {
                 )}>
                   {user.isActive ? t('admin.active') : t('admin.inactive')}
                 </span>
+                <span className={cn(
+                  "text-[10px] font-semibold px-1.5 py-0.5 rounded-md",
+                  user.agent?.isActive
+                    ? "bg-brand-600/10 text-brand-700 dark:text-brand-300"
+                    : "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                )}>
+                  AI {user.agent?.isActive ? "ON" : "OFF"}
+                </span>
               </div>
+
+              {/* AI Usage bar */}
+              {user.usage && (
+                <div className="pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-1 text-[11px]">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Zap size={10} className="text-brand-600" />
+                      AI {user.usage.aiReplies}/{user.usage.limit}
+                    </span>
+                    <span className="font-semibold text-foreground tabular-nums">
+                      ${user.usage.costUsd.toFixed(3)}
+                    </span>
+                  </div>
+                  <div className="h-1 w-full rounded-full bg-border overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        user.usage.percentUsed >= 100 ? "bg-red-500"   :
+                        user.usage.percentUsed >= 80  ? "bg-amber-500" :
+                        "bg-brand-600"
+                      )}
+                      style={{ width: `${Math.min(100, user.usage.percentUsed)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-2">

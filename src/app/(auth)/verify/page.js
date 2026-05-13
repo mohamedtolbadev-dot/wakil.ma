@@ -6,6 +6,7 @@ import Link from "next/link"
 import { authAPI } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useAppTheme } from "@/hooks/useAppTheme"
 import { Loader2, ArrowLeft, Mail, RefreshCw, CheckCircle2, ShieldCheck } from "lucide-react"
 
 function parseBiErr(msg, lang) {
@@ -15,25 +16,12 @@ function parseBiErr(msg, lang) {
   return lang === "ar" ? (ar || msg) : (fr || msg)
 }
 
-function useTheme() {
-  const [theme, setTheme] = useState("light")
-  useEffect(() => {
-    const saved = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const initial = saved || (prefersDark ? "dark" : "light")
-    setTheme(initial)
-    if (initial === "dark") document.documentElement.classList.add("dark")
-  }, [])
-  return { theme }
-}
-
 const OTP_LENGTH = 6
 
 export default function VerifyPage() {
   const router = useRouter()
   const { t, language, setLanguage, isRTL } = useLanguage()
-  const { theme } = useTheme()
-  const isDark = theme === "dark"
+  const { isDark } = useAppTheme()
 
   const [digits, setDigits]         = useState(Array(OTP_LENGTH).fill(""))
   const [loading, setLoading]       = useState(false)

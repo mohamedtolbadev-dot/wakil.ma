@@ -1,12 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useParams, useRouter } from "next/navigation"
-import fetchAPI from "@/lib/api"
+import { useParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
-  ArrowRight, Users, Loader2, MessageCircle, ShoppingCart,
-  Calendar, Hash, Phone, Tag, DollarSign, MapPin, Truck,
+  ArrowRight, MessageCircle, ShoppingCart,
+  Hash, Phone, Tag, DollarSign, MapPin, Truck,
   Clock, CheckCircle, XCircle, AlertCircle, RefreshCw,
   User, Mail, CalendarDays, Crown, Sparkles,
 } from "lucide-react"
@@ -28,12 +27,6 @@ const ORDER_STATUS = {
   DELIVERED: { label: "Livré",       cls: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",   icon: CheckCircle  },
   CANCELLED: { label: "Annulé",      cls: "bg-red-100 text-red-500 dark:bg-red-900/20 dark:text-red-400",           icon: XCircle      },
 }
-const APPT_STATUS = {
-  PENDING:   { label: "En attente",  cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",   icon: Clock       },
-  CONFIRMED: { label: "Confirmé",    cls: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",   icon: CheckCircle },
-  CANCELLED: { label: "Annulé",      cls: "bg-red-100 text-red-500 dark:bg-red-900/20 dark:text-red-400",           icon: XCircle     },
-  COMPLETED: { label: "Terminé",     cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",       icon: CheckCircle },
-}
 const CONV_STAGE = {
   GREETING:   { label: "Accueil",    cls: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"    },
   DISCOVERY:  { label: "Découverte", cls: "bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" },
@@ -45,7 +38,8 @@ const CONV_STAGE = {
 }
 const PLAN_CFG = {
   FREE:       { label: "Free",       icon: User,     cls: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300" },
-  PRO:        { label: "Pro",        icon: Crown,    cls: "bg-brand-600/10 text-brand-700"                                },
+  PRO:        { label: "Pro",        icon: Crown,    cls: "bg-brand-600/10 text-brand-700 dark:text-brand-300"             },
+  BUSINESS:   { label: "Business",   icon: Crown,    cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30"         },
   ENTERPRISE: { label: "Enterprise", icon: Sparkles, cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30"              },
 }
 
@@ -67,7 +61,7 @@ function Tab({ active, onClick, icon: Icon, label, count }) {
       className={cn(
         "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border",
         active
-          ? "bg-brand-600/10 text-brand-700 border-brand-600/30"
+          ? "bg-brand-600/10 text-brand-700 dark:text-brand-300 border-brand-600/30"
           : "text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground"
       )}>
       <Icon size={14} />
@@ -118,7 +112,6 @@ function Skeleton() {
 ═══════════════════════════════════════════ */
 export default function AdminUserDetailPage() {
   const { userId } = useParams()
-  const router = useRouter()
   const [data, setData]     = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab]       = useState("orders")
@@ -149,8 +142,8 @@ export default function AdminUserDetailPage() {
     </div>
   )
 
-  const { user, orders, appointments, conversations } = data
-  const plan = PLAN_CFG[user.plan] ?? PLAN_CFG.FREE
+  const { user, orders, conversations } = data
+  const plan = PLAN_CFG[data.effectivePlan || user.plan] ?? PLAN_CFG.FREE
   const PlanIcon = plan.icon
 
   return (
@@ -184,6 +177,14 @@ export default function AdminUserDetailPage() {
             )}>
               {user.isActive ? "نشط" : "غير نشط"}
             </span>
+            <span className={cn(
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded-md",
+              user.agent?.isActive
+                ? "bg-brand-600/10 text-brand-700 dark:text-brand-300"
+                : "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+            )}>
+              AI {user.agent?.isActive ? "ON" : "OFF"}
+            </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-2">
             <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
@@ -208,7 +209,6 @@ export default function AdminUserDetailPage() {
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
         <Tab active={tab === "orders"}        onClick={() => setTab("orders")}        icon={ShoppingCart}  label="الطلبيات"    count={orders.length} />
-        <Tab active={tab === "appointments"}  onClick={() => setTab("appointments")}  icon={Calendar}      label="المواعيد"    count={appointments.length} />
         <Tab active={tab === "conversations"} onClick={() => setTab("conversations")} icon={MessageCircle} label="المحادثات"   count={conversations.length} />
       </div>
 
@@ -218,7 +218,7 @@ export default function AdminUserDetailPage() {
           {orders.length === 0 ? (
             <Empty icon={ShoppingCart} label="لا توجد طلبيات" />
           ) : orders.map(o => (
-            <div key={o.id} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-2">
+            <Link key={o.id} href={`/dashboard/admin/users/${userId}/orders/${o.id}`} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-2 hover:border-brand-600/30 hover:shadow-sm transition-all">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-foreground">{o.customerName || "—"}</p>
@@ -234,32 +234,7 @@ export default function AdminUserDetailPage() {
                 {o.address      && <Info icon={MapPin}   label="Adresse"  value={o.address} />}
                 {o.trackingNumber && <Info icon={Truck}  label="Tracking" value={o.trackingNumber} />}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── Appointments tab ── */}
-      {tab === "appointments" && (
-        <div className="flex flex-col gap-2">
-          {appointments.length === 0 ? (
-            <Empty icon={Calendar} label="لا توجد مواعيد" />
-          ) : appointments.map(a => (
-            <div key={a.id} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{a.customerName || "—"}</p>
-                  <p className="text-[11px] text-muted-foreground">{a.customerPhone || "—"}</p>
-                </div>
-                <StatusBadge status={a.status} map={APPT_STATUS} />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-border/50">
-                <Info icon={Tag}        label="Service" value={a.serviceName || "—"} />
-                <Info icon={CalendarDays} label="Date"  value={fmt(a.date)} />
-                <Info icon={Clock}      label="Heure"   value={fmtTime(a.date)} />
-                {a.notes && <Info icon={MessageCircle} label="Notes" value={a.notes} />}
-              </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
@@ -270,7 +245,7 @@ export default function AdminUserDetailPage() {
           {conversations.length === 0 ? (
             <Empty icon={MessageCircle} label="لا توجد محادثات" />
           ) : conversations.map(c => (
-            <div key={c.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+            <Link key={c.id} href={`/dashboard/admin/users/${userId}/conversations/${c.id}`} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 hover:border-brand-600/30 hover:shadow-sm transition-all">
               <div className="w-9 h-9 rounded-full bg-brand-600/10 flex items-center justify-center shrink-0">
                 <MessageCircle size={15} className="text-brand-600" />
               </div>
@@ -290,7 +265,7 @@ export default function AdminUserDetailPage() {
               {!c.isRead && (
                 <span className="w-2 h-2 rounded-full bg-brand-600 shrink-0" />
               )}
-            </div>
+            </Link>
           ))}
         </div>
       )}

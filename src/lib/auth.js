@@ -3,6 +3,27 @@ import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 
 const JWT_SECRET = process.env.JWT_SECRET
+const AUTH_USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  storeName: true,
+  plan: true,
+  planExpiresAt: true,
+  role: true,
+  isActive: true,
+  agent: {
+    select: {
+      id: true,
+      name: true,
+      domain: true,
+      style: true,
+      language: true,
+      isActive: true,
+    }
+  }
+}
 
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required")
@@ -61,7 +82,6 @@ export async function getUserFromRequest(request) {
     }
 
     const token = authHeader.slice(7)
-    console.log(`🔐 Verifying token: ${token.slice(0, 20)}...`)
     
     const decoded = verifyToken(token)
     
@@ -75,7 +95,7 @@ export async function getUserFromRequest(request) {
     const { prisma } = await import("@/lib/prisma")
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      include: { agent: true }
+      select: AUTH_USER_SELECT
     })
 
     if (!user) {
@@ -90,3 +110,5 @@ export async function getUserFromRequest(request) {
     return null
   }
 }
+
+export { AUTH_USER_SELECT }

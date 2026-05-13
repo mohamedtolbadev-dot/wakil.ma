@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit"
+import { getInvoicePlanLabel } from "@/lib/invoiceHelpers"
 
 export function generateInvoicePDF(invoice, locale = "fr") {
   return new Promise((resolve, reject) => {
@@ -26,7 +27,6 @@ export function generateInvoicePDF(invoice, locale = "fr") {
         total:       "TOTAL:",
         footer1:     "Merci de votre confiance!",
         footer2:     "salesbot.ma - Agent de vente intelligent",
-        planLabels:  { FREE: "Gratuit", PRO: "Pro", ENTERPRISE: "Entreprise" },
         dateLocale:  "fr-MA",
       } : {
         title:       "FACTURE",
@@ -48,11 +48,10 @@ export function generateInvoicePDF(invoice, locale = "fr") {
         total:       "TOTAL:",
         footer1:     "Thank you for your trust!",
         footer2:     "salesbot.ma - Smart Sales Agent",
-        planLabels:  { FREE: "Free", PRO: "Pro", ENTERPRISE: "Enterprise" },
         dateLocale:  "en-MA",
       }
 
-      const planLabel = L.planLabels[invoice.plan] || invoice.plan
+      const planLabel = getInvoicePlanLabel(invoice.plan, isFr ? "fr" : "en")
       const dueDateStr = new Date(invoice.dueDate).toLocaleDateString(L.dateLocale, {
         day: "numeric", month: "long", year: "numeric"
       })
