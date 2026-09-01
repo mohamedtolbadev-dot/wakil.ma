@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage } from "@/lib/whatsapp"
 import { successResponse, errorResponse,
          unauthorizedResponse } from "@/lib/response"
+import { encryptSecret } from "@/lib/secretCrypto"
 
 export async function POST(request) {
   const user = await getUserFromRequest(request)
@@ -32,7 +33,7 @@ export async function POST(request) {
     // حفظ بيانات WhatsApp في Agent
     await prisma.agent.update({
       where: { userId: user.id },
-      data: { whatsappPhoneId: phoneId, whatsappToken: token }
+      data: { whatsappPhoneId: phoneId, whatsappToken: encryptSecret(token) }
     })
 
     return successResponse({

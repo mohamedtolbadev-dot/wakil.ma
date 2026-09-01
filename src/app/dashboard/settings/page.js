@@ -5,6 +5,7 @@ import { useAgentStore } from "@/store/agentStore"
 import { productsAPI } from "@/lib/api"
 import { getToken } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
+import { getPublicAppUrl, getWhatsAppWebhookUrl } from "@/lib/publicAppUrl"
 import { Loader2, Package, Clock, Store, Eye, EyeOff, Sparkles, Zap, Heart, Crown, Flame, Maximize2, XCircle, Truck } from "lucide-react"
 import {
   Bot, Save, Plus, Trash2, MessageCircle,
@@ -767,6 +768,19 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
+  function getWhatsAppTestErrorMessage(data) {
+    const code = data?.code
+    const fallback = data?.error ? `${t('settings.toast_wa_fail')}${data.error}` : t('settings.toast_wa_fail')
+
+    if (code === "MISSING_CREDENTIALS") return t('settings.toast_enter_creds')
+    if (code === "INVALID_TOKEN") return t('settings.toast_wa_invalid_token')
+    if (code === "INVALID_PHONE_ID") return t('settings.toast_wa_invalid_phone_id')
+    if (code === "META_API_ERROR") return data?.error ? `${t('settings.toast_wa_meta_error')} ${data.error}` : t('settings.toast_wa_meta_error')
+    if (code === "SERVER_ERROR") return t('settings.toast_server_error')
+
+    return fallback
+  }
+
   useEffect(() => { fetchAgent(); fetchProducts(); fetchUser() }, [fetchAgent])
 
   async function fetchUser() {
@@ -921,7 +935,7 @@ export default function SettingsPage() {
       if (data.success) {
         showToast(t('settings.toast_wa_ok'))
       } else {
-        showToast(t('settings.toast_wa_fail') + (data.error || ""), "error")
+        showToast(getWhatsAppTestErrorMessage(data), "error")
       }
     } catch (err) {
       console.error("WA test failed:", err)
@@ -990,9 +1004,9 @@ export default function SettingsPage() {
 
   const isWAConnected = !!(whatsappForm.whatsappPhoneId && whatsappForm.whatsappToken)
 
-  // Webhook URL from environment
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://wakil.ma"
-  const webhookUrl = `${APP_URL}/api/webhook/whatsapp`
+  // Canonical webhook URL for Meta Developers.
+  const APP_URL = getPublicAppUrl()
+  const webhookUrl = getWhatsAppWebhookUrl(APP_URL)
 
   return (
     <div className="flex flex-col gap-3 sm:gap-5 pb-8">

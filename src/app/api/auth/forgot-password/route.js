@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { sendPasswordResetEmail } from "@/lib/email"
 import { successResponse, errorResponse } from "@/lib/response"
+import { getPublicAppUrl } from "@/lib/publicAppUrl"
 import crypto from "crypto"
 
 // POST /api/auth/forgot-password
@@ -58,7 +59,7 @@ export async function POST(request) {
     })
 
     // إرسال إيميل
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://wakil.ma"
+    const appUrl = getPublicAppUrl()
     const resetUrl = `${appUrl}/reset-password?token=${token}`
 
     const emailResult = await sendPasswordResetEmail({

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { generateToken } from "@/lib/auth"
 import { getEffectivePlan } from "@/lib/billingPlans"
 import { successResponse, errorResponse } from "@/lib/response"
+import { sendWelcomeEmail } from "@/lib/email"
 
 export async function POST(request) {
   try {
@@ -34,7 +35,7 @@ export async function POST(request) {
       return errorResponse("fr:Données corrompues||ar:بيانات تالفة", 500)
     }
     
-    const { name, email: recordEmail, hashedPassword, mode, phone } = parsedData
+    const { name, email: recordEmail, hashedPassword, mode } = parsedData
     const resolvedEmail = (recordEmail || email).toLowerCase().trim()
 
     const existing = await prisma.user.findUnique({ where: { email: resolvedEmail } })
@@ -50,7 +51,6 @@ export async function POST(request) {
           name,
           email: resolvedEmail,
           password: hashedPassword,
-          phone: phone || null,
           storeName: name.trim(),
           agent: {
             create: {
@@ -59,7 +59,6 @@ export async function POST(request) {
               style: "friendly",
               language: "darija",
               isActive: true,
-              // ✅ بدون رسائل مفروضة — التعليمات تأتي من Settings > Instructions personnalisées (Produits)
             },
           },
         },
@@ -76,6 +75,12 @@ export async function POST(request) {
     }
 
     await prisma.verificationToken.delete({ where: { id: record.id } })
+
+    // إرسال إيميل ترحيبي للمستخدم الجديد
+    sendWelcomeEmail({ 
+      to: user.email, 
+      name: user.name 
+    }).catch(err => console.error("⚠️ Failed to send welcome email:", err.message))
 
     const token = generateToken(user.id)
     const effectivePlan = getEffectivePlan(user)

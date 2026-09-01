@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import {
-  ArrowLeft, Check, Infinity, MessageSquare, Menu, Moon, Sun, X, Zap,
+  ArrowLeft, Check, Infinity, MessageSquare, Zap,
 } from "lucide-react"
-import { Logo } from "@/components/shared/Logo"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { PublicHeader } from "@/components/public/PublicHeader"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { useAppTheme } from "@/hooks/useAppTheme"
 
@@ -216,9 +216,391 @@ const copy = {
   },
 }
 
+Object.assign(copy, {
+  fr: {
+    nav: [
+      { label: "Accueil", href: "/" },
+      { label: "Fonctionnalites", href: "/features" },
+      { label: "Tarifs", href: "/pricing", active: true },
+      { label: "Blog", href: "/blogs" },
+      { label: "FAQ", href: "/#faq" },
+    ],
+    login: "Connexion",
+    start: "Commencer",
+    eyebrow: "Tarifs transparents",
+    title: "Choisissez le forfait selon votre volume IA",
+    subtitle:
+      "Commencez gratuitement et augmentez surtout votre quota mensuel de reponses IA quand le volume WhatsApp grandit.",
+    footerText: "Agent de vente AI sur WhatsApp, concu pour les boutiques marocaines.",
+    note: "Le quota mensuel de reponses IA est applique automatiquement. Les autres modules de la plateforme sont disponibles dans la version actuelle sans limite par plan.",
+    plans: [
+      {
+        key: "FREE",
+        name: "Gratuit",
+        price: "0",
+        period: "Pour toujours",
+        replies: "100",
+        popular: false,
+        cta: "Commencer gratuitement",
+        ctaHref: "/register",
+        features: [
+          { text: "Agent IA WhatsApp", included: true },
+          { text: "Catalogue, conversations et commandes", included: true },
+          { text: "Clients, analytics et livraison CSV", included: true },
+          { text: "Campagnes WhatsApp avec templates Meta", included: true },
+          { text: "Quota IA plus eleve", included: false },
+          { text: "Activation de plan payant", included: false },
+        ],
+      },
+      {
+        key: "PRO",
+        name: "Pro",
+        price: "199",
+        period: "DH / mois",
+        replies: "5,000",
+        popular: true,
+        cta: "S'abonner Pro",
+        ctaHref: "/register",
+        features: [
+          { text: "Tout ce qui est en Gratuit", included: true },
+          { text: "Quota IA mensuel augmente", included: true },
+          { text: "Messages vocaux et analyse d'images", included: true },
+          { text: "Facture manuelle apres demande", included: true },
+          { text: "Assistance de configuration via WhatsApp", included: true },
+          { text: "Service entreprise sur mesure", included: false },
+        ],
+      },
+      {
+        key: "BUSINESS",
+        name: "Business",
+        price: "399",
+        period: "DH / mois",
+        replies: "12,000",
+        popular: false,
+        cta: "S'abonner Business",
+        ctaHref: "/register",
+        features: [
+          { text: "Tout ce qui est en Pro", included: true },
+          { text: "12 000 reponses IA / mois", included: true },
+          { text: "Volume adapte aux boutiques actives", included: true },
+          { text: "Suivi usage et cout IA estime", included: true },
+          { text: "Activation par facture manuelle", included: true },
+          { text: "Accompagnement avance sur demande", included: true },
+          { text: "Hebergement dedie", included: false },
+        ],
+      },
+      {
+        key: "ENTERPRISE",
+        name: "Enterprise",
+        price: null,
+        period: "Contactez-nous",
+        replies: "50,000",
+        popular: false,
+        cta: "Nous contacter",
+        ctaHref: "https://wa.me/212612455372",
+        features: [
+          { text: "Tout ce qui est en Business", included: true },
+          { text: "50 000 reponses IA / mois", included: true },
+          { text: "Conditions et accompagnement personnalises", included: true },
+          { text: "Aide a la configuration WhatsApp", included: true },
+          { text: "Formation et support selon accord", included: true },
+          { text: "Besoins techniques specifiques a valider", included: true },
+        ],
+      },
+    ],
+    badgePopular: "Le plus demande",
+    repliesLabel: "reponses IA / mois",
+  },
+  ar: {
+    nav: [
+      { label: "الرئيسية", href: "/" },
+      { label: "المميزات", href: "/features" },
+      { label: "الأسعار", href: "/pricing", active: true },
+      { label: "المدونة", href: "/blogs" },
+      { label: "الأسئلة", href: "/#faq" },
+    ],
+    login: "دخول",
+    start: "ابدأ الآن",
+    eyebrow: "أسعار واضحة",
+    title: "اختر الباقة حسب حجم ردود AI",
+    subtitle:
+      "ابدأ مجاناً، وزد الكوطا الشهرية ديال ردود AI ملي يكبر حجم رسائل واتساب عندك.",
+    footerText: "وكيل مبيعات AI على واتساب، معمول للمتاجر المغربية.",
+    note: "الحد المطبق آلياً حالياً هو كوطا ردود AI الشهرية. باقي وحدات المنصة متاحة في النسخة الحالية بدون حدود حسب الباقة.",
+    plans: [
+      {
+        key: "FREE",
+        name: "مجاني",
+        price: "0",
+        period: "للأبد",
+        replies: "100",
+        popular: false,
+        cta: "ابدأ مجاناً",
+        ctaHref: "/register",
+        features: [
+          { text: "وكيل AI على واتساب", included: true },
+          { text: "الكاتالوغ، المحادثات والطلبيات", included: true },
+          { text: "العملاء، التحليلات وCSV التوصيل", included: true },
+          { text: "حملات واتساب بقوالب Meta", included: true },
+          { text: "كوطا AI أكبر", included: false },
+          { text: "تفعيل باقة مدفوعة", included: false },
+        ],
+      },
+      {
+        key: "PRO",
+        name: "Pro",
+        price: "199",
+        period: "درهم / شهر",
+        replies: "5,000",
+        popular: true,
+        cta: "اشترك في Pro",
+        ctaHref: "/register",
+        features: [
+          { text: "كل ما في المجاني", included: true },
+          { text: "كوطا AI شهرية أكبر", included: true },
+          { text: "رسائل صوتية وتحليل الصور", included: true },
+          { text: "فاتورة يدوية بعد الطلب", included: true },
+          { text: "مساعدة إعداد عبر واتساب", included: true },
+          { text: "خدمة Enterprise مخصصة", included: false },
+        ],
+      },
+      {
+        key: "BUSINESS",
+        name: "Business",
+        price: "399",
+        period: "درهم / شهر",
+        replies: "12,000",
+        popular: false,
+        cta: "اشترك في Business",
+        ctaHref: "/register",
+        features: [
+          { text: "كل ما في Pro", included: true },
+          { text: "12,000 رد AI / شهر", included: true },
+          { text: "حجم مناسب للمتاجر النشيطة", included: true },
+          { text: "تتبع الاستهلاك وتقدير تكلفة AI", included: true },
+          { text: "تفعيل عبر فاتورة يدوية", included: true },
+          { text: "مواكبة متقدمة عند الحاجة", included: true },
+          { text: "استضافة مخصصة", included: false },
+        ],
+      },
+      {
+        key: "ENTERPRISE",
+        name: "Enterprise",
+        price: null,
+        period: "اتصل بنا",
+        replies: "50,000",
+        popular: false,
+        cta: "تواصل معنا",
+        ctaHref: "https://wa.me/212612455372",
+        features: [
+          { text: "كل ما في Business", included: true },
+          { text: "50,000 رد AI / شهر", included: true },
+          { text: "شروط ومواكبة مخصصة", included: true },
+          { text: "مساعدة في إعداد WhatsApp", included: true },
+          { text: "تدريب ودعم حسب الاتفاق", included: true },
+          { text: "احتياجات تقنية خاصة يتم تقييمها", included: true },
+        ],
+      },
+    ],
+    badgePopular: "الأكثر طلباً",
+    repliesLabel: "رد AI / شهر",
+  },
+})
+
+Object.assign(copy, {
+  fr: {
+    nav: [
+      { label: "Accueil", href: "/" },
+      { label: "Fonctionnalites", href: "/features" },
+      { label: "Tarifs", href: "/pricing", active: true },
+      { label: "Blog", href: "/blogs" },
+      { label: "FAQ", href: "/#faq" },
+    ],
+    login: "Connexion",
+    start: "Commencer",
+    eyebrow: "Tarifs transparents",
+    title: "Choisissez le forfait selon votre volume IA",
+    subtitle:
+      "Commencez gratuitement et augmentez votre quota mensuel de reponses IA quand le volume WhatsApp grandit.",
+    footerText: "Agent de vente AI sur WhatsApp, concu pour les boutiques marocaines.",
+    note: "Limites appliquees automatiquement: quota mensuel de reponses IA, 20 produits en Gratuit, campagnes reservees aux plans payants.",
+    plans: [
+      {
+        key: "FREE",
+        name: "Gratuit",
+        price: "0",
+        period: "Pour toujours",
+        replies: "100",
+        popular: false,
+        cta: "Commencer gratuitement",
+        ctaHref: "/register",
+        features: [
+          { text: "Agent IA WhatsApp", included: true },
+          { text: "Catalogue jusqu'a 20 produits", included: true },
+          { text: "Conversations, commandes et clients", included: true },
+          { text: "Analytics et livraison CSV", included: true },
+          { text: "Campagnes WhatsApp avec templates Meta", included: false },
+          { text: "Quota IA plus eleve", included: false },
+        ],
+      },
+      {
+        key: "PRO",
+        name: "Pro",
+        price: "199",
+        period: "DH / mois",
+        replies: "5,000",
+        popular: true,
+        cta: "S'abonner Pro",
+        ctaHref: "/register",
+        features: [
+          { text: "Tout ce qui est en Gratuit", included: true },
+          { text: "Quota IA mensuel augmente", included: true },
+          { text: "Produits illimites", included: true },
+          { text: "Campagnes WhatsApp avec templates Meta", included: true },
+          { text: "Messages vocaux et analyse d'images", included: true },
+          { text: "Facture manuelle apres demande", included: true },
+        ],
+      },
+      {
+        key: "BUSINESS",
+        name: "Business",
+        price: "399",
+        period: "DH / mois",
+        replies: "12,000",
+        popular: false,
+        cta: "S'abonner Business",
+        ctaHref: "/register",
+        features: [
+          { text: "Tout ce qui est en Pro", included: true },
+          { text: "12 000 reponses IA / mois", included: true },
+          { text: "Produits et campagnes actives", included: true },
+          { text: "Suivi usage et cout IA estime", included: true },
+          { text: "Activation par facture manuelle", included: true },
+          { text: "Accompagnement avance sur demande", included: true },
+          { text: "Hebergement dedie", included: false },
+        ],
+      },
+      {
+        key: "ENTERPRISE",
+        name: "Enterprise",
+        price: null,
+        period: "Contactez-nous",
+        replies: "50,000",
+        popular: false,
+        cta: "Nous contacter",
+        ctaHref: "https://wa.me/212612455372",
+        features: [
+          { text: "Tout ce qui est en Business", included: true },
+          { text: "50 000 reponses IA / mois", included: true },
+          { text: "Conditions et accompagnement personnalises", included: true },
+          { text: "Aide a la configuration WhatsApp", included: true },
+          { text: "Formation et support selon accord", included: true },
+          { text: "Besoins techniques specifiques a valider", included: true },
+        ],
+      },
+    ],
+    badgePopular: "Le plus demande",
+    repliesLabel: "reponses IA / mois",
+  },
+  ar: {
+    nav: [
+      { label: "الرئيسية", href: "/" },
+      { label: "المميزات", href: "/features" },
+      { label: "الأسعار", href: "/pricing", active: true },
+      { label: "المدونة", href: "/blogs" },
+      { label: "الأسئلة", href: "/#faq" },
+    ],
+    login: "دخول",
+    start: "ابدأ الآن",
+    eyebrow: "أسعار واضحة",
+    title: "اختر الباقة حسب حجم ردود AI",
+    subtitle:
+      "ابدأ مجاناً، وزد الكوطا الشهرية ديال ردود AI ملي يكبر حجم رسائل واتساب عندك.",
+    footerText: "وكيل مبيعات AI على واتساب، معمول للمتاجر المغربية.",
+    note: "الحدود المطبقة آلياً: كوطا ردود AI الشهرية، 20 منتج في المجاني، والحملات للخطط المدفوعة.",
+    plans: [
+      {
+        key: "FREE",
+        name: "مجاني",
+        price: "0",
+        period: "للأبد",
+        replies: "100",
+        popular: false,
+        cta: "ابدأ مجاناً",
+        ctaHref: "/register",
+        features: [
+          { text: "وكيل AI على واتساب", included: true },
+          { text: "كاتالوغ حتى 20 منتج", included: true },
+          { text: "المحادثات، الطلبيات والعملاء", included: true },
+          { text: "التحليلات وCSV التوصيل", included: true },
+          { text: "حملات واتساب بقوالب Meta", included: false },
+          { text: "كوطا AI أكبر", included: false },
+        ],
+      },
+      {
+        key: "PRO",
+        name: "Pro",
+        price: "199",
+        period: "درهم / شهر",
+        replies: "5,000",
+        popular: true,
+        cta: "اشترك في Pro",
+        ctaHref: "/register",
+        features: [
+          { text: "كل ما في المجاني", included: true },
+          { text: "كوطا AI شهرية أكبر", included: true },
+          { text: "منتجات غير محدودة", included: true },
+          { text: "حملات واتساب بقوالب Meta", included: true },
+          { text: "رسائل صوتية وتحليل الصور", included: true },
+          { text: "فاتورة يدوية بعد الطلب", included: true },
+        ],
+      },
+      {
+        key: "BUSINESS",
+        name: "Business",
+        price: "399",
+        period: "درهم / شهر",
+        replies: "12,000",
+        popular: false,
+        cta: "اشترك في Business",
+        ctaHref: "/register",
+        features: [
+          { text: "كل ما في Pro", included: true },
+          { text: "12,000 رد AI / شهر", included: true },
+          { text: "منتجات وحملات نشيطة", included: true },
+          { text: "تتبع الاستهلاك وتقدير تكلفة AI", included: true },
+          { text: "تفعيل عبر فاتورة يدوية", included: true },
+          { text: "مواكبة متقدمة عند الحاجة", included: true },
+          { text: "استضافة مخصصة", included: false },
+        ],
+      },
+      {
+        key: "ENTERPRISE",
+        name: "Enterprise",
+        price: null,
+        period: "اتصل بنا",
+        replies: "50,000",
+        popular: false,
+        cta: "تواصل معنا",
+        ctaHref: "https://wa.me/212612455372",
+        features: [
+          { text: "كل ما في Business", included: true },
+          { text: "50,000 رد AI / شهر", included: true },
+          { text: "شروط ومواكبة مخصصة", included: true },
+          { text: "مساعدة في إعداد WhatsApp", included: true },
+          { text: "تدريب ودعم حسب الاتفاق", included: true },
+          { text: "احتياجات تقنية خاصة يتم تقييمها", included: true },
+        ],
+      },
+    ],
+    badgePopular: "الأكثر طلباً",
+    repliesLabel: "رد AI / شهر",
+  },
+})
+
 export default function PricingPage() {
-  const { language, setLanguage } = useLanguage()
-  const { isDark, toggleTheme } = useAppTheme()
+  const { language } = useLanguage()
+  const { isDark } = useAppTheme()
   const isRTL = language === "ar"
   const data = isRTL ? copy.ar : copy.fr
 
@@ -238,13 +620,7 @@ export default function PricingPage() {
       />
       <div className={`fixed inset-0 -z-10 transition-all duration-700 ${isDark ? 'bg-black/50' : 'bg-white/45'}`} />
 
-      <Header
-        data={data}
-        isDark={isDark}
-        isRTL={isRTL}
-        onToggleTheme={toggleTheme}
-        onToggleLanguage={() => setLanguage(isRTL ? "fr" : "ar")}
-      />
+      <PublicHeader />
 
       {/* Pricing Content */}
       <main className="relative">
@@ -283,7 +659,7 @@ export default function PricingPage() {
       {/* Floating WhatsApp */}
       <WhatsAppFloatButton />
 
-      <Footer data={data} isDark={isDark} />
+      <PublicFooter />
     </div>
   )
 }
@@ -329,10 +705,12 @@ function PlanCard({ plan, index, isDark, isRTL, data }) {
             <MessageSquare size={14} className={isDark ? 'text-brand-300' : 'text-brand-600'} />
             <span>{plan.replies} {data.repliesLabel}</span>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <Zap size={14} className={isDark ? 'text-brand-300' : 'text-brand-600'} />
-            <span>{plan.dailyCap} {data.dailyLabel}</span>
-          </div>
+          {plan.detail && (
+            <div className="flex items-center gap-2 mt-1">
+              <Zap size={14} className={isDark ? 'text-brand-300' : 'text-brand-600'} />
+              <span>{plan.detail}</span>
+            </div>
+          )}
         </div>
 
         <ul className="space-y-2.5 mb-6 flex-1">
@@ -379,145 +757,6 @@ function PlanCard({ plan, index, isDark, isRTL, data }) {
         )}
       </div>
     </div>
-  )
-}
-
-function Header({ data, isDark, isRTL, onToggleTheme, onToggleLanguage }) {
-  const [mobileOpen, setMobileOpen] = useState(false)
-
-  return (
-    <header className={`sticky top-0 z-50 border-b backdrop-blur-xl ${isDark ? 'border-white/10 bg-[#090817]/78' : 'border-brand-100 bg-white/78'}`}>
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Logo />
-
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-5 md:flex">
-          {data.nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              className={`text-sm font-bold transition ${
-                item.active
-                  ? "text-brand-600"
-                  : isDark
-                    ? "text-white/60 hover:text-white"
-                    : "text-slate-600 hover:text-slate-950"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onToggleTheme}
-            aria-label="Toggle theme"
-            className={`grid h-9 w-9 place-items-center rounded-xl border transition ${
-              isDark ? "border-white/12 bg-white/8 text-white" : "border-brand-100 bg-white text-brand-700"
-            }`}
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <button
-            onClick={onToggleLanguage}
-            className={`h-9 rounded-xl border px-3 text-xs font-black transition ${
-              isDark ? "border-white/12 bg-white/8 text-white" : "border-brand-100 bg-white text-brand-700"
-            }`}
-          >
-            {isRTL ? "FR" : "عربي"}
-          </button>
-          <Link
-            href="/login"
-            className={`hidden rounded-xl px-3 py-2 text-sm font-bold transition sm:inline-flex ${
-              isDark ? "text-white/70 hover:text-white" : "text-slate-600 hover:text-slate-950"
-            }`}
-          >
-            {data.login}
-          </Link>
-          <Link
-            href="/register"
-            className="hidden rounded-xl bg-brand-600 px-3 py-2 text-sm font-black text-white transition hover:bg-brand-700 sm:inline-flex sm:px-4"
-          >
-            {data.start}
-          </Link>
-
-          {/* Hamburger */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Menu"
-            className={`grid h-9 w-9 place-items-center rounded-xl border transition md:hidden ${
-              isDark ? "border-white/12 bg-white/8 text-white" : "border-brand-100 bg-white text-brand-700"
-            }`}
-          >
-            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className={`md:hidden border-t px-4 py-3 space-y-1 ${isDark ? 'border-white/10 bg-[#090817]/95' : 'border-brand-100 bg-white/95'}`}>
-          {data.nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={`block rounded-xl px-4 py-3 text-sm font-bold transition ${
-                item.active
-                  ? isDark ? "bg-brand-600/15 text-brand-400" : "bg-brand-50 text-brand-600"
-                  : isDark ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <div className={`my-2 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`} />
-          <Link
-            href="/login"
-            onClick={() => setMobileOpen(false)}
-            className={`block rounded-xl px-4 py-3 text-sm font-bold transition ${
-              isDark ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-            }`}
-          >
-            {data.login}
-          </Link>
-          <Link
-            href="/register"
-            onClick={() => setMobileOpen(false)}
-            className="block rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white transition hover:bg-brand-700"
-          >
-            {data.start}
-          </Link>
-        </div>
-      )}
-    </header>
-  )
-}
-
-function Footer({ data, isDark }) {
-  return (
-    <footer className={`border-t px-4 py-8 sm:px-6 ${isDark ? "border-white/10" : "border-brand-100"}`}>
-      <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Logo />
-          <p className={`mt-3 max-w-md text-sm leading-6 ${isDark ? "text-white/55" : "text-slate-600"}`}>{data.footerText}</p>
-        </div>
-        <div className="flex flex-wrap gap-4 text-sm font-bold">
-          {data.nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={item.active ? "text-brand-600" : isDark ? "text-white/58 hover:text-white" : "text-slate-600 hover:text-slate-950"}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-    </footer>
   )
 }
 

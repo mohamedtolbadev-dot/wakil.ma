@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { getUserFromRequest } from "@/lib/auth"
 import { downloadWhatsAppMedia } from "@/lib/whatsapp"
 import { errorResponse, unauthorizedResponse } from "@/lib/response"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -31,10 +32,10 @@ export async function GET(request, { params }) {
       return errorResponse("لا يوجد ملف لهذه الرسالة", 404)
     }
 
-    const agent = await prisma.agent.findUnique({
+    const agent = decryptAgentSecrets(await prisma.agent.findUnique({
       where: { userId: user.id },
       select: { whatsappToken: true },
-    })
+    }))
 
     if (!agent?.whatsappToken) {
       return errorResponse("Token واتساب غير مضبوط", 502)

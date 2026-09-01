@@ -3,6 +3,7 @@ import { uploadWhatsAppMedia, sendWhatsAppMessage } from "@/lib/whatsapp"
 import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/response"
 import { rateLimit } from "@/lib/rateLimit"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 function normalizePhoneForWhatsApp(phone) {
   if (!phone) return null
@@ -89,13 +90,14 @@ export async function POST(request, { params }) {
     }
 
     // Fetch conversation + agent in parallel
-    const [conversation, agent] = await Promise.all([
+    const [conversation, rawAgent] = await Promise.all([
       prisma.conversation.findFirst({
         where: { id, userId: user.id },
         include: { customer: true },
       }),
       prisma.agent.findUnique({ where: { userId: user.id } }),
     ])
+    const agent = decryptAgentSecrets(rawAgent)
     if (!conversation) return errorResponse("المحادثة غير موجودة", 404)
     if (!agent) return errorResponse("Agent غير موجود", 404)
     if (!agent.whatsappPhoneId || !agent.whatsappToken) {

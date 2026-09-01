@@ -5,6 +5,8 @@ export const BILLING_PLANS = {
     priceDh: 0,
     aiReplies: 100,
     dailyHardCap: 50,
+    productLimit: 20,
+    campaignsEnabled: false,
     selfService: false,
   },
   PRO: {
@@ -13,6 +15,8 @@ export const BILLING_PLANS = {
     priceDh: 199,
     aiReplies: 5000,
     dailyHardCap: 500,
+    productLimit: null,
+    campaignsEnabled: true,
     selfService: true,
   },
   BUSINESS: {
@@ -21,6 +25,8 @@ export const BILLING_PLANS = {
     priceDh: 399,
     aiReplies: 12000,
     dailyHardCap: 1200,
+    productLimit: null,
+    campaignsEnabled: true,
     selfService: true,
   },
   ENTERPRISE: {
@@ -29,6 +35,8 @@ export const BILLING_PLANS = {
     priceDh: null,
     aiReplies: 50000,
     dailyHardCap: 5000,
+    productLimit: null,
+    campaignsEnabled: true,
     selfService: false,
   },
 }
@@ -48,6 +56,16 @@ export function getBillingPlan(plan) {
   return BILLING_PLANS[plan] || BILLING_PLANS.FREE
 }
 
+export function getPlanEntitlements(plan) {
+  const billingPlan = getBillingPlan(plan)
+  return {
+    plan: billingPlan.key,
+    aiReplies: billingPlan.aiReplies,
+    productLimit: billingPlan.productLimit,
+    campaignsEnabled: Boolean(billingPlan.campaignsEnabled),
+  }
+}
+
 export function getEffectivePlan(user, now = new Date()) {
   const plan = user?.plan || "FREE"
   if (plan === "FREE") return "FREE"
@@ -56,6 +74,10 @@ export function getEffectivePlan(user, now = new Date()) {
   const expiresAt = user?.planExpiresAt ? new Date(user.planExpiresAt) : null
   if (!expiresAt || Number.isNaN(expiresAt.getTime())) return plan
   return expiresAt > now ? plan : "FREE"
+}
+
+export function getEffectivePlanEntitlements(user, now = new Date()) {
+  return getPlanEntitlements(getEffectivePlan(user, now))
 }
 
 export function addBillingMonths(date = new Date(), months = 1) {

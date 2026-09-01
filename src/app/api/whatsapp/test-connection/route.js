@@ -1,10 +1,21 @@
-// API لاختبار الاتصال بـ WhatsApp Business API
-// يتحقق من صحة Phone ID و Token بدون إرسال رسالة
+// Tests WhatsApp Cloud API credentials without sending a message.
 
 import { getUserFromRequest } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { successResponse, errorResponse,
-         unauthorizedResponse } from "@/lib/response"
+import { successResponse, unauthorizedResponse } from "@/lib/response"
+import { encryptSecret } from "@/lib/secretCrypto"
+
+function whatsappTestError(message, status, code, details = null) {
+  return Response.json(
+    {
+      success: false,
+      error: message,
+      code,
+      ...(details ? { details } : {}),
+    },
+    { status }
+  )
+}
 
 export async function POST(request) {
   const user = await getUserFromRequest(request)
@@ -14,40 +25,44 @@ export async function POST(request) {
     const { phoneId, token } = await request.json()
 
     if (!phoneId || !token) {
-      return errorResponse("Phone ID و Token مطلوبان", 400)
+      return whatsappTestError("Phone ID and Token are required", 400, "MISSING_CREDENTIALS")
     }
 
-    // اختبار الاتصال بـ Meta API - جلب معلومات الهاتف
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/${phoneId}?access_token=${token}`,
-      { method: 'GET' }
+      `https://graph.facebook.com/v18.0/${encodeURIComponent(phoneId)}?access_token=${encodeURIComponent(token)}`,
+      { method: "GET" }
     )
 
     if (response.status === 401) {
-      return errorResponse("❌ Token غير صالح أو منتهي الصلاحية", 401)
+      return whatsappTestError("Token is invalid or expired", 401, "INVALID_TOKEN")
     }
 
     if (response.status === 404) {
-      return errorResponse("❌ Phone ID غير موجود", 404)
+      return whatsappTestError("Phone ID was not found", 404, "INVALID_PHONE_ID")
     }
 
     if (!response.ok) {
-      const errorData = await response.json()
-      return errorResponse(
-        errorData.error?.message || "فشل في الاتصال بـ WhatsApp API",
-        response.status
+      let errorData = null
+      try {
+        errorData = await response.json()
+      } catch {}
+
+      return whatsappTestError(
+        errorData?.error?.message || "Failed to connect to WhatsApp API",
+        response.status,
+        "META_API_ERROR",
+        errorData?.error || null
       )
     }
 
     const data = await response.json()
 
-    // حفظ البيانات في قاعدة البيانات
     await prisma.agent.update({
       where: { userId: user.id },
       data: {
         whatsappPhoneId: phoneId,
-        whatsappToken: token,
-      }
+        whatsappToken: encryptSecret(token),
+      },
     })
 
     return successResponse({
@@ -55,10 +70,10 @@ export async function POST(request) {
       phoneNumber: data.display_phone_number,
       qualityRating: data.quality_rating,
       verifiedName: data.verified_name,
-      message: "✅ الاتصال بـ WhatsApp Business API ناجح!"
+      message: "WhatsApp Business API connection successful",
     })
   } catch (error) {
     console.error("WhatsApp connection test error:", error)
-    return errorResponse("❌ خطأ في الاتصال بالخادم", 500)
+    return whatsappTestError("Server connection error", 500, "SERVER_ERROR")
   }
 }

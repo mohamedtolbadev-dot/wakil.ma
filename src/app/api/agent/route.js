@@ -5,6 +5,7 @@ import {
   errorResponse,
   unauthorizedResponse
 } from "@/lib/response"
+import { decryptAgentSecrets, encryptSecret } from "@/lib/secretCrypto"
 
 const ALLOWED_AGENT_LANGUAGES = new Set(["auto", "darija", "arabic", "french"])
 const ALLOWED_REPLY_DELAY_MODES = new Set(["instant", "short", "natural", "custom"])
@@ -51,7 +52,7 @@ export async function GET(request) {
 
     if (!agent) return errorResponse("Agent غير موجود", 404)
 
-    return successResponse(agent)
+    return successResponse(decryptAgentSecrets(agent))
   } catch (error) {
     console.error("GET agent error:", error)
     return errorResponse("خطأ في جلب Agent", 500)
@@ -118,7 +119,7 @@ export async function PUT(request) {
         ...(instructions !== undefined && { instructions }),
         ...(productInstructions !== undefined && { productInstructions }),
         ...(whatsappPhoneId !== undefined && { whatsappPhoneId }),
-        ...(whatsappToken !== undefined && { whatsappToken }),
+        ...(whatsappToken !== undefined && { whatsappToken: encryptSecret(whatsappToken) }),
         ...(selectedProductId !== undefined && {
           selectedProductId: selectedProductId || null
         }),
@@ -137,7 +138,7 @@ export async function PUT(request) {
       }
     })
 
-    return successResponse(agent)
+    return successResponse(decryptAgentSecrets(agent))
   } catch (error) {
     console.error("PUT agent error:", error)
     return errorResponse("خطأ في تحديث Agent", 500)

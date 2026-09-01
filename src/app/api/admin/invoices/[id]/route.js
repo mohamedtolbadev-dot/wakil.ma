@@ -4,6 +4,8 @@ import { verifyToken } from "@/lib/auth"
 import { addBillingMonths, getBillingPlan } from "@/lib/billingPlans"
 import { getInvoicePlanLabel } from "@/lib/invoiceHelpers"
 
+const VALID_INVOICE_STATUSES = new Set(["PENDING", "PAID", "OVERDUE", "CANCELLED"])
+
 async function getSuperAdmin(request) {
   const token = request.headers.get("authorization")?.split(" ")[1]
   if (!token) return null
@@ -28,6 +30,15 @@ export async function PATCH(request, { params }) {
 
     const existing = await prisma.invoice.findUnique({ where: { id } })
     if (!existing) return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
+    if (status && !VALID_INVOICE_STATUSES.has(status)) {
+      return NextResponse.json({ error: "Invalid invoice status" }, { status: 400 })
+    }
+    if (existing.status === "PAID" && status === "PENDING") {
+      return NextResponse.json(
+        { error: "Paid invoice cannot be reverted to pending" },
+        { status: 409 }
+      )
+    }
 
     // Detect PAID transition — only trigger auto-upgrade on status flip, not on idempotent PATCH
     const isTransitioningToPaid = status === "PAID" && existing.status !== "PAID"

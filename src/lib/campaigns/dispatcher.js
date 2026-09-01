@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { sendCampaignTemplateMessage } from "./templateSender"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 async function aggregateCampaignRecipientStats(campaignId) {
   const grouped = await prisma.campaignRecipient.groupBy({
@@ -86,13 +87,13 @@ export async function dispatchCampaignBatch({ campaignId, userId }) {
     }
   }
 
-  const agent = await prisma.agent.findUnique({
+  const agent = decryptAgentSecrets(await prisma.agent.findUnique({
     where: { userId },
     select: {
       whatsappPhoneId: true,
       whatsappToken: true,
     },
-  })
+  }))
 
   if (!agent?.whatsappPhoneId || !agent?.whatsappToken) {
     throw new Error("WhatsApp is not configured for this account")

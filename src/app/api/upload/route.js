@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { cloudinary } from '@/lib/cloudinary';
 import { getUserFromRequest } from '@/lib/auth';
 
-// Allowed file types
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const ALLOWED_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(request) {
   try {
-    // Verify user is authenticated
     const user = await getUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -21,47 +22,48 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
+    const isImage = IMAGE_TYPES.includes(file.type);
+    const isVideo = VIDEO_TYPES.includes(file.type);
+
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ 
-        error: 'نوع الملف غير مسموح به. الأنواع المسموحة: JPEG, PNG, WebP, GIF' 
+      return NextResponse.json({
+        error: 'نوع الملف غير مسموح به. الأنواع المسموحة: JPEG, PNG, WebP, GIF, MP4, WebM, MOV',
       }, { status: 400 });
     }
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ 
-        error: 'حجم الملف كبير جداً. الحد الأقصى: 5 ميجابايت' 
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+    if (file.size > maxSize) {
+      return NextResponse.json({
+        error: isVideo
+          ? 'حجم الفيديو كبير جداً. الحد الأقصى: 50 ميجابايت'
+          : 'حجم الصورة كبير جداً. الحد الأقصى: 5 ميجابايت',
       }, { status: 400 });
     }
 
-    // Validate file name (prevent path traversal)
     const fileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     if (!fileName || fileName.length === 0) {
       return NextResponse.json({ error: 'اسم الملف غير صالح' }, { status: 400 });
     }
 
-    // Convert file to base64
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString('base64');
-    const dataURI = `data:${file.type};base64,${base64}`;
+    const dataURI = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    // Upload to Cloudinary with security options
     const result = await cloudinary.uploader.upload(dataURI, {
       folder: 'wakil/products',
-      resource_type: 'image',
-      allowed_formats: ['jpg', 'png', 'webp', 'gif'],
+      resource_type: isVideo ? 'video' : 'image',
+      allowed_formats: isVideo ? ['mp4', 'webm', 'mov'] : ['jpg', 'png', 'webp', 'gif'],
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      url: result.secure_url 
+    return NextResponse.json({
+      success: true,
+      url: result.secure_url,
+      type: isVideo ? 'video' : 'image',
     });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload image', detail: error?.message || String(error) }, 
+      { error: 'Failed to upload file', detail: error?.message || String(error) },
       { status: 500 }
     );
   }

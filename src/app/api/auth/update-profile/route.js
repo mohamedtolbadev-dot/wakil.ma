@@ -1,6 +1,7 @@
 import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, unauthorizedResponse, errorResponse } from "@/lib/response"
 import { prisma } from "@/lib/prisma"
+import { normalizePhone } from "@/lib/phone"
 
 export async function PUT(request) {
   try {
@@ -9,10 +10,15 @@ export async function PUT(request) {
 
     const body = await request.json()
     const { name, email, phone } = body
+    const normalizedPhone = normalizePhone(phone)
 
     // Validate required fields
     if (!name || !email) {
       return errorResponse("الاسم والبريد مطلوبان", 400)
+    }
+
+    if (normalizedPhone && (normalizedPhone.length < 7 || normalizedPhone.length > 15)) {
+      return errorResponse("fr:Numero de telephone invalide||ar:رقم الهاتف غير صحيح", 400)
     }
 
     // Check if email is already taken (if changed)
@@ -31,7 +37,7 @@ export async function PUT(request) {
       data: {
         name,
         email,
-        phone: phone || null,
+        phone: normalizedPhone || null,
       }
     })
 
@@ -40,7 +46,9 @@ export async function PUT(request) {
       name: updatedUser.name,
       email: updatedUser.email,
       phone: updatedUser.phone,
-      plan: updatedUser.plan
+      storeName: updatedUser.storeName,
+      plan: updatedUser.plan,
+      createdAt: updatedUser.createdAt,
     })
   } catch (err) {
     console.error("Error updating profile:", err)
@@ -59,7 +67,13 @@ export async function PATCH(request) {
 
     if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim()
     if (typeof body.storeName === "string" && body.storeName.trim()) data.storeName = body.storeName.trim()
-    if (typeof body.phone === "string") data.phone = body.phone.trim() || null
+    if (typeof body.phone === "string") {
+      const normalizedPhone = normalizePhone(body.phone)
+      if (!normalizedPhone || normalizedPhone.length < 7 || normalizedPhone.length > 15) {
+        return errorResponse("fr:Numero de telephone invalide||ar:رقم الهاتف غير صحيح", 400)
+      }
+      data.phone = normalizedPhone
+    }
 
     if (typeof body.email === "string" && body.email !== user.email) {
       const existing = await prisma.user.findUnique({ where: { email: body.email } })
@@ -75,7 +89,7 @@ export async function PATCH(request) {
       where: { id: user.id },
       data,
       select: {
-        id: true, name: true, email: true, phone: true, storeName: true, plan: true,
+        id: true, name: true, email: true, phone: true, storeName: true, plan: true, createdAt: true,
       },
     })
 

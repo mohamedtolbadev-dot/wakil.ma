@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/contexts/LanguageContext"
 import fetchAPI, { agentAPI, productsAPI } from "@/lib/api"
+import { getPublicAppUrl, getWhatsAppWebhookUrl } from "@/lib/publicAppUrl"
 import {
   Loader2, Store, MessageCircle, Package, CheckCircle2,
   ArrowRight, ArrowLeft, Phone, Key, Copy, Check, Sparkles,
@@ -105,13 +106,10 @@ export default function OnboardingPage() {
     stock: 10,
   })
 
-  // App URL for webhook
-  const [appUrl, setAppUrl] = useState("")
+  // Canonical app URL for the WhatsApp webhook shown in Meta setup.
+  const appUrl = getPublicAppUrl()
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setAppUrl(window.location.origin)
-    }
     fetchStatus()
   }, [])
 
@@ -268,7 +266,7 @@ export default function OnboardingPage() {
   }
 
   function copyWebhookUrl() {
-    const webhookUrl = `${appUrl}/api/webhook/whatsapp`
+    const webhookUrl = getWhatsAppWebhookUrl(appUrl)
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -477,7 +475,7 @@ export default function OnboardingPage() {
                     </p>
                     <div className="flex items-center gap-2">
                       <code dir="ltr" className="flex-1 text-[11px] bg-background border border-border rounded-lg px-2.5 py-1.5 break-all">
-                        {appUrl}/api/webhook/whatsapp
+                        {getWhatsAppWebhookUrl(appUrl)}
                       </code>
                       <button
                         onClick={copyWebhookUrl}

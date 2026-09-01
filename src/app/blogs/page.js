@@ -2,7 +2,8 @@ import Link from "next/link"
 import { cookies } from "next/headers"
 import { CalendarDays, Clock, ArrowLeft, Search, MessageCircle } from "lucide-react"
 import { BlogLanguageRefresh } from "@/components/blogs/BlogLanguageRefresh"
-import { Logo } from "@/components/shared/Logo"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { PublicHeader } from "@/components/public/PublicHeader"
 import { prisma } from "@/lib/prisma"
 import { readingTime } from "@/lib/blogs"
 
@@ -135,14 +136,7 @@ export default async function BlogsPage() {
   return (
     <main className="min-h-screen bg-background text-foreground" dir={language === "ar" ? "rtl" : "ltr"}>
       <BlogLanguageRefresh initialLanguage={language} />
-      <header className="border-b border-border bg-card/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <Logo />
-          <Link href="/register" className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-800">
-            {copy.cta}
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <div className="mb-10 max-w-3xl">
@@ -176,6 +170,8 @@ export default async function BlogsPage() {
           </div>
         )}
       </section>
+
+      <PublicFooter />
     </main>
   )
 }

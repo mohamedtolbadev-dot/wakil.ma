@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import {
   Bot,
   ClipboardCheck,
@@ -14,59 +13,31 @@ import { useLanguage } from "@/contexts/LanguageContext"
 function SketchCard({ icon: Icon, index, title, desc, isDark, className = "" }) {
   return (
     <div className={`relative ${className}`}>
-      <span className={`absolute -top-2 left-8 z-20 h-5 w-14 -rotate-3 rounded-sm ${isDark ? "bg-white/10" : "bg-slate-200/70"}`} />
-
       <div
-        className={`relative min-h-[168px] rounded-[22px] p-4 backdrop-blur-md sm:p-5
-          ${isDark ? "bg-black/25 text-white" : "bg-white/72 text-brand-950"}`}
+        className={`group relative overflow-hidden rounded-[18px] border p-3 backdrop-blur-xl transition-all duration-300 sm:rounded-[22px] sm:p-5 lg:min-h-[176px]
+          ${isDark
+            ? "border-white/15 bg-slate-950/60 text-white shadow-2xl shadow-black/25 hover:border-white/25"
+            : "border-white/80 bg-white/90 text-brand-950 shadow-xl shadow-slate-900/10 hover:border-brand-200"}`}
       >
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 240 160" preserveAspectRatio="none" aria-hidden="true">
-          <path
-            d="M12 10 C58 2 123 8 225 12 C237 46 229 99 232 148 C168 158 71 151 12 147 C3 101 8 51 12 10Z"
-            fill="none"
-            stroke="#534AB7"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={isDark ? "0.6" : "0.48"}
-          />
-          <path
-            d="M18 17 C72 10 126 15 219 18 C225 56 219 100 224 142"
-            fill="none"
-            stroke="#534AB7"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            opacity={isDark ? "0.28" : "0.22"}
-          />
-        </svg>
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-brand-600 sm:h-1" />
 
         <div className="relative">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
             <span
-              className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2
-                ${isDark ? "border-brand-300/60 bg-white/10 text-brand-300" : "border-slate-200 bg-white text-brand-600"}`}
+              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border sm:h-11 sm:w-11 sm:rounded-2xl
+                ${isDark ? "border-white/15 bg-white/10 text-white/70" : "border-slate-200 bg-white text-slate-500"}`}
             >
-              <svg className="absolute inset-[-5px] h-[50px] w-[50px]" viewBox="0 0 52 52" fill="none" aria-hidden="true">
-                <path
-                  d="M25 4 C37 4 48 12 48 26 C48 39 38 48 25 48 C12 48 4 39 4 26 C4 12 14 5 25 4Z"
-                  stroke="#534AB7"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeDasharray="4 5"
-                  opacity={isDark ? "0.55" : "0.38"}
-                />
-              </svg>
-              <Icon size={17} />
+              <Icon size={16} className="sm:h-[18px] sm:w-[18px]" />
             </span>
-            <span className={`rounded-full border px-2 py-0.5 text-xs font-extrabold ${isDark ? "border-white/15 text-brand-300" : "border-slate-200 text-brand-600"}`}>
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-extrabold sm:px-2.5 sm:py-1 sm:text-xs ${isDark ? "border-white/15 bg-white/10 text-white/70" : "border-slate-200 bg-white text-slate-500"}`}>
               {String(index + 1).padStart(2, "0")}
             </span>
           </div>
 
-          <h3 className={`mb-2 text-sm font-extrabold leading-snug sm:text-[15px] ${isDark ? "text-white" : "text-brand-900"}`}>
+          <h3 className={`mb-1.5 text-[13px] font-extrabold leading-snug sm:mb-2 sm:text-[15px] ${isDark ? "text-white" : "text-brand-900"}`}>
             {title}
           </h3>
-          <p className={`text-xs leading-relaxed ${isDark ? "text-white/72" : "text-slate-600"}`}>
+          <p className={`text-[11px] leading-relaxed sm:text-xs ${isDark ? "text-white/70" : "text-slate-600"}`}>
             {desc}
           </p>
         </div>
@@ -124,32 +95,19 @@ function MobileSketchConnector({ isDark }) {
   const stroke = isDark ? "#A9A3FF" : "#534AB7"
 
   return (
-    <div className="flex justify-center py-2 lg:hidden">
-      <svg className="h-12 w-10" viewBox="0 0 44 58" fill="none" aria-hidden="true">
+    <div className="flex justify-center py-1.5 lg:hidden">
+      <svg className="h-8 w-8" viewBox="0 0 44 58" fill="none" aria-hidden="true">
         <path
           d="M22 2 C17 15 28 23 22 35 C18 43 19 49 24 55"
           stroke={stroke}
-          strokeWidth="2.4"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeDasharray="6 8"
           opacity={isDark ? "0.52" : "0.42"}
         />
-        <path d="M24 55 L16 47 M24 55 L32 48" stroke={stroke} strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M24 55 L16 47 M24 55 L32 48" stroke={stroke} strokeWidth="2.2" strokeLinecap="round" />
       </svg>
     </div>
-  )
-}
-
-function MiniCompany({ children, isDark }) {
-  return (
-    <span
-      className={`rounded-full border px-3 py-1 text-[12px] font-bold
-        ${isDark
-          ? "border-white/20 bg-white/10 text-white/80"
-          : "border-slate-200 bg-white/85 text-brand-700"}`}
-    >
-      {children}
-    </span>
   )
 }
 
@@ -157,7 +115,6 @@ export default function WakilHandDrawnMap({ theme }) {
   const { language } = useLanguage()
   const isDark = theme === "dark"
   const isArabic = language === "ar"
-  const logoSrc = isDark ? "/logo/wakil-logo-dark.svg" : "/logo/wakil-logo-light.svg"
 
   const copy = isArabic
     ? {
@@ -223,85 +180,44 @@ export default function WakilHandDrawnMap({ theme }) {
   ]
 
   return (
-    <section id="ai-agent" className="relative overflow-hidden py-10 sm:py-16 md:py-24">
+    <section id="ai-agent" className="relative overflow-hidden py-10 sm:py-18 md:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto mb-8 max-w-2xl text-center">
+        <div className="mx-auto mb-6 max-w-3xl text-center sm:mb-8">
           <div
-            className={`mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold
-              ${isDark ? "border-white/15 bg-white/10 text-brand-200" : "border-slate-200 bg-white/85 text-brand-700"}`}
+            className={`mb-5 inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold
+              ${isDark ? "border-white/15 bg-white/10 text-brand-100" : "border-brand-100 bg-white/90 text-brand-700"}`}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
+            <span className="h-2 w-2 rounded-full bg-brand-600" />
             {copy.badge}
           </div>
-          <h2 className={`text-2xl font-extrabold tracking-tight sm:text-3xl md:text-5xl ${isDark ? "text-white" : "text-brand-950"}`}>
+          <h2 className={`text-2xl font-black leading-tight tracking-tight sm:text-4xl md:text-6xl ${isDark ? "text-white" : "text-brand-950"}`}>
             {copy.title}
           </h2>
-          <p className={`mx-auto mt-3 max-w-xl text-sm leading-relaxed sm:text-base ${isDark ? "text-white/70" : "text-slate-600"}`}>
+          <p className={`mx-auto mt-3 max-w-2xl text-[13px] leading-relaxed sm:mt-5 sm:text-base sm:leading-loose ${isDark ? "text-white/75" : "text-slate-600"}`}>
             {copy.subtitle}
           </p>
         </div>
 
-        <div
-          className={`relative mx-auto overflow-hidden rounded-[28px] border p-4 sm:rounded-[34px] sm:p-7
-            ${isDark ? "border-white/15 bg-black/20" : "border-slate-200/70 bg-white/70"}`}
-          dir={isArabic ? "rtl" : "ltr"}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-80"
-            style={{
-              backgroundImage: isDark
-                ? "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0)"
-                : "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.055) 1px, transparent 0)",
-              backgroundSize: "24px 24px",
-            }}
-          />
+        <div className="relative z-10 mx-auto max-w-[430px] lg:min-h-[520px] lg:max-w-none lg:px-8 lg:py-8" dir={isArabic ? "rtl" : "ltr"}>
+          <SchematicConnectors isDark={isDark} isArabic={isArabic} loopLabel={copy.loopLabel} />
 
-          <div className="relative z-10 mx-auto mb-6 flex h-[96px] w-full max-w-[270px] items-center justify-center rounded-[26px] border-2 border-dashed border-slate-300/70 px-5 sm:h-[110px] sm:max-w-[320px] dark:border-white/20">
-            <Image src={logoSrc} alt="wakil.ma" width={176} height={44} className="h-10 w-auto" />
-          </div>
-
-          <div className="relative z-10 lg:min-h-[520px] lg:px-8 lg:py-8">
-            <SchematicConnectors isDark={isDark} isArabic={isArabic} loopLabel={copy.loopLabel} />
-
-            <div className="relative z-10 grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:grid-rows-2 lg:gap-x-20 lg:gap-y-20">
-              {flowSteps.map((step, index) => (
-                <div key={step.title} className={`relative ${sketchPositions[index]}`}>
-                  <SketchCard
-                    isDark={isDark}
-                    icon={step.icon}
-                    index={index}
-                    title={step.title}
-                    desc={step.desc}
-                    className={index % 2 === 0 ? "lg:-rotate-[1.5deg]" : "lg:rotate-[1.5deg]"}
-                  />
-                  {index < flowSteps.length - 1 && <MobileSketchConnector isDark={isDark} />}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className={`relative z-10 mt-6 rounded-[22px] border p-4 text-center
-              ${isDark ? "border-white/15 bg-black/25" : "border-slate-200/70 bg-white/85"}`}
-          >
-            <div className="mb-2 flex items-center justify-center gap-2">
-              <PackageCheck size={16} className={isDark ? "text-brand-200" : "text-brand-600"} />
-              <span className={`text-[12px] font-extrabold ${isDark ? "text-white/80" : "text-brand-800"}`}>
-                {copy.companies}
-              </span>
-            </div>
-            <div className="mb-3 flex flex-wrap justify-center gap-2">
-              {["Cathedis", "Amana", "Speedaf", "Atlas"].map((name) => (
-                <MiniCompany key={name} isDark={isDark}>
-                  {name}
-                </MiniCompany>
-              ))}
-            </div>
-            <p className={`mx-auto max-w-2xl text-[12px] font-medium leading-relaxed ${isDark ? "text-white/62" : "text-slate-600"}`}>
-              {copy.companiesHint}
-            </p>
+          <div className="relative z-10 grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:grid-rows-2 lg:gap-x-20 lg:gap-y-20">
+            {flowSteps.map((step, index) => (
+              <div key={step.title} className={`relative ${sketchPositions[index]}`}>
+                <SketchCard
+                  isDark={isDark}
+                  icon={step.icon}
+                  index={index}
+                  title={step.title}
+                  desc={step.desc}
+                  className={index % 2 === 0 ? "lg:-rotate-[1deg]" : "lg:rotate-[1deg]"}
+                />
+                {index < flowSteps.length - 1 && <MobileSketchConnector isDark={isDark} />}
+              </div>
+            ))}
           </div>
         </div>
+
       </div>
     </section>
   )

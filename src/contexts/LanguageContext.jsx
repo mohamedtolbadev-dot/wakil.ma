@@ -13,7 +13,7 @@ const LanguageContext = createContext({
 
 // ─── Translations ────────────────────────────────────────────────────────────
 const translations = {
-  fr: {
+  fr: { 
     // ── Navigation ──
     "nav.dashboard":        "Tableau de bord",
     "nav.conversations":    "Conversations",
@@ -40,6 +40,7 @@ const translations = {
     "common.edit":          "Modifier",
     "common.add":           "Ajouter",
     "common.search":        "Rechercher",
+    "common.select":        "Sélectionner",
     "common.refresh":       "Actualiser",
     "common.yes":           "Oui",
     "common.no":            "Non",
@@ -180,6 +181,11 @@ const translations = {
     "usage.limit_reached":     "Limite atteinte",
     "usage.ai_replies":        "Réponses IA",
     "usage.remaining":         "Restant",
+
+    // ── Settings ──
+    "settings.manual_mode_title": "Mode manuel activé",
+    "settings.manual_mode_sub":   "L'IA est désactivée — vos réponses arrivent directement aux clients via WhatsApp",
+
     "usage.est_cost":          "Coût estimé",
 
     // ── Dashboard main page ──
@@ -376,6 +382,8 @@ const translations = {
     "orders.delivered":     "Livrée",
     "orders.cancelled":     "Annulée",
     "orders.change":        "Changer",
+    "orders.status_current": "Statut actuel",
+    "orders.status_not_allowed": "Transition non autorisée",
     "orders.product":       "Produit",
     "orders.customer":      "Client",
     "orders.order_id":      "N° commande",
@@ -423,6 +431,13 @@ const translations = {
     "orders.delivery_exported": "commandes exportées pour la livraison.",
     "orders.delivery_select_first": "Sélectionnez d'abord des commandes.",
     "orders.delivery_bulk_confirm": "Appliquer ce statut de livraison aux commandes sélectionnées ?",
+    "orders.delivery_skipped_reasons": "Raisons ignorées",
+    "orders.delivery_row": "Ligne",
+    "orders.delivery_error_missing_reference": "Référence manquante",
+    "orders.delivery_error_order_not_found": "Commande introuvable",
+    "orders.delivery_error_missing_tracking_or_status": "Suivi ou statut manquant",
+    "orders.delivery_error_invalid_transition": "Transition de statut non autorisée",
+    "orders.delivery_error_unknown": "Raison inconnue",
     "orders.selected": "sélectionnées",
 
     // ── Appointments ──
@@ -515,6 +530,7 @@ const translations = {
     "products.price":       "Prix (DH)",
     "products.description": "Description",
     "products.images":      "Images",
+    "products.videos":      "Vidéos",
     "products.sale_price":  "Prix promo (optionnel)",
     "products.category":    "Catégorie (optionnelle)",
     "products.category_placeholder": "ex: Vêtements, Électronique",
@@ -553,7 +569,9 @@ const translations = {
     "products.edit_title":  "Modifier le produit",
     "products.add_new":     "Ajouter un produit",
     "products.choose_images": "Cliquez pour choisir des images",
+    "products.choose_videos": "Cliquez pour choisir des vidéos",
     "products.image":       "Image",
+    "products.video":       "Vidéo",
     "products.stats_total": "Total produits",
     "products.stats_active":"Produits actifs",
     "products.stats_inactive":"Produits inactifs",
@@ -831,6 +849,9 @@ const translations = {
     "settings.toast_notif_saved":    "Paramètres de notifications enregistrés !",
     "settings.toast_wa_ok":          "Connexion WhatsApp réussie !",
     "settings.toast_wa_fail":        "Échec de connexion : ",
+    "settings.toast_wa_invalid_token":"Access Token invalide ou expiré. Créez un nouveau token long terme dans Meta.",
+    "settings.toast_wa_invalid_phone_id":"Phone ID introuvable. Vérifiez l'identifiant du numéro WhatsApp dans Meta.",
+    "settings.toast_wa_meta_error":  "Meta a refusé la connexion :",
     "settings.toast_server_error":   "Erreur de connexion au serveur",
     "settings.toast_enter_creds":    "Entrez Phone ID et Access Token d'abord",
     "settings.toast_wa_saved":       "Données WhatsApp enregistrées !",
@@ -991,11 +1012,14 @@ const translations = {
     "admin.create_first":       "+ Créer la première facture",
     "admin.toast_status_ok":    "Statut mis à jour",
     "admin.toast_status_fail":  "Échec de la mise à jour",
+    "admin.toast_paid_pending_blocked": "Une facture payée ne peut pas revenir en attente",
+    "admin.paid_pending_blocked":       "Bloqué après paiement",
     "admin.toast_deleted":      "Facture supprimée",
     "admin.toast_delete_fail":  "Échec de la suppression",
     "admin.toast_sent":         "Facture envoyée via WhatsApp ",
     "admin.toast_sent_no_pdf":  "Message envoyé  — PDF non joint (vérifiez les logs)",
     "admin.toast_no_phone":     "Client sans numéro de téléphone — demandez-lui de l'ajouter dans les paramètres",
+    "admin.toast_wa_not_configured": "WhatsApp système non configuré — ajoutez SYSTEM_WA_PHONE_ID/SYSTEM_WA_TOKEN ou WHATSAPP_PHONE_ID/WHATSAPP_TOKEN",
     "admin.toast_send_fail":    "Échec de l'envoi",
     "admin.toast_updated":      "Facture mise à jour ",
     "admin.toast_created":      "Facture créée ",
@@ -1038,6 +1062,9 @@ const translations = {
     "admin.toast_fetch_fail":        "Échec du chargement des clients",
     "admin.toast_delete_ok":         "supprimé avec succès",
     "admin.toast_delete_fail_user":  "Échec de la suppression",
+    "admin.sort_recent":             "Plus récents",
+    "admin.sort_usage":              "Utilisation IA",
+    "admin.sort_cost":               "Coût total",
 
     // ── Onboarding ──
     "onboarding.title":                "Configurez votre compte",
@@ -1148,7 +1175,7 @@ const translations = {
     "land.card3_title":       "Système de réponses aux objections",
     "land.card3_desc":        "Créez des réponses prêtes pour les objections courantes (prix, taille, doute). L'agent les utilise automatiquement pour répondre de façon cohérente.",
     "land.card4_title":       "Horaires de travail configurables",
-    "land.card4_desc":        "Définissez les horaires de l'agent jour par jour — en dehors des heures, il informe poliment les clients de recontacter au bon moment.",
+    "land.card4_desc":        "Définissez une plage horaire de travail — en dehors des heures, il informe poliment les clients de recontacter au bon moment.",
     "land.journey_title":     "Le parcours complet du client avec l'agent IA",
     "land.step1_title":       "Accueil",
     "land.step1_desc":        "Salutation personnalisée et offre d'aide immédiate",
@@ -1261,6 +1288,7 @@ const translations = {
     "common.edit":          "تعديل",
     "common.add":           "إضافة",
     "common.search":        "بحث",
+    "common.select":        "اختيار",
     "common.refresh":       "تحديث",
     "common.yes":           "نعم",
     "common.no":            "لا",
@@ -1402,6 +1430,10 @@ const translations = {
     "usage.ai_replies":        "ردود AI",
     "usage.remaining":         "المتبقي",
     "usage.est_cost":          "التكلفة المقدرة",
+
+    // ── Settings ──
+    "settings.manual_mode_title": "وضع التحدث المباشر مفعّل",
+    "settings.manual_mode_sub":   "الـ AI متوقف — ردودك تصل مباشرة للزبائن عبر واتساب",
 
     // ── Dashboard ──
     "dash.title":                   "لوحة التحكم",
@@ -1597,6 +1629,8 @@ const translations = {
     "orders.delivered":     "مُسَلَّم",
     "orders.cancelled":     "ملغي",
     "orders.change":        "تغيير",
+    "orders.status_current": "الحالة الحالية",
+    "orders.status_not_allowed": "انتقال غير مسموح",
     "orders.product":       "المنتج",
     "orders.customer":      "الزبون",
     "orders.order_id":      "رقم الطلبية",
@@ -1644,6 +1678,13 @@ const translations = {
     "orders.delivery_exported": "طلبيات تصدرو للتوصيل.",
     "orders.delivery_select_first": "اختار الطلبيات اللولة.",
     "orders.delivery_bulk_confirm": "نطبق هاد حالة التوصيل على الطلبيات المختارة؟",
+    "orders.delivery_skipped_reasons": "أسباب التخطي",
+    "orders.delivery_row": "السطر",
+    "orders.delivery_error_missing_reference": "مرجع الطلبية ناقص",
+    "orders.delivery_error_order_not_found": "الطلبية غير موجودة",
+    "orders.delivery_error_missing_tracking_or_status": "رقم التتبع أو الحالة ناقصة",
+    "orders.delivery_error_invalid_transition": "انتقال الحالة غير مسموح",
+    "orders.delivery_error_unknown": "سبب غير معروف",
     "orders.selected": "مختارة",
 
     // ── Appointments ──
@@ -1736,6 +1777,7 @@ const translations = {
     "products.price":       "السعر (درهم)",
     "products.description": "الوصف",
     "products.images":      "الصور",
+    "products.videos":      "الفيديوهات",
     "products.sale_price":  "سعر التخفيض (اختياري)",
     "products.category":    "الفئة (اختيارية)",
     "products.category_placeholder": "مثلا: ملابس، إلكترونيات",
@@ -1774,7 +1816,9 @@ const translations = {
     "products.edit_title":  "تعديل المنتج",
     "products.add_new":     "إضافة منتج جديد",
     "products.choose_images": "اضغط لاختيار صور",
+    "products.choose_videos": "اضغط لاختيار فيديوهات",
     "products.image":       "صورة",
+    "products.video":       "فيديو",
     "products.stats_total": "إجمالي المنتجات",
     "products.stats_active":"منتجات نشطة",
     "products.stats_inactive":"منتجات معطلة",
@@ -2052,6 +2096,9 @@ const translations = {
     "settings.toast_notif_saved":    "تم حفظ إعدادات الإشعارات!",
     "settings.toast_wa_ok":          "الاتصال بـ WhatsApp ناجح!",
     "settings.toast_wa_fail":        "فشل الاتصال: ",
+    "settings.toast_wa_invalid_token":"Access Token غير صالح أو منتهي. أنشئ token طويل الأمد من Meta.",
+    "settings.toast_wa_invalid_phone_id":"Phone ID غير موجود. تأكد من معرف رقم WhatsApp داخل Meta.",
+    "settings.toast_wa_meta_error":  "Meta رفضت الاتصال:",
     "settings.toast_server_error":   "خطأ في الاتصال بالخادم",
     "settings.toast_enter_creds":    "أدخل Phone ID و Access Token أولاً",
     "settings.toast_wa_saved":       "تم حفظ بيانات WhatsApp!",
@@ -2182,7 +2229,7 @@ const translations = {
     "invoices.paid_date":         "تاريخ الدفع",
     "invoices.bank_info":         "🏦 معلومات الدفع",
     "invoices.overdue_warning":   "⚠️ الفاتورة متأخرة — يرجى الدفع فوراً",
-    "invoices.pending_hint":      "⏳ في انتظار الدفع",
+    "invoices.pending_hint":      " في انتظار الدفع",
     "invoices.paid_hint":         " تم الدفع — شكراً لك!",
     "invoices.count":             "فاتورة",
     "invoices.stat_pending":      "في الانتظار",
@@ -2212,11 +2259,14 @@ const translations = {
     "admin.create_first":       "+ أنشئ أول فاتورة",
     "admin.toast_status_ok":    "تم تحديث الحالة",
     "admin.toast_status_fail":  "فشل تحديث الحالة",
+    "admin.toast_paid_pending_blocked": "الفاتورة المدفوعة لا يمكن إرجاعها إلى الانتظار",
+    "admin.paid_pending_blocked":       "محظور بعد الدفع",
     "admin.toast_deleted":      "تم حذف الفاتورة",
     "admin.toast_delete_fail":  "فشل الحذف",
     "admin.toast_sent":         "تم إرسال الفاتورة عبر واتساب ",
     "admin.toast_sent_no_pdf":  "تم إرسال الرسالة  — لم يُرسل PDF (راجع السجلات)",
     "admin.toast_no_phone":     "العميل لا يملك رقم هاتف — اطلب منه إضافته في الإعدادات",
+    "admin.toast_wa_not_configured": "واتساب النظام غير مهيأ — أضف SYSTEM_WA_PHONE_ID/SYSTEM_WA_TOKEN أو WHATSAPP_PHONE_ID/WHATSAPP_TOKEN",
     "admin.toast_send_fail":    "فشل الإرسال",
     "admin.toast_updated":      "تم تحديث الفاتورة ",
     "admin.toast_created":      "تم إنشاء الفاتورة ",
@@ -2259,6 +2309,9 @@ const translations = {
     "admin.toast_fetch_fail":        "فشل جلب المستخدمين",
     "admin.toast_delete_ok":         "تم حذفه بنجاح",
     "admin.toast_delete_fail_user":  "فشل حذف المستخدم",
+    "admin.sort_recent":             "الأحدث",
+    "admin.sort_usage":              "استهلاك AI",
+    "admin.sort_cost":               "التكلفة الإجمالية",
 
     // ── Onboarding ──
     "onboarding.title":                "إعداد حسابك",
@@ -2369,7 +2422,7 @@ const translations = {
     "land.card3_title":       "نظام ردود الاعتراضات المخصص",
     "land.card3_desc":        "أنشئ ردوداً جاهزة لاعتراضات عملائك الشائعة (السعر، المقاس، الشك). الوكيل يستخدمها تلقائياً باش يجاوب بنفس الأسلوب.",
     "land.card4_title":       "ساعات عمل قابلة للضبط",
-    "land.card4_desc":        "حدد أوقات عمل الوكيل يوماً بيوم — خارج الدوام يُعلم العملاء بأدب ويطلب منهم التواصل في الوقت المناسب.",
+    "land.card4_desc":        "حدد وقت بداية ونهاية عمل الوكيل — خارج الدوام يُعلم العملاء بأدب ويطلب منهم التواصل في الوقت المناسب.",
     "land.journey_title":     "رحلة العميل الكاملة مع الوكيل الذكي",
     "land.step1_title":       "الترحيب",
     "land.step1_desc":        "تحية شخصية وعرض المساعدة الفورية",

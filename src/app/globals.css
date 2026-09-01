@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cairo:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cairo:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Josefin+Sans:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -125,3 +125,19 @@
 .text-ui-base  { font-size: 0.9375rem; line-height: 1.55; font-weight: 400; }  /* 15px */
 .text-ui-md    { font-size: 1rem;      line-height: 1.55; font-weight: 400; }  /* 16px */
 .text-ui-label { font-size: 0.75rem;   line-height: 1.4;  font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; } /* 12px */
+
+/* Montserrat for headings on public/landing pages only (not dashboard) */
+body:not(:has(.dashboard-layout)) h1,
+body:not(:has(.dashboard-layout)) h2,
+body:not(:has(.dashboard-layout)) h3,
+body:not(:has(.dashboard-layout)) h4,
+body:not(:has(.dashboard-layout)) h5,
+body:not(:has(.dashboard-layout)) h6 {
+  font-family: var(--font-montserrat), Montserrat, sans-serif !important;
+}
+
+/* Droid Arabic Kufi + Josefin Sans for dashboard */
+.dashboard-layout,
+.dashboard-layout * {
+  font-family: "Droid Arabic Kufi", "Josefin Sans", sans-serif !important;
+}

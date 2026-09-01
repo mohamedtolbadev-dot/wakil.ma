@@ -1,8 +1,9 @@
 import Link from "next/link"
 import Script from "next/script"
 import { notFound } from "next/navigation"
-import { ArrowLeft, CalendarDays, Clock, MessageCircle } from "lucide-react"
-import { Logo } from "@/components/shared/Logo"
+import { CalendarDays, Clock, MessageCircle } from "lucide-react"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { PublicHeader } from "@/components/public/PublicHeader"
 import { prisma } from "@/lib/prisma"
 import { generateMetadata as buildMetadata, siteConfig } from "@/lib/metadata"
 import { getBlogDescription, readingTime } from "@/lib/blogs"
@@ -145,15 +146,7 @@ export default async function BlogPostPage({ params }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
 
-      <header className="border-b border-border bg-card/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-          <Logo />
-          <Link href="/blogs" className="inline-flex items-center gap-2 text-sm font-bold text-brand-600 dark:text-brand-300">
-            <ArrowLeft size={14} />
-            Blog
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-5 flex flex-wrap items-center gap-3 text-xs font-semibold text-muted-foreground">
@@ -202,6 +195,8 @@ export default async function BlogPostPage({ params }) {
           </Link>
         </div>
       </article>
+
+      <PublicFooter />
     </main>
   )
 }

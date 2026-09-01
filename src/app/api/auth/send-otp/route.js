@@ -20,7 +20,6 @@ export async function POST(request) {
     const name     = raw.name?.trim()
     const email    = raw.email?.trim().toLowerCase()
     const password = raw.password
-    const phone    = raw.phone?.trim() || null
     const mode     = raw.mode || "product"
 
     if (!name || !email || !password) {
@@ -44,7 +43,7 @@ export async function POST(request) {
       data: {
         phone: normalizedEmail,
         code,
-        data: JSON.stringify({ name, email, hashedPassword, mode, phone }),
+        data: JSON.stringify({ name, email, hashedPassword, mode }),
         expiresAt,
       },
     })

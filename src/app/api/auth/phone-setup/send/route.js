@@ -3,6 +3,7 @@ import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse } from "@/lib/response"
 import { sendWhatsAppOTPTemplate } from "@/lib/whatsapp"
 import { rateLimit } from "@/lib/rateLimit"
+import { normalizePhone } from "@/lib/phone"
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString()
@@ -18,7 +19,8 @@ export async function POST(request) {
     const user = await getUserFromRequest(request)
     if (!user) return errorResponse("fr:Non autorisé||ar:غير مصرح", 401)
 
-    const { phone } = await request.json()
+    const { phone: rawPhone } = await request.json()
+    const phone = normalizePhone(rawPhone)
     if (!phone) return errorResponse("fr:Numéro de téléphone requis||ar:رقم الهاتف مطلوب", 400)
     if (phone.replace(/\D/g, "").length < 7) return errorResponse("fr:Numéro de téléphone invalide||ar:رقم الهاتف غير صحيح", 400)
 
@@ -35,8 +37,8 @@ export async function POST(request) {
       },
     })
 
-    const phoneId = process.env.SYSTEM_WA_PHONE_ID
-    const token   = process.env.SYSTEM_WA_TOKEN
+    const phoneId = process.env.SYSTEM_WA_PHONE_ID || process.env.WHATSAPP_PHONE_ID
+    const token   = process.env.SYSTEM_WA_TOKEN || process.env.WHATSAPP_TOKEN
 
     if (phoneId && token) {
       await sendWhatsAppOTPTemplate({ phoneId, token, to: phone, code })

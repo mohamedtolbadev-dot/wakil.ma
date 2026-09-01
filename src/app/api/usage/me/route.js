@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/response"
 import { checkAIQuota, getPlanLimits, currentMonthKey, estimateCostUsd, getEffectivePlan } from "@/lib/usageLimits"
+import { getEffectivePlanEntitlements } from "@/lib/billingPlans"
 
 export const dynamic = "force-dynamic"
 
@@ -11,6 +12,7 @@ export async function GET(request) {
     if (!user) return unauthorizedResponse()
 
     const plan = getEffectivePlan(user)
+    const entitlements = getEffectivePlanEntitlements(user)
     const quota = await checkAIQuota(user.id, plan, { applySideEffects: false })
 
     const costUsd = estimateCostUsd(quota.usage.aiTokensInput, quota.usage.aiTokensOutput)
@@ -29,6 +31,7 @@ export async function GET(request) {
         estimatedCostUsd: Number(costUsd.toFixed(4)),
       },
       limits: quota.limits,
+      entitlements,
       remaining: quota.remaining,
       percentUsed: quota.limits.aiReplies > 0
         ? Math.min(100, Math.round((quota.usage.aiReplies / quota.limits.aiReplies) * 100))

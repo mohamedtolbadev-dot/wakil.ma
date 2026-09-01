@@ -1,25 +1,20 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {
-  notifyAuthChange,
-  readIsLoggedInSnapshot,
-  readUserSnapshot,
-  subscribeAuth,
-} from "@/lib/browserState"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { PublicHeader } from "@/components/public/PublicHeader"
 import WakilHandDrawnMap from "@/components/landing/WakilHandDrawnMap"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { useAppTheme } from "@/hooks/useAppTheme"
 import {
   MessageCircle, Zap, BarChart3, Users, User, ArrowLeft, Sparkles,
   Clock, Shield, Bot, Brain, Target, TrendingUp, MessageSquare,
-  Phone, Star, ChevronDown, Menu, X, Sun, Moon, ShoppingBag,
-  ChevronLeft, ChevronRight, LogOut, Upload, Truck, MapPin,
-  ClipboardCheck, PlayCircle, CheckCircle2,
-  Mail, Send, Check, Infinity,
+  Phone, ChevronDown, X, ShoppingBag,
+  ChevronLeft, ChevronRight, Upload, Truck, MapPin,
+  ClipboardCheck, PlayCircle,
+  Mail, Send,
 } from "lucide-react"
 
 // ═══════════════════════════════════════════════════════════
@@ -142,75 +137,9 @@ function useLightboxKeyboard({ isOpen, onClose, onPrev, onNext, length }) {
   }, [isOpen, onClose, onPrev, onNext, length])
 }
 
-function useAuth() {
-  const router = useRouter()
-  const isLoggedIn = useSyncExternalStore(subscribeAuth, readIsLoggedInSnapshot, () => false)
-  const storedUser = useSyncExternalStore(subscribeAuth, readUserSnapshot, () => null)
-  const user = useMemo(() => {
-    if (!storedUser) return null
-    try {
-      return JSON.parse(storedUser)
-    } catch {
-      return null
-    }
-  }, [storedUser])
-
-  const logout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    notifyAuthChange()
-    router.push("/login")
-  }
-
-  const getInitials = (u) => {
-    if (!u?.name) return "؟"
-    const parts = u.name.trim().split(" ")
-    return parts.length >= 2
-      ? parts[0][0] + parts[parts.length - 1][0]
-      : parts[0].slice(0, 2)
-  }
-
-  return { isLoggedIn, user, logout, getInitials }
-}
-
-function useScrollDetection() {
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  return scrolled
-}
-
 // ═══════════════════════════════════════════════════════════
 // 3. UI COMPONENTS
 // ═══════════════════════════════════════════════════════════
-
-function Logo({ theme }) {
-  return (
-    <Link href="/" dir="ltr" className="flex shrink-0 items-center gap-2" aria-label="wakil.ma">
-      <Image
-        src="/favicon.svg"
-        alt=""
-        width={34}
-        height={34}
-        className="h-8 w-8 sm:hidden"
-        priority
-      />
-      <Image
-        src={theme === "dark" ? "/logo/wakil-logo-dark.svg" : "/logo/wakil-logo-light.svg"}
-        alt="wakil.ma"
-        width={168}
-        height={38}
-        className="hidden h-8 w-auto sm:block md:h-9"
-        priority
-      />
-    </Link>
-  )
-}
 
 function SectionBadge({ icon: Icon, label, isDark = false }) {
   return (
@@ -396,59 +325,37 @@ function WhatsAppFan({ images, visible, isDark, onImageClick, className = "" }) 
   )
 }
 
-function UserAvatar({ user, getInitials }) {
-  return (
-    <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center
-      text-[11px] font-bold text-white shadow-sm shrink-0">
-      {getInitials(user)}
-    </div>
-  )
-}
-
-function NavLink({ href, label, onClick }) {
-  return (
-    <a
-      href={href}
-      onClick={onClick}
-      className="text-[15px] font-medium text-muted-foreground hover:text-brand-600
-        transition-colors relative group py-1"
-    >
-      {label}
-      <span className="absolute bottom-0 right-0 w-0 h-0.5 bg-brand-600 rounded-full
-        group-hover:w-full transition-all duration-300" />
-    </a>
-  )
-}
-
-function IconButton({ onClick, icon: Icon, label, className = "" }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      className={`p-1.5 rounded-lg border border-border hover:bg-secondary
-        transition-all hover:scale-105 active:scale-95 text-foreground ${className}`}
-    >
-      <Icon size={14} className="sm:w-4 sm:h-4" />
-    </button>
-  )
-}
-
-function LanguageToggle({ language, onToggle }) {
-  return (
-    <button
-      onClick={onToggle}
-      className="p-1.5 rounded-lg border border-border hover:bg-secondary transition-all
-        hover:scale-105 active:scale-95 text-xs font-bold text-brand-600 min-w-[32px]"
-    >
-      {language === "ar" ? "FR" : "عر"}
-    </button>
-  )
-}
-
 // ═══════════════════════════════════════════════════════════
 // WhatsApp Preview — بمقاسات iPhone 17 الحقيقية (390×844 → نسبة 19.5:9)
 // ═══════════════════════════════════════════════════════════
 function HeroWhatsAppPreview({ isDark, compact = false }) {
+  const chatRef = useRef(null)
+  const perfumeMessages = [
+    { from: "client", time: "13:49", text: "Salm" },
+    { from: "agent", time: "13:50", text: "اهلا مرحبا بيك معنا، فاش نقدر نعاونك؟" },
+    { from: "client", time: "13:50", text: "Chno ktbi3o" },
+    {
+      from: "agent",
+      time: "13:50",
+      text: "كنبيعو عطور زوينة بزاف من شركة لطافة:\n1. ASAD - رجالي، بديل Sauvage Elixir، 290 درهم.\n2. YARA - نسائي، ريحة الفانيليا والنقا، 280 درهم.\n3. عرض DUO بـ 520 درهم وتوصيل فابور.\nشكون فيهم اللي عجبك؟",
+    },
+    { from: "client", time: "13:50", text: "Wch twsil fabor" },
+    { from: "agent", time: "13:50", text: "إييه، التوصيل فابور والدفع حتى تشد السلعة فإيديك." },
+    { from: "client", time: "13:51", text: "Bgit asad" },
+    { from: "agent", time: "13:51", text: "صافي، شحال من واحد بغيتي من عطر ASAD؟" },
+    { from: "client", time: "13:51", text: "Bgit 2" },
+    { from: "agent", time: "13:51", text: "مزيان، شنو هي المدينة فين غادي نوصلو ليك الطلبية؟" },
+    { from: "client", time: "13:51", text: "Fes" },
+    { from: "agent", time: "13:52", text: "صافي، باقي غير العنوان والسمية الكاملة باش نكملو الطلبية." },
+    { from: "client", time: "13:52", text: "Hay narjis\nMohamed tolba" },
+    {
+      from: "agent",
+      time: "13:52",
+      text: "هادي هي الطلبية ديالك:\n📦 Asad Lattafa\n🔢 الكمية: 2\n🏙️ Fes\n🏠 Hay narjis\n👤 Mohamed tolba\n💰 المجموع: 580 DH\nواش نأكد ليك الطلبية؟",
+    },
+    { from: "client", time: "13:53", text: "Ok" },
+    { from: "agent", time: "13:53", text: "واخا، غادي نأكد ليك الطلب دابا ✅" },
+  ]
 
   const messages = [
   {
@@ -491,6 +398,89 @@ function HeroWhatsAppPreview({ isDark, compact = false }) {
     text: "واخا، غادي نأكد ليك الطلب دابا ✅"
   },
 ]
+  const fullConversationMessages = [
+    { from: "client", name: "Simo Tolba", time: "13:49", text: "Salm" },
+    { from: "agent", name: "+212 781-489345", time: "13:50", text: "اهلا مرحبا بيك معنا  فاش نقدر نعونك" },
+    { from: "client", name: "Simo Tolba", time: "13:50", text: "Chno ktbi3o" },
+    {
+      from: "agent",
+      name: "+212 781-489345",
+      time: "13:50",
+      text: "كنبيعو عطور زوينة بزاف من شركة \"لطافة\". عندنا:\n\n1. عطر ASAD - رجالي، بديل Sauvage Elixir، الثمن 290 درهم.\n2. عطر YARA - نسائي، ريحة الفانيليا والنقا، الثمن 280 درهم.\n3. عرض الـ DUO: (Yara + Asad) بـ 520 درهم وتوصيل فابور.\n\nشكون فيهم اللي عجبك؟",
+    },
+    { from: "client", name: "Simo Tolba", time: "13:50", text: "Wch twsil fabor" },
+    {
+      from: "agent",
+      name: "+212 781-489345",
+      time: "13:50",
+      text: "إييه، التوصيل فابور في عرض الـ DUO (Yara + Asad). وبالنسبة للطلبات الفردية، التوصيل ديما فابور والدفع حتى تشد السلعة فإيديك! شنو اللي بغيتي نعاونوك بيه؟",
+    },
+    { from: "client", name: "Simo Tolba", time: "13:51", text: "Bgit asad" },
+    { from: "agent", name: "+212 781-489345", time: "13:51", text: "صافي، شحال من واحد بغيتي من عطر ASAD؟" },
+    { from: "client", name: "Simo Tolba", time: "13:51", text: "Bgit 2" },
+    { from: "agent", name: "+212 781-489345", time: "13:51", text: "مزيان، نحتاج نعرف المدينة فين غادي نوصلو ليك الطلبية؟" },
+    { from: "client", name: "Simo Tolba", time: "13:51", text: "Fes" },
+    { from: "agent", name: "+212 781-489345", time: "13:51", text: "صافي، دابا خاصنا غير العنوان والسمية الكاملة باش نكملو الطلبية. شنو هما؟" },
+    { from: "client", name: "Simo Tolba", time: "13:52", text: "Hay narjis" },
+    { from: "agent", name: "+212 781-489345", time: "13:52", text: "مزيان، باقي غير السمية الكاملة ديالك باش نسجلو الطلبية. شنو هي السمية؟" },
+    { from: "client", name: "Simo Tolba", time: "13:52", text: "Mohamed tolba" },
+    {
+      from: "agent",
+      name: "+212 781-489345",
+      time: "13:52",
+      text: "صافي، هادي هي الطلبية ديالك:\n\n📦 المنتج: Asad Lattafa - عطر أسد الأصلي\n🔢 الكمية: 2\n🏙️ المدينة: Fes\n🏠 العنوان: Hay narjis\n👤 السمية: Mohamed tolba\n💰 المجموع: 580 DH\n\nواش نأكد ليك الطلبية دابا؟",
+    },
+    { from: "client", name: "Simo Tolba", time: "13:53", text: "Ok" },
+    { from: "agent", name: "+212 781-489345", time: "13:53", text: "واخا، غادي نأكد ليك الطلب دابا ✅" },
+    { from: "client", name: "Simo Tolba", time: "18:14", text: "wach command dyli takdat" },
+    {
+      from: "agent",
+      name: "+212 781-489345",
+      time: "18:14",
+      text: "نعم، الطلب ديالك تأكد. غيتصل بك الموزع في ظرف 24 لـ 48 ساعة باش يوصل ليك. شكراً على ثقتك! 😊",
+    },
+  ]
+  const displayMessages = fullConversationMessages
+
+  useEffect(() => {
+    const chat = chatRef.current
+    if (!chat) return
+
+    let frameId
+    let lastTime = null
+    let pauseUntil = 0
+    const speed = 28
+
+    const tick = (time) => {
+      if (lastTime == null) lastTime = time
+      const delta = time - lastTime
+      lastTime = time
+
+      if (time > pauseUntil) {
+        chat.scrollTop += (speed * delta) / 1000
+        if (chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 2) {
+          pauseUntil = time + 1400
+          chat.scrollTop = 0
+        }
+      }
+
+      frameId = requestAnimationFrame(tick)
+    }
+
+    const handleUserScroll = () => {
+      pauseUntil = performance.now() + 2500
+    }
+
+    chat.addEventListener("wheel", handleUserScroll, { passive: true })
+    chat.addEventListener("touchstart", handleUserScroll, { passive: true })
+    frameId = requestAnimationFrame(tick)
+
+    return () => {
+      cancelAnimationFrame(frameId)
+      chat.removeEventListener("wheel", handleUserScroll)
+      chat.removeEventListener("touchstart", handleUserScroll)
+    }
+  }, [])
 
   return (
     <div
@@ -534,43 +524,65 @@ function HeroWhatsAppPreview({ isDark, compact = false }) {
         <div
           className={`
             flex items-center justify-between
-            px-4 pt-12 pb-3
+            px-3 pt-11 pb-2.5
             text-white
             ${isDark ? "bg-[#0f1c24]" : "bg-[#075E54]"}
           `}
         >
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-[12px] font-black">
-              W
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white ring-2 ring-white/25">
+              <Image
+                src="/favicon.svg"
+                alt="Wakil.ma"
+                fill
+                sizes="36px"
+                className="object-contain p-1.5"
+              />
             </div>
 
             <div>
-              <p className="text-[13px] font-extrabold leading-4">
-                Wakil AI
+              <p className="text-[13px] font-extrabold leading-4 text-white">
+                Wakil.ma
               </p>
 
               <p className="text-[10px] text-white/80">
-                en ligne
+                online
               </p>
             </div>
           </div>
 
-          <MessageCircle size={16} />
+          <svg
+            viewBox="0 0 32 32"
+            aria-hidden="true"
+            className="h-5 w-5 shrink-0"
+          >
+            <path
+              fill="#25D366"
+              d="M16.04 3.2c-7.02 0-12.72 5.7-12.72 12.72 0 2.24.59 4.43 1.72 6.35L3.2 28.8l6.69-1.76a12.7 12.7 0 0 0 6.15 1.57h.01c7.02 0 12.72-5.7 12.72-12.72S23.06 3.2 16.04 3.2Z"
+            />
+            <path
+              fill="#fff"
+              d="M23.35 19.25c-.31.88-1.8 1.68-2.52 1.79-.65.1-1.47.14-2.37-.15-.55-.18-1.25-.41-2.15-.8-3.78-1.63-6.25-5.43-6.44-5.68-.19-.25-1.54-2.05-1.54-3.91s.98-2.78 1.33-3.16c.35-.38.76-.47 1.02-.47.25 0 .51 0 .73.01.23.01.55-.09.86.66.31.75 1.05 2.57 1.14 2.76.09.19.15.41.03.66-.12.25-.18.41-.37.63-.19.22-.39.49-.56.66-.19.19-.38.39-.16.77.22.38.97 1.6 2.09 2.59 1.44 1.28 2.65 1.67 3.03 1.86.38.19.6.16.82-.09.22-.25.95-1.11 1.2-1.49.25-.38.51-.31.86-.19.35.13 2.22 1.05 2.6 1.24.38.19.63.28.72.44.09.16.09.91-.22 1.79Z"
+            />
+          </svg>
         </div>
 
         {/* chat */}
         <div
+          ref={chatRef}
           className="
             flex-1
-            overflow-hidden
-            px-3 py-3
-            space-y-2
+            overflow-y-auto
+            overscroll-contain
+            landing-whatsapp-scroll
+            px-2.5 py-2.5
+            space-y-1.5
           "
           style={{
             height: "calc(100% - 145px)",
           }}
         >
-          {messages.map((message, index) => {
+          {displayMessages.map((message, index) => {
             const isAgent = message.from === "agent"
 
             return (
@@ -584,11 +596,11 @@ function HeroWhatsAppPreview({ isDark, compact = false }) {
                   dir={isAgent ? "rtl" : "ltr"}
                   className={`
                     relative
-                    max-w-[84%]
+                    max-w-[88%]
                     whitespace-pre-line
-                    px-3 py-2
-                    text-[11px]
-                    leading-relaxed
+                    px-2.5 py-1.5
+                    text-[9.5px]
+                    leading-snug
                     shadow-sm
                     ${
                       isAgent
@@ -599,7 +611,13 @@ function HeroWhatsAppPreview({ isDark, compact = false }) {
                     }
                   `}
                 >
-                  {message.text}
+                  <span className="mb-0.5 block text-[8px] font-semibold opacity-55">
+                    {message.name}
+                  </span>
+                  <span>{message.text}</span>
+                  <span className="ms-2 inline-block translate-y-0.5 text-[8px] opacity-55">
+                    {message.time}
+                  </span>
                 </div>
               </div>
             )
@@ -635,145 +653,6 @@ function HeroWhatsAppPreview({ isDark, compact = false }) {
 // ═══════════════════════════════════════════════════════════
 // 4. SECTION COMPONENTS
 // ═══════════════════════════════════════════════════════════
-
-function Header({ theme, toggleTheme }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const scrolled = useScrollDetection()
-  const { isLoggedIn, user, logout, getInitials } = useAuth()
-  const { t, language, setLanguage } = useLanguage()
-  const router = useRouter()
-
-  const handleLogout = () => {
-    logout()
-    setMobileMenuOpen(false)
-  }
-
-  const navLinks = CONTENT.nav.links.map((link) => ({
-    href: link.href,
-    label: t(`land.${link.key}`),
-  }))
-
-  return (
-    <header className={`sticky top-0 z-50 transition-all duration-300
-      ${scrolled
-        ? "bg-card/80 backdrop-blur-xl border-b border-border/50 shadow-sm shadow-black/5"
-        : "bg-card/60 backdrop-blur-md border-b border-border/30"}`}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2">
-        <Logo theme={theme} />
-
-        <nav className="hidden md:flex items-center gap-5 lg:gap-6">
-          {navLinks.map(({ href, label }) => (
-            <NavLink key={href} href={href} label={label} />
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-1 sm:gap-1.5">
-          <IconButton onClick={toggleTheme} icon={theme === "light" ? Moon : Sun} label="toggle theme" />
-          <LanguageToggle language={language} onToggle={() => setLanguage(language === "ar" ? "fr" : "ar")} />
-
-          {isLoggedIn ? (
-            <>
-              <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 ml-1">
-                <UserAvatar user={user} getInitials={getInitials} />
-                <span className="hidden md:block text-[12px] font-medium text-muted-foreground truncate max-w-[70px]">
-                  {user?.name || "User"}
-                </span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                title={t("topbar.logout")}
-                className="p-1.5 rounded-lg hover:bg-red-500/10 border border-transparent
-                  hover:border-red-500/20 text-muted-foreground hover:text-red-500 transition-all duration-200"
-              >
-                <LogOut size={14} />
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="hidden sm:inline-flex text-sm font-semibold text-muted-foreground
-                hover:text-foreground transition-colors px-2 sm:px-3 py-1.5">
-                {t("land.login")}
-              </Link>
-              <Link href="/register" className="text-sm font-bold bg-brand-600 text-white px-3 sm:px-4
-                py-1.5 sm:py-2 rounded-xl hover:bg-brand-700 transition-all hover:shadow-md
-                hover:shadow-brand-600/30 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap">
-                {t("land.free_trial")}
-              </Link>
-            </>
-          )}
-
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="menu"
-            className="md:hidden p-1.5 rounded-lg border border-border hover:bg-secondary transition-all text-foreground"
-          >
-            {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
-          </button>
-        </div>
-      </div>
-
-      <div className={`md:hidden overflow-hidden transition-all duration-300
-        ${mobileMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"}`}>
-        <div className="border-t border-border bg-card/90 backdrop-blur-xl px-4 py-3 space-y-1">
-          {navLinks.map(({ href, label }) => (
-            <a
-              key={href}
-              href={href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center px-4 py-3 rounded-xl text-sm font-medium
-                text-muted-foreground hover:text-brand-600 hover:bg-secondary transition-colors"
-            >
-              {label}
-            </a>
-          ))}
-          {isLoggedIn ? (
-            <>
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-4 py-3 rounded-xl text-sm font-medium
-                  text-brand-600 hover:bg-slate-50 dark:hover:bg-brand-600/10 transition-colors gap-2"
-              >
-                <div className="w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center
-                  text-[10px] font-bold text-white shrink-0">
-                  {getInitials(user)}
-                </div>
-                {t("nav.dashboard")}
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium
-                  text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors gap-2"
-              >
-                <LogOut size={16} />
-                {t("topbar.logout")}
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-4 py-3 rounded-xl text-sm font-medium
-                  text-muted-foreground hover:text-brand-600 hover:bg-secondary transition-colors"
-              >
-                {t("land.login")}
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-4 py-3 rounded-xl text-sm font-medium
-                  text-brand-600 hover:bg-slate-50 dark:hover:bg-brand-600/10 transition-colors"
-              >
-                {t("land.free_trial")}
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-    </header>
-  )
-}
 
 function HeroSection({ theme }) {
   const { ref, visible } = useReveal(0.05)
@@ -1153,6 +1032,141 @@ function ScreenshotsSection({ theme }) {
   )
 }
 
+function WorkspacePreviewSection({ theme }) {
+  const { language } = useLanguage()
+  const [activeView, setActiveView] = useState("orders")
+  const isDark = theme === "dark"
+  const isArabic = language === "ar"
+
+  const copy = isArabic
+    ? {
+        badge: "لوحة التحكم",
+        title: "شوف كيفاش Wakil كينظم خدمتك اليومية",
+        subtitle:
+          "طلبات، محادثات، ومنتجات في نفس dashboard باش تعرف شنو واقع وتخدم بسرعة.",
+      }
+    : {
+        badge: "Tableau de bord",
+        title: "Decouvrez votre espace de travail Wakil",
+        subtitle:
+          "Commandes, conversations et produits dans un meme dashboard pour piloter votre boutique plus vite.",
+      }
+
+  const views = [
+    {
+      key: "orders",
+      icon: ClipboardCheck,
+      label: isArabic ? "الطلبات" : "Commandes",
+      src: isArabic
+        ? "/screenshot/screencapture-wakil-ma-dashboard-orders-ar.png"
+        : "/screenshot/screencapture-wakil-ma-dashboard-orders-fr.png",
+      points: isArabic
+        ? ["Commandes منظمة", "CSV livraison", "Import suivi"]
+        : ["Commandes organisees", "CSV livraison", "Import suivi"],
+    },
+    {
+      key: "conversations",
+      icon: MessageCircle,
+      label: isArabic ? "المحادثات" : "Conversations",
+      src: isArabic
+        ? "/screenshot/screencapture-wakil-ma-dashboard-conversations-ar.png"
+        : "/screenshot/screencapture-wakil-ma-dashboard-conversations-fr.png",
+      points: isArabic
+        ? ["Inbox WhatsApp", "رد يدوي", "تاريخ كامل"]
+        : ["Inbox WhatsApp", "Reponse manuelle", "Historique complet"],
+    },
+    {
+      key: "products",
+      icon: ShoppingBag,
+      label: isArabic ? "المنتجات" : "Produits",
+      src: isArabic
+        ? "/screenshot/screencapture-wakil-ma-dashboard-products-ar.png"
+        : "/screenshot/screencapture-wakil-ma-dashboard-products-fr.png",
+      points: isArabic
+        ? ["Catalogue", "Stock", "Images"]
+        : ["Catalogue", "Stock", "Images"],
+    },
+  ]
+
+  const active = views.find((view) => view.key === activeView) || views[0]
+  const ActiveIcon = active.icon
+
+  return (
+    <section className="relative overflow-hidden py-10 sm:py-16 md:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto mb-8 max-w-3xl text-center">
+          <SectionBadge icon={MessageCircle} label={copy.badge} isDark={isDark} />
+          <h2 className={`text-2xl font-extrabold tracking-tight sm:text-4xl md:text-5xl ${isDark ? "text-white" : "text-brand-950"}`}>
+            {copy.title}
+          </h2>
+          <p className={`mx-auto mt-4 max-w-2xl text-sm leading-loose sm:text-base ${isDark ? "text-white/75" : "text-slate-600"}`}>
+            {copy.subtitle}
+          </p>
+        </div>
+
+        <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+          {views.map((view) => {
+            const Icon = view.icon
+            const selected = active.key === view.key
+            return (
+              <button
+                key={view.key}
+                type="button"
+                onClick={() => setActiveView(view.key)}
+                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-extrabold transition-all active:scale-95
+                  ${selected
+                    ? "border-brand-500 bg-brand-600 text-white shadow-lg shadow-brand-600/20"
+                    : isDark
+                      ? "border-white/15 bg-white/10 text-white/75 hover:text-white"
+                      : "border-slate-200 bg-white/80 text-slate-600 hover:text-brand-700"}`}
+              >
+                <Icon size={15} />
+                {view.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div
+          className={`relative overflow-hidden rounded-[28px] border p-2 shadow-2xl sm:rounded-[34px] sm:p-3
+            ${isDark ? "border-white/15 bg-slate-950/55 shadow-black/30" : "border-slate-200/80 bg-white/80 shadow-slate-900/10"}`}
+        >
+          <div className={`flex items-center justify-between gap-3 border-b px-3 py-2.5 sm:px-4 ${isDark ? "border-white/10" : "border-slate-200/80"}`}>
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            </div>
+            <div className={`hidden items-center gap-2 text-[11px] font-bold sm:flex ${isDark ? "text-white/60" : "text-slate-500"}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${isDark ? "border-white/10 bg-white/10" : "border-slate-200 bg-white"}`}>
+                <ActiveIcon size={12} />
+                {active.label}
+              </span>
+              {active.points.map((point) => (
+                <span key={point} className={`rounded-full border px-2.5 py-1 ${isDark ? "border-white/10 bg-white/10" : "border-slate-200 bg-white"}`}>
+                  {point}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="landing-dashboard-scroll relative overflow-x-auto rounded-b-[22px] sm:overflow-hidden sm:rounded-b-[28px]">
+            <Image
+              key={active.src}
+              src={active.src}
+              alt={`${copy.title} - ${active.label}`}
+              width={1920}
+              height={946}
+              className="h-auto w-[920px] max-w-none object-cover sm:w-full"
+              sizes="(max-width: 640px) 920px, 1200px"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function FAQSection({ theme }) {
   const { ref, visible } = useReveal()
   const { t, language } = useLanguage()
@@ -1301,150 +1315,13 @@ function CTASection({ theme }) {
   )
 }
 
-function Footer({ theme }) {
-  const { t, language } = useLanguage()
-  const isDark = theme === "dark"
-  const isRTL = language === "ar"
-
-  const logoSrc = isDark
-    ? "/logo/wakil-logo-dark.svg"
-    : "/logo/wakil-logo-light.svg"
-
-  const footerLinks = {
-    product: [
-      { key: "nav_features", href: "/features" },
-      { key: "nav_agent", href: "#ai-agent" },
-      { key: "nav_blog", href: "/blogs" },
-      { key: "nav_faq", href: "#faq" },
-    ],
-    support: [
-      { key: "footer_terms", href: "/terms" },
-      { key: "footer_privacy", href: "/privacy" },
-      { key: "footer_contact", href: "mailto:contact@wakil.ma" },
-    ],
-  }
-
-  const socialLinks = [
-    { icon: MessageCircle, href: "https://wa.me/212612455372", label: "WhatsApp" },
-    { icon: Mail, href: "mailto:contact@wakil.ma", label: "Email" },
-  ]
-
-  return (
-    <footer className={`border-t backdrop-blur-md transition-colors duration-300
-      ${isDark
-        ? 'border-white/10 bg-black/40'
-        : 'border-slate-200/70 bg-white/60'}`}>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12 ${isRTL ? 'text-right' : 'text-left'}`}>
-
-          <div className="col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
-              <Link href="/" dir="ltr" className="flex items-center">
-                <Image
-                  src={logoSrc}
-                  alt="wakil.ma"
-                  width={168}
-                  height={38}
-                  className="h-7 w-auto sm:h-8 md:h-9"
-                />
-              </Link>
-            </div>
-            <p className={`text-sm leading-relaxed mb-6 max-w-sm ${isDark ? 'text-white/60' : 'text-slate-600'}`}>
-              {language === "ar"
-                ? "وكيل المبيعات الذكي على واتساب — أتمتة المحادثات، زيادة المبيعات، وتجربة عملاء متميزة للمتاجر المغربية."
-                : "Agent de vente intelligent sur WhatsApp — automatisez vos conversations, augmentez vos ventes et offrez une expérience client exceptionnelle."
-              }
-            </p>
-            <div className="flex items-center gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center
-                    transition-all duration-300
-                    ${isDark
-                      ? 'bg-white/10 border border-white/20 text-white/70 hover:text-white hover:bg-white/20 hover:border-white/30'
-                      : 'bg-white/80 border border-slate-200/70 text-brand-600 hover:text-brand-700 hover:border-brand-300/50 hover:bg-white'}`}
-                  aria-label={social.label}
-                >
-                  <social.icon size={18} />
-                </a>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className={`font-bold mb-4 text-sm uppercase tracking-wider ${isDark ? 'text-white/80' : 'text-brand-800'}`}>
-              {language === "ar" ? "المنتج" : "Produit"}
-            </h4>
-            <ul className="space-y-3">
-              {footerLinks.product.map((link) => (
-                <li key={link.key}>
-                  <a
-                    href={link.href}
-                    className={`text-sm transition-colors duration-200
-                      ${isDark ? 'text-white/50 hover:text-brand-300' : 'text-slate-600 hover:text-brand-600'}`}
-                  >
-                    {t(`land.${link.key}`)}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className={`font-bold mb-4 text-sm uppercase tracking-wider ${isDark ? 'text-white/80' : 'text-brand-800'}`}>
-              {language === "ar" ? "الدعم" : "Support"}
-            </h4>
-            <ul className="space-y-3">
-              {footerLinks.support.map((link) => (
-                <li key={link.key}>
-                  <a
-                    href={link.href}
-                    className={`text-sm transition-colors duration-200
-                      ${isDark ? 'text-white/50 hover:text-brand-300' : 'text-slate-600 hover:text-brand-600'}`}
-                  >
-                    {t(`land.${link.key}`)}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className={`border-t ${isDark ? 'border-white/10 bg-black/20' : 'border-slate-200/70 bg-white/45'}`}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-          <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <p className={`text-xs text-center sm:text-left ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
-              © {new Date().getFullYear()} wakil.ma — {t("land.footer_copy")}
-            </p>
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-                ${isDark ? 'bg-white/10 border border-white/20' : 'bg-white/80 border border-slate-200/70'}`}>
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className={`text-xs font-medium ${isDark ? 'text-white/70' : 'text-brand-700'}`}>
-                  {language === "ar" ? "النظام يعمل" : "Système opérationnel"}
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </footer>
-  )
-}
-
 // ═══════════════════════════════════════════════════════════
 // 5. PAGE
 // ═══════════════════════════════════════════════════════════
 
 export default function LandingPage() {
   const { dir } = useLanguage()
-  const { theme, toggleTheme } = useAppTheme()
+  const { theme } = useAppTheme()
   const isDark = theme === "dark"
 
   return (
@@ -1459,6 +1336,34 @@ export default function LandingPage() {
           0%, 8% { opacity: 0; transform: translateY(8px); }
           16%, 86% { opacity: 1; transform: translateY(0); }
           100% { opacity: .88; transform: translateY(0); }
+        }
+        .landing-whatsapp-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(15, 23, 42, 0.28) transparent;
+        }
+        .landing-whatsapp-scroll::-webkit-scrollbar {
+          width: 4px;
+        }
+        .landing-whatsapp-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .landing-whatsapp-scroll::-webkit-scrollbar-thumb {
+          background: rgba(15, 23, 42, 0.25);
+          border-radius: 999px;
+        }
+        .landing-dashboard-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(83, 74, 183, 0.35) transparent;
+        }
+        .landing-dashboard-scroll::-webkit-scrollbar {
+          height: 6px;
+        }
+        .landing-dashboard-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .landing-dashboard-scroll::-webkit-scrollbar-thumb {
+          background: rgba(83, 74, 183, 0.35);
+          border-radius: 999px;
         }
       `}</style>
 
@@ -1478,14 +1383,15 @@ export default function LandingPage() {
         ${isDark ? 'bg-black/50' : 'bg-white/45'}`}
       />
 
-      <Header theme={theme} toggleTheme={toggleTheme} />
+      <PublicHeader />
       <HeroSection theme={theme} />
       <WakilHandDrawnMap theme={theme} />
+      <WorkspacePreviewSection theme={theme} />
       <FeaturesSection theme={theme} />
       <FAQSection theme={theme} />
       <WhatsAppFloatButton />
       <CTASection theme={theme} />
-      <Footer theme={theme} />
+      <PublicFooter />
     </div>
   )
 }

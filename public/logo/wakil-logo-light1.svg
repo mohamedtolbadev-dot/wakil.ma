@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 55" width="220" height="55">
-  <path d="M4 10 Q4 6 8 6 L38 6 Q42 6 42 10 L42 28 Q42 32 38 32 L26 32 L21 39 L21 32 L8 32 Q4 32 4 28 Z" fill="#534AB7"/>
-  <circle cx="14" cy="19" r="2.5" fill="white"/>
-  <circle cx="23" cy="19" r="2.5" fill="white"/>
-  <circle cx="32" cy="19" r="2.5" fill="white"/>
-  <text x="52" y="38" font-family="Poppins, 'Segoe UI', Arial, sans-serif" font-weight="700" font-size="26">
-    <tspan fill="#534AB7">Wakil</tspan><tspan fill="#534AB7">.ma</tspan>
-  </text>
-</svg>

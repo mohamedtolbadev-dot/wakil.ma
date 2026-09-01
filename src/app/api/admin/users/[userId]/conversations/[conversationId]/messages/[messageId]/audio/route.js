@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { downloadWhatsAppMedia } from "@/lib/whatsapp"
 import { getSuperAdminFromRequest } from "@/lib/adminAuth"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -43,10 +44,10 @@ export async function GET(request, { params }) {
       })
     }
 
-    const agent = await prisma.agent.findUnique({
+    const agent = decryptAgentSecrets(await prisma.agent.findUnique({
       where: { userId },
       select: { whatsappToken: true },
-    })
+    }))
 
     if (!agent?.whatsappToken) {
       return new Response(JSON.stringify({ error: "WhatsApp token not configured" }), {

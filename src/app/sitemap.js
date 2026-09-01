@@ -4,11 +4,11 @@ import { siteConfig } from "@/lib/metadata"
 export const dynamic = "force-dynamic"
 
 export default async function sitemap() {
-  const staticPages = ["", "/features", "/blogs", "/privacy", "/terms"].map((path) => ({
+  const staticPages = ["", "/features", "/pricing", "/blogs", "/privacy", "/terms"].map((path) => ({
     url: `${siteConfig.url}${path}`,
     lastModified: new Date(),
     changeFrequency: path === "" ? "weekly" : "monthly",
-    priority: path === "" ? 1 : path === "/features" ? 0.85 : 0.7,
+    priority: path === "" ? 1 : path === "/features" ? 0.85 : path === "/pricing" ? 0.9 : 0.7,
   }))
 
   const posts = await prisma.blogPost.findMany({

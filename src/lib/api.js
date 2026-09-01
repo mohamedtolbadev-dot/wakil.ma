@@ -142,6 +142,11 @@ export const statsAPI = {
   getStats: (period = "week") => fetchAPI(`/api/stats?period=${period}`),
 }
 
+// Usage / plan APIs
+export const usageAPI = {
+  getMe: () => fetchAPI("/api/usage/me"),
+}
+
 // Products APIs
 export const productsAPI = {
   getAll: (params = {}) => {

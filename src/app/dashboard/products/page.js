@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { productsAPI } from "@/lib/api"
+import { productsAPI, usageAPI } from "@/lib/api"
 import { formatAmount } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
 import {
   Plus, Search, Trash2, ShoppingBag, Eye, EyeOff,
   Package, Tag, Loader2, ImageIcon, X, Pencil,
   Maximize2, AlertCircle, AlertTriangle, RefreshCw, ChevronDown,
-  Link2, Sparkles, Download, Megaphone,
+  Link2, Sparkles, Download, Megaphone, Video,
 } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
 
@@ -219,6 +219,39 @@ function ImageUploadZone({ images, onUpload, onRemove, uploading }) {
   )
 }
 
+function VideoUploadZone({ videos, onUpload, onRemove, uploading }) {
+  const { t } = useLanguage()
+  const list = Array.isArray(videos) ? videos : []
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-[13px] font-medium text-muted-foreground flex items-center gap-1.5">
+        <Video size={14} className="text-brand-600" /> {t('products.videos') || "Videos"}
+      </label>
+      <label className="cursor-pointer">
+        <input type="file" accept="video/mp4,video/webm,video/quicktime" multiple onChange={onUpload} disabled={uploading} className="hidden" />
+        <div className="px-4 py-3 bg-secondary border border-dashed border-border rounded-lg text-[13px] text-center hover:border-brand-300 hover:bg-secondary/70 transition-all duration-200">
+          {uploading
+            ? <span className="flex items-center justify-center gap-2 text-muted-foreground"><Loader2 size={14} className="animate-spin" />{t('products.uploading')}</span>
+            : <span className="flex items-center justify-center gap-2 text-muted-foreground"><Plus size={14} />{t('products.choose_videos') || "Choose videos"}</span>}
+        </div>
+      </label>
+      {list.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {list.map((url, idx) => (
+            <div key={idx} className="flex items-center gap-1.5 bg-secondary border border-border rounded-lg px-2 py-1.5 group/video">
+              <Video size={14} className="text-brand-600" />
+              <span className="text-[12px] text-muted-foreground truncate max-w-[80px]">{t('products.video') || "Video"} {idx + 1}</span>
+              <button onClick={() => onRemove(idx)} className="text-muted-foreground hover:text-red-500 transition-colors">
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ─────────────── Form Fields ─────────────── */
 function FormField({ label, children }) {
   return (
@@ -231,37 +264,46 @@ function FormField({ label, children }) {
 
 /* ─────────────── Ask-Quantity Toggle ─────────────── */
 function AskQuantityToggle({ value, onChange }) {
-  const { t } = useLanguage()
+  const { t, isRTL } = useLanguage()
   const enabled = value !== false
   return (
-    <div className="flex items-start justify-between gap-3 p-3 rounded-lg bg-secondary/40 border border-border">
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-foreground">
-          {t('products.ask_quantity') || "سؤال عن الكمية"}
-        </p>
-        <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-          {enabled
-            ? (t('products.ask_quantity_on_hint') || "الـ AI يسأل الزبون: «شحال من حبة بغيتي؟»")
-            : (t('products.ask_quantity_off_hint') || "الـ AI ياخد كمية 1 تلقائياً (مناسب للهواتف/الأجهزة). الزبون يقدر يطلب كتر.")}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(!enabled)}
-        role="switch"
-        aria-checked={enabled}
-        className={cn(
-          "relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30",
-          enabled ? "bg-brand-600" : "bg-border"
-        )}
-      >
-        <span
+    <div className="rounded-xl border border-border bg-secondary/30 p-3">
+      <div className={cn(
+        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+        isRTL ? "sm:flex-row-reverse" : ""
+      )}>
+        <div className={cn("min-w-0 flex-1", isRTL ? "text-right" : "text-left")}>
+          <p className="text-[13px] font-semibold text-foreground">
+            {t('products.ask_quantity') || "سؤال عن الكمية"}
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            {enabled
+              ? (t('products.ask_quantity_on_hint') || "الـ AI يسأل الزبون: «شحال من حبة بغيتي؟»")
+              : (t('products.ask_quantity_off_hint') || "الـ AI ياخد كمية 1 تلقائياً (مناسب للهواتف/الأجهزة). الزبون يقدر يطلب كتر.")}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onChange(!enabled)}
+          role="switch"
+          aria-checked={enabled}
           className={cn(
-            "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200",
-            enabled ? "translate-x-5" : "translate-x-0.5"
+            "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30",
+            enabled ? "bg-brand-600" : "bg-border",
+            isRTL ? "self-end sm:self-center" : "self-start sm:self-center"
           )}
-        />
-      </button>
+        >
+          <span
+            className={cn(
+              "inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
+              enabled
+                ? isRTL ? "-translate-x-6" : "translate-x-6"
+                : isRTL ? "-translate-x-0.5" : "translate-x-0.5"
+            )}
+          />
+        </button>
+      </div>
     </div>
   )
 }
@@ -391,6 +433,60 @@ function LowStockBanner({ products, onRestock }) {
 }
 
 /* ─────────────── Product Card ─────────────── */
+function ProductPlanNotice({ limit, total, remaining, copy, onUpgrade }) {
+  if (!Number.isInteger(limit)) return null
+
+  const reached = remaining <= 0
+  const percent = Math.min(100, Math.round((total / limit) * 100))
+
+  return (
+    <div className={cn(
+      "rounded-xl border p-4 transition-colors",
+      reached
+        ? "border-amber-500/30 bg-amber-500/10"
+        : "border-border bg-card"
+    )}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+            reached ? "bg-amber-500/15 text-amber-600" : "bg-brand-600/10 text-brand-600"
+          )}>
+            {reached ? <AlertTriangle size={18} /> : <Package size={18} />}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground">
+              {reached ? copy.limitReachedTitle : copy.limitTitle}
+            </p>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+              {reached ? copy.limitReachedDesc : copy.limitDesc(remaining)}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onUpgrade}
+          className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-[13px] font-semibold text-white hover:bg-brand-700"
+        >
+          {copy.upgradeCta}
+        </button>
+      </div>
+      <div className="mt-3">
+        <div className="mb-1 flex items-center justify-between text-[12px] text-muted-foreground">
+          <span>{copy.limitUsage}</span>
+          <span className="font-semibold tabular-nums text-foreground">{total} / {limit}</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-border">
+          <div
+            className={cn("h-full rounded-full transition-all", reached ? "bg-amber-500" : "bg-brand-600")}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function productInsightLabel(insight, language) {
   if (!insight || insight.priority === "low") return null
   const ar = {
@@ -437,8 +533,13 @@ function ProductCard({ product, onDetails, onEdit, onToggle, onDelete, onNotify,
     try { return product.images ? JSON.parse(product.images) : [] }
     catch { return [] }
   })()
+  const videos = (() => {
+    try { return product.videos ? JSON.parse(product.videos) : [] }
+    catch { return [] }
+  })()
 
   const mainImage = images[0] || null
+  const mainVideo = videos[0] || null
   const notifyLabel = language === "ar" ? "إطلاق حملة" : "Campagne"
 
   return (
@@ -458,6 +559,8 @@ function ProductCard({ product, onDetails, onEdit, onToggle, onDelete, onNotify,
       <div className="h-28 sm:h-36 bg-secondary flex items-center justify-center relative overflow-hidden">
         {mainImage ? (
           <img src={mainImage} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : mainVideo ? (
+          <video src={mainVideo} className="w-full h-full object-cover" muted playsInline preload="metadata" />
         ) : (
           <div className="w-10 h-10 rounded-xl bg-border/50 flex items-center justify-center">
             <ShoppingBag size={20} className="text-muted-foreground/40" />
@@ -469,9 +572,14 @@ function ProductCard({ product, onDetails, onEdit, onToggle, onDelete, onNotify,
         )}>
           {product.isActive ? t('products.active') : t('products.inactive')}
         </span>
-        {images.length > 1 && (
+        {(images.length > 1 || videos.length > 0) && (
           <span className="absolute top-2 left-2 text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-black/50 text-white border border-white/10">
-            {images.length}
+            {images.length + videos.length}
+          </span>
+        )}
+        {videos.length > 0 && (
+          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-black/55 text-white border border-white/10">
+            <Video size={11} /> {videos.length}
           </span>
         )}
       </div>
@@ -653,6 +761,26 @@ function DetailsContent({ product, onClose, onEdit, onDelete, onLightbox, onNoti
           </div>
         </div>
       )}
+      {videos.length > 0 && (
+        <div>
+          <p className="text-[13px] font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Video size={14} /> {t('products.videos') || "Videos"} ({videos.length})
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {videos.map((url, idx) => (
+              <div key={idx} className="rounded-xl overflow-hidden bg-secondary border border-border">
+                <video
+                  src={url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-40 sm:h-48 object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex gap-2 pt-2 border-t border-border">
         <button
           onClick={() => { onDelete?.(product.id); onClose() }}
@@ -773,20 +901,23 @@ function ImportFromUrlModal({ onClose, onImported }) {
 ════════════════════════════════════════════════ */
 export default function ProductsPage() {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [products, setProducts] = useState([])
+  const [planUsage, setPlanUsage] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState("")
   const [showAddForm, setShowAddForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
-  const [newProduct, setNewProduct] = useState({ name: "", price: "", salePrice: "", category: "", variants: [], askQuantity: true, description: "", images: [], stock: 0 })
+  const [newProduct, setNewProduct] = useState({ name: "", price: "", salePrice: "", category: "", variants: [], askQuantity: true, description: "", images: [], videos: [], stock: 0 })
   const [uploadingImages, setUploadingImages] = useState(false)
+  const [uploadingVideos, setUploadingVideos] = useState(false)
   const [addingProduct, setAddingProduct] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
-  const [editForm, setEditForm] = useState({ name: "", price: "", salePrice: "", category: "", variants: [], askQuantity: true, description: "", images: [], stock: 0 })
+  const [editForm, setEditForm] = useState({ name: "", price: "", salePrice: "", category: "", variants: [], askQuantity: true, description: "", images: [], videos: [], stock: 0 })
   const [savingEdit, setSavingEdit] = useState(false)
   const [editUploading, setEditUploading] = useState(false)
+  const [editVideoUploading, setEditVideoUploading] = useState(false)
   const [detailsProduct, setDetailsProduct] = useState(null)
   const [lightboxImage, setLightboxImage] = useState(null)
   const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: "" })
@@ -796,10 +927,13 @@ export default function ProductsPage() {
   // Reset form state helper — prevents stale data from previous opens/imports
   const resetNewProduct = () => setNewProduct({
     name: "", price: "", salePrice: "", category: "",
-    variants: [], askQuantity: true, description: "", images: [], stock: 0,
+    variants: [], askQuantity: true, description: "", images: [], videos: [], stock: 0,
   })
 
-  useEffect(() => { fetchProducts() }, [])
+  useEffect(() => {
+    fetchProducts()
+    fetchPlanUsage()
+  }, [])
 
   async function fetchProducts() {
     try {
@@ -813,6 +947,15 @@ export default function ProductsPage() {
     }
   }
 
+  async function fetchPlanUsage() {
+    try {
+      const res = await usageAPI.getMe()
+      setPlanUsage(res.data || null)
+    } catch (err) {
+      console.error("Plan usage failed:", err)
+    }
+  }
+
   // Case-insensitive search across name, description, and category
   const filtered = (() => {
     const q = search.trim().toLowerCase()
@@ -823,6 +966,43 @@ export default function ProductsPage() {
       p.category?.toLowerCase().includes(q)
     )
   })()
+
+  const planCopy = language === "ar"
+    ? {
+        limitTitle: "حد المنتجات في الخطة المجانية",
+        limitReachedTitle: "وصلت لحد المنتجات في الخطة الحالية",
+        limitDesc: (remaining) => `باقي لك ${remaining} منتج قبل الوصول للحد المجاني.`,
+        limitReachedDesc: "يمكنك تعديل أو حذف المنتجات الحالية، لكن إضافة منتج جديد تحتاج ترقية الخطة.",
+        limitUsage: "استعمال المنتجات",
+        upgradeCta: "ترقية الخطة",
+        limitError: "وصلت لحد 20 منتج في الخطة المجانية. رق الخطة لإضافة منتجات أكثر.",
+      }
+    : {
+        limitTitle: "Limite produits du plan gratuit",
+        limitReachedTitle: "Limite produits atteinte",
+        limitDesc: (remaining) => `Il vous reste ${remaining} produit(s) avant la limite gratuite.`,
+        limitReachedDesc: "Vous pouvez modifier ou supprimer vos produits, mais l'ajout d'un nouveau produit demande une mise a niveau.",
+        limitUsage: "Utilisation produits",
+        upgradeCta: "Mettre a niveau",
+        limitError: "Limite de 20 produits atteinte sur le plan gratuit. Passez a un plan payant pour ajouter plus de produits.",
+      }
+  const productLimit = Number.isInteger(planUsage?.entitlements?.productLimit)
+    ? planUsage.entitlements.productLimit
+    : null
+  const productRemaining = Number.isInteger(productLimit)
+    ? Math.max(0, productLimit - products.length)
+    : null
+  const productLimitReached = Number.isInteger(productLimit) && productRemaining <= 0
+
+  const openAddForm = () => {
+    setFormError(null)
+    if (productLimitReached) {
+      setShowAddForm(false)
+      setFormError(planCopy.limitError)
+      return
+    }
+    setShowAddForm(true)
+  }
 
   const handleToggle = async (id) => {
     const p = products.find((x) => x.id === id)
@@ -868,6 +1048,11 @@ export default function ProductsPage() {
 
   const handleAdd = async () => {
     setFormError(null)
+    if (productLimitReached) {
+      setFormError(planCopy.limitError)
+      return
+    }
+
     const price = Number(newProduct.price)
     const salePrice = newProduct.salePrice ? Number(newProduct.salePrice) : null
     const stock = Number(newProduct.stock)
@@ -888,7 +1073,7 @@ export default function ProductsPage() {
         category: newProduct.category?.trim() || null,
         variants: newProduct.variants || [],
         askQuantity: newProduct.askQuantity !== false,
-        description: newProduct.description, images: newProduct.images,
+        description: newProduct.description, images: newProduct.images, videos: newProduct.videos,
         stock,
       })
       setProducts(prev => [res.data, ...prev])  // newest first
@@ -934,6 +1119,7 @@ export default function ProductsPage() {
       askQuantity: product.askQuantity !== false,
       description: product.description || "",
       images: safeParse(product.images),
+      videos: safeParse(product.videos),
       stock: product.stock ?? 0,
     })
   }
@@ -966,7 +1152,7 @@ export default function ProductsPage() {
         category: editForm.category?.trim() || null,
         variants: editForm.variants || [],
         askQuantity: editForm.askQuantity !== false,
-        description: editForm.description, images: editForm.images,
+        description: editForm.description, images: editForm.images, videos: editForm.videos,
         stock,
       }
       const res = await productsAPI.update(editingProduct.id, payload)
@@ -976,6 +1162,7 @@ export default function ProductsPage() {
         ...payload,
         variants: payload.variants.length > 0 ? JSON.stringify(payload.variants) : null,
         images: JSON.stringify(editForm.images),
+        videos: JSON.stringify(editForm.videos),
       }
       setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...updated } : p))
       setDetailsProduct(prev => prev?.id === editingProduct.id ? { ...prev, ...updated } : prev)
@@ -1024,14 +1211,22 @@ export default function ProductsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 bg-card border border-border text-foreground px-3 py-2 rounded-lg text-[13px] font-semibold hover:border-brand-300 hover:bg-secondary transition-colors duration-200"
+            disabled={productLimitReached}
+            className={cn(
+              "flex items-center gap-1.5 bg-card border border-border text-foreground px-3 py-2 rounded-lg text-[13px] font-semibold hover:border-brand-300 hover:bg-secondary transition-colors duration-200",
+              productLimitReached && "cursor-not-allowed opacity-50 hover:border-border hover:bg-card"
+            )}
             title={t('products.import_title') || "استيراد من رابط"}
           >
             <Sparkles size={15} className="text-brand-600" /> <span className="hidden sm:inline">{t('products.import_btn') || "استيراد"}</span>
           </button>
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-brand-800 transition-colors duration-200 shadow-sm"
+            onClick={() => showAddForm ? setShowAddForm(false) : openAddForm()}
+            disabled={productLimitReached}
+            className={cn(
+              "flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-brand-800 transition-colors duration-200 shadow-sm",
+              productLimitReached && "cursor-not-allowed opacity-50 hover:bg-brand-600"
+            )}
           >
             <Plus size={15} /> {t('products.new')}
           </button>
@@ -1047,10 +1242,18 @@ export default function ProductsPage() {
       </div>
 
       {/* ── Low Stock Banner ── */}
+      <ProductPlanNotice
+        limit={productLimit}
+        total={products.length}
+        remaining={productRemaining}
+        copy={planCopy}
+        onUpgrade={() => router.push("/dashboard/invoices")}
+      />
+
       <LowStockBanner products={products} onRestock={startEdit} />
 
       {/* ── Add Form ── */}
-      {showAddForm && (
+      {showAddForm && !productLimitReached && (
         <div className="bg-card border border-border rounded-xl p-5 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -1108,6 +1311,13 @@ export default function ProductsPage() {
               images={newProduct.images} uploading={uploadingImages}
               onUpload={e => uploadFiles(e.target.files, setUploadingImages, urls => setNewProduct(p => ({ ...p, images: [...p.images, ...urls] })))}
               onRemove={idx => setNewProduct(p => ({ ...p, images: p.images.filter((_, i) => i !== idx) }))}
+            />
+          </div>
+          <div className="mb-4">
+            <VideoUploadZone
+              videos={newProduct.videos} uploading={uploadingVideos}
+              onUpload={e => uploadFiles(e.target.files, setUploadingVideos, urls => setNewProduct(p => ({ ...p, videos: [...p.videos, ...urls] })))}
+              onRemove={idx => setNewProduct(p => ({ ...p, videos: p.videos.filter((_, i) => i !== idx) }))}
             />
           </div>
           <div className="flex gap-2 justify-end">
@@ -1180,6 +1390,13 @@ export default function ProductsPage() {
               onRemove={idx => setEditForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }))}
             />
           </div>
+          <div className="mb-4">
+            <VideoUploadZone
+              videos={editForm.videos} uploading={editVideoUploading}
+              onUpload={e => uploadFiles(e.target.files, setEditVideoUploading, urls => setEditForm(f => ({ ...f, videos: [...f.videos, ...urls] })))}
+              onRemove={idx => setEditForm(f => ({ ...f, videos: f.videos.filter((_, i) => i !== idx) }))}
+            />
+          </div>
           <div className="flex gap-2 justify-end">
             <button onClick={() => { setEditingProduct(null); setFormError(null) }} className="px-4 py-2 border border-border rounded-lg text-[14px] font-medium hover:bg-secondary transition-colors duration-200">{t('common.cancel')}</button>
             <button onClick={handleSaveEdit} disabled={savingEdit} className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-[14px] font-semibold hover:bg-brand-800 transition-colors duration-200 shadow-sm disabled:opacity-50">
@@ -1226,6 +1443,11 @@ export default function ProductsPage() {
         <ImportFromUrlModal
           onClose={() => setShowImport(false)}
           onImported={(data) => {
+            if (productLimitReached) {
+              setShowImport(false)
+              setFormError(planCopy.limitError)
+              return
+            }
             setFormError(null)
             setNewProduct({
               name: data.name || "",
@@ -1236,6 +1458,7 @@ export default function ProductsPage() {
               askQuantity: true,
               description: data.description || "",
               images: Array.isArray(data.images) ? data.images : [],
+              videos: Array.isArray(data.videos) ? data.videos : [],
               stock: typeof data.stock === "number" ? data.stock : 0,
             })
             setShowImport(false)
@@ -1326,14 +1549,22 @@ export default function ProductsPage() {
             />
           ))}
           <div
-            onClick={() => setShowAddForm(true)}
-            className="border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2.5 p-4 cursor-pointer hover:border-brand-400 hover:bg-secondary/30 transition-all duration-300 min-h-[170px] sm:min-h-[200px] group"
+            onClick={openAddForm}
+            className={cn(
+              "border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2.5 p-4 transition-all duration-300 min-h-[170px] sm:min-h-[200px] group",
+              productLimitReached
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer hover:border-brand-400 hover:bg-secondary/30"
+            )}
           >
-            <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+            <div className={cn(
+              "w-12 h-12 rounded-xl bg-secondary flex items-center justify-center transition-transform duration-300",
+              !productLimitReached && "group-hover:scale-110"
+            )}>
               <Plus size={20} className="text-brand-600" />
             </div>
             <p className="text-[13px] font-semibold text-muted-foreground group-hover:text-brand-600 transition-colors text-center">
-              {t('products.add_new')}
+              {productLimitReached ? planCopy.limitReachedTitle : t('products.add_new')}
             </p>
           </div>
         </div>

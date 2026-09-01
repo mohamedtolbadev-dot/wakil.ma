@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import {
   FileText, Plus, Loader2, Trash2, Send, CheckCircle2,
   Clock, XCircle, AlertCircle, RefreshCw, User, Search,
-  DollarSign, CalendarDays, X, ChevronDown, CreditCard, Pencil,
+  DollarSign, CalendarDays, X, ChevronDown, CreditCard, Pencil, Lock,
 } from "lucide-react"
 
 /* ─────────────────────────────────────────────
@@ -359,6 +359,23 @@ function InvoiceCard({ invoice, onStatusChange, onDelete, onSend, onEdit }) {
         )}
       </div>
 
+      {invoice.status === "PENDING" && (
+        <div className={cn(
+          "mx-5 mb-3 rounded-xl border px-3 py-2 text-[13px] font-semibold text-center",
+          isOverdue
+            ? "border-red-500/20 bg-red-500/10 text-red-500"
+            : "border-amber-500/20 bg-amber-500/10 text-amber-600"
+        )}>
+          {isOverdue ? t('invoices.overdue_warning') : t('invoices.pending_hint')}
+        </div>
+      )}
+
+      {invoice.status === "PAID" && (
+        <div className="mx-5 mb-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-center text-[13px] font-semibold text-emerald-600">
+          {t('invoices.paid_hint')}
+        </div>
+      )}
+
       {/* Actions bar */}
       <div className="px-5 py-3 border-t border-border/50 flex items-center gap-1.5">
 
@@ -386,17 +403,26 @@ function InvoiceCard({ invoice, onStatusChange, onDelete, onSend, onEdit }) {
               >
                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
                   const Icon = cfg.icon
+                  const isPendingBlocked = invoice.status === "PAID" && key === "PENDING"
                   return (
                     <button
                       key={key}
-                      onClick={() => { onStatusChange(invoice.id, key); setStatusOpen(false) }}
+                      disabled={isPendingBlocked}
+                      title={isPendingBlocked ? t('admin.paid_pending_blocked') : undefined}
+                      onClick={() => {
+                        if (isPendingBlocked) return
+                        onStatusChange(invoice.id, key)
+                        setStatusOpen(false)
+                      }}
                       className={cn(
                         "w-full flex items-center gap-2 px-3 py-2 text-[13px] transition-colors hover:bg-secondary",
-                        invoice.status === key && "bg-secondary/60 font-semibold"
+                        invoice.status === key && "bg-secondary/60 font-semibold",
+                        isPendingBlocked && "cursor-not-allowed opacity-45 hover:bg-transparent"
                       )}
                     >
                       <Icon size={12} className={cfg.color} />
                       <span className={cfg.color}>{t(cfg.labelKey)}</span>
+                      {isPendingBlocked && <Lock size={11} className="ms-auto text-muted-foreground" />}
                     </button>
                   )
                 })}
@@ -466,6 +492,12 @@ export default function AdminInvoicesPage() {
   useEffect(() => { fetchData() }, [fetchData])
 
   async function handleStatusChange(id, status) {
+    const current = invoices.find(inv => inv.id === id)
+    if (current?.status === "PAID" && status === "PENDING") {
+      showToast(t('admin.toast_paid_pending_blocked'), "error")
+      return
+    }
+
     try {
       await adminAPI.updateInvoice(id, { status })
       setInvoices(prev => prev.map(inv =>
@@ -497,6 +529,8 @@ export default function AdminInvoicesPage() {
       showToast(
         msg.includes("no phone") || msg.includes("phone number")
           ? t('admin.toast_no_phone')
+          : msg.includes("WhatsApp not configured")
+          ? t('admin.toast_wa_not_configured')
           : t('admin.toast_send_fail'),
         "error"
       )

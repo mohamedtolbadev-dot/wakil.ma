@@ -4,6 +4,7 @@ import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/resp
 import { sendWhatsAppMessage } from "@/lib/whatsapp"
 import { sanitizeInput } from "@/lib/helpers"
 import { rateLimit } from "@/lib/rateLimit"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 export const dynamic = "force-dynamic"
 
@@ -41,9 +42,9 @@ export async function POST(request, { params }) {
     })
     if (!conversation) return errorResponse("المحادثة غير موجودة", 404)
 
-    const agent = await prisma.agent.findUnique({
+    const agent = decryptAgentSecrets(await prisma.agent.findUnique({
       where: { userId: user.id },
-    })
+    }))
     if (!agent) return errorResponse("Agent غير موجود", 404)
 
     // رفض الرد اليدوي إذا AI شغال

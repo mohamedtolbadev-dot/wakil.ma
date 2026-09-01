@@ -1,3 +1,4 @@
+// app/api/auth/register/route.js
 import { prisma } from "@/lib/prisma"
 import { hashPassword, generateToken } from "@/lib/auth"
 import { getEffectivePlan } from "@/lib/billingPlans"
@@ -5,59 +6,61 @@ import { successResponse, errorResponse } from "@/lib/response"
 import { rateLimit } from "@/lib/rateLimit"
 
 export async function POST(request) {
-  return errorResponse(
-    "هذا المسار غير متاح. استخدم /api/auth/send-otp ثم /api/auth/verify-otp للتسجيل.",
-    410
-  )
   try {
-    // Rate limiting - 10 attempts per 15 minutes
+    // ✅ Rate limiting
     const rateLimitResult = rateLimit(request, true)
     if (!rateLimitResult.success) {
-      return errorResponse(`تم تجاوز الحد المسموح به. حاول مرة أخرى بعد ${Math.ceil(rateLimitResult.retryAfter / 60)} دقيقة`, 429)
+      return errorResponse(
+        `تم تجاوز الحد المسموح به. حاول مرة أخرى بعد ${Math.ceil(rateLimitResult.retryAfter / 60)} دقيقة`,
+        429
+      )
     }
 
-    const raw = await request.json()
-    const name  = raw.name?.trim()
-    const email = raw.email?.trim().toLowerCase()
+    const raw      = await request.json()
+    const name     = raw.name?.trim()
+    const email    = raw.email?.trim().toLowerCase()
     const password = raw.password
-    const phone = raw.phone?.trim() || undefined
-    const mode  = raw.mode || "product"
+    const phone    = raw.phone?.trim() || undefined
+    const mode     = raw.mode || "product"
 
-    // التحقق من الحقول المطلوبة
+    // ✅ التحقق من الحقول المطلوبة
     if (!name || !email || !password) {
       return errorResponse("كل الحقول مطلوبة", 400)
     }
 
-    // التحقق من صحة الإيميل
+    // ✅ التحقق من صحة الإيميل
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return errorResponse("صيغة الإيميل غير صحيحة", 400)
     }
 
-    // التحقق من طول كلمة المرور
-    if (password.length < 8) {
-      return errorResponse("كلمة المرور يجب أن تكون 8 أحرف على الأقل", 400)
+    // ✅ التحقق من قوة كلمة المرور
+    const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+    if (!strongPassword.test(password)) {
+      return errorResponse(
+        "كلمة المرور: 8 أحرف على الأقل، حرف كبير، حرف صغير، ورقم",
+        400
+      )
     }
 
-    // التحقق من عدم وجود الإيميل
-    const existing = await prisma.user.findUnique({
-      where: { email }
-    })
+    // ✅ التحقق من عدم وجود الإيميل — 409 Conflict
+    const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
-      return errorResponse("الإيميل مسجل مسبقاً")
+      return errorResponse("الإيميل مسجل مسبقاً", 409)
     }
 
-    // تشفير كلمة المرور
     const hashedPassword = await hashPassword(password)
 
-    // إنشاء المستخدم مع Agent افتراضي
+    // ✅ storeName قابل للتخصيص
+    const storeName = raw.storeName?.trim() || name
+
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         phone,
-        storeName: name.trim(),
+        storeName,
         agent: {
           create: {
             name: "Agent",
@@ -66,25 +69,24 @@ export async function POST(request) {
             language: "darija",
             isActive: true,
             mode,
-            // ✅ بدون رسائل مفروضة — التعليمات تأتي من Settings > Instructions personnalisées (Produits)
           },
         },
       },
       include: { agent: true },
     })
 
-    const token = generateToken(user.id)
+    const token       = generateToken(user.id)
     const effectivePlan = getEffectivePlan(user)
 
     return successResponse({
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        storeName: user.storeName,
-        plan: effectivePlan,
-        rawPlan: user.plan,
+        id:            user.id,
+        name:          user.name,
+        email:         user.email,
+        storeName:     user.storeName,
+        plan:          effectivePlan,
+        rawPlan:       user.plan,
         planExpiresAt: user.planExpiresAt,
       },
     }, 201)

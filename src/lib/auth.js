@@ -13,6 +13,7 @@ const AUTH_USER_SELECT = {
   planExpiresAt: true,
   role: true,
   isActive: true,
+  createdAt: true,
   agent: {
     select: {
       id: true,

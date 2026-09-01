@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage } from "@/lib/whatsapp"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 const DELIVERY_NOTIFY_STATUSES = new Set(["SHIPPED", "DELIVERED", "CANCELLED"])
 
@@ -185,7 +186,7 @@ export async function sendOrderStatusNotification({ userId, order, status }) {
   }
 
   try {
-    const agent = await prisma.agent.findUnique({
+    const agent = decryptAgentSecrets(await prisma.agent.findUnique({
       where: { userId },
       select: {
         language: true,
@@ -197,7 +198,7 @@ export async function sendOrderStatusNotification({ userId, order, status }) {
         orderCancelledMessage: true,
         trackingUrlTemplate: true,
       },
-    })
+    }))
 
     if (!agent?.whatsappPhoneId || !agent?.whatsappToken) {
       return { messageSent: false, sentMessage: null, sentFlag: null }

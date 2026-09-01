@@ -3,13 +3,13 @@ import {
   applyOrderCancellationSideEffects,
   applyOrderCountedSideEffects,
   isCountedStatus,
+  validateStatusTransition,
 } from "@/lib/orderLifecycle"
 import {
   sendOrderStatusNotification,
   shouldTrackDeliveryNotification,
   updateOrderConversationMemory,
 } from "@/lib/orderStatusNotifications"
-import { canApplyDeliveryStatus } from "@/lib/deliveryCsvWorkflow"
 
 function hasValue(value) {
   return value !== undefined && value !== null && String(value).trim() !== ""
@@ -28,10 +28,16 @@ export async function applyDeliveryStatusUpdate({
   }
 
   const nextStatus = mappedStatus || null
-  if (nextStatus && !canApplyDeliveryStatus(order.status, nextStatus)) {
+  const statusTransition =
+    nextStatus && order.status !== nextStatus
+      ? validateStatusTransition(order.status, nextStatus)
+      : { valid: true }
+
+  if (!statusTransition.valid) {
     return {
       skipped: true,
       reason: "invalid_delivery_transition",
+      message: statusTransition.reason,
       orderId: order.id,
       currentStatus: order.status,
       nextStatus,

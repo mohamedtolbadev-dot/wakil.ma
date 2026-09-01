@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage } from "@/lib/whatsapp"
 import { successResponse, errorResponse,
          unauthorizedResponse } from "@/lib/response"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 export async function POST(request) {
   const user = await getUserFromRequest(request)
@@ -17,9 +18,9 @@ export async function POST(request) {
       return errorResponse("الرقم والرسالة مطلوبان")
     }
 
-    const agent = await prisma.agent.findUnique({
+    const agent = decryptAgentSecrets(await prisma.agent.findUnique({
       where: { userId: user.id }
-    })
+    }))
 
     if (!agent?.whatsappPhoneId || !agent?.whatsappToken) {
       return errorResponse(

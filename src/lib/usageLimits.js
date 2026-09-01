@@ -90,8 +90,8 @@ export async function applyAIQuotaSideEffects({
         month,
         title: "fr:Consommation IA à 80%||ar:استهلاك AI وصل 80%",
         message:
-          `fr:Vous avez utilisé ${used}/${limit} réponses IA du plan ${plan}. Pensez à passer au plan supérieur avant l'arrêt automatique.||` +
-          `ar:استعملت ${used}/${limit} من ردود AI في خطة ${plan}. من الأفضل ترقي الخطة قبل التوقف التلقائي.`,
+          `fr:Vous avez utilise ${used}/${limit} reponses IA du plan ${plan}. Pensez a passer au plan superieur avant le blocage des reponses IA.||` +
+          `ar:استعملت ${used}/${limit} من ردود AI في خطة ${plan}. من الأفضل ترقي الخطة قبل ما يتوقفو ردود AI مؤقتاً.`,
       })
     }
 
@@ -101,13 +101,8 @@ export async function applyAIQuotaSideEffects({
         month,
         title: "fr:Limite IA mensuelle atteinte||ar:تم بلوغ حد AI الشهري",
         message:
-          `fr:Vous avez utilisé ${used}/${limit} réponses IA du plan ${plan}. L'agent IA a été mis en pause automatiquement pour éviter des coûts supplémentaires. Passez à Pro ou attendez le mois prochain.||` +
-          `ar:استعملت ${used}/${limit} من ردود AI في خطة ${plan}. تم إيقاف Agent تلقائياً باش نتفادو مصاريف إضافية. رقّي الخطة أو انتظر الشهر القادم.`,
-      })
-
-      await prisma.agent.updateMany({
-        where: { userId, isActive: true },
-        data: { isActive: false },
+          `fr:Vous avez utilise ${used}/${limit} reponses IA du plan ${plan}. Les reponses IA sont bloquees jusqu'au prochain mois ou jusqu'a la mise a niveau du plan.||` +
+          `ar:استعملت ${used}/${limit} من ردود AI في خطة ${plan}. ردود AI كتوقف مؤقتاً حتى الشهر الجاي أو حتى ترقية الخطة.`,
       })
     }
   } catch (err) {

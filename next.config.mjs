@@ -9,13 +9,36 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  serverExternalPackages: ["pdfkit"],
   outputFileTracingIncludes: {
-    "/api/admin/invoices/[id]/send": [
+    "/*": [
+      "./node_modules/pdfkit/js/data/**/*",
+    ],
+    "/api/invoices/[id]/pdf": [
+      "./node_modules/pdfkit/js/data/**/*",
+    ],
+    "/api/public/invoices/[id]/pdf": [
       "./node_modules/pdfkit/js/data/**/*",
     ],
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }]
+  },
+  // إضافة التوجيه الإجباري (301 Redirect) لحل مشكل تشتت الدومين في SEO
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'wakil.ma',
+          },
+        ],
+        destination: 'https://www.wakil.ma/:path*',
+        permanent: true, // مهمة جدا لجوجل باش يعرف بلي التغيير دائم
+      },
+    ];
   },
 };
 

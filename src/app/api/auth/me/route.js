@@ -11,10 +11,12 @@ export async function GET(request) {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     storeName: user.storeName,
     plan: effectivePlan,
     rawPlan: user.plan,
     planExpiresAt: user.planExpiresAt,
+    createdAt: user.createdAt,
     role: user.role,
     agent: user.agent ? {
       id: user.agent.id,

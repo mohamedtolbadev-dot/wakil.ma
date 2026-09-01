@@ -5,6 +5,7 @@ import {
   errorResponse,
   unauthorizedResponse,
 } from "@/lib/response"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 // GET /api/onboarding/status
 // يرجّع حالة كل خطوة في onboarding
@@ -33,9 +34,11 @@ export async function GET(request) {
       prisma.product.count({ where: { userId: user.id } }),
     ])
 
+    const safeAgent = decryptAgentSecrets(agent)
+
     const steps = {
-      storeInfo: Boolean(fullUser?.storeName && agent?.name && agent?.domain),
-      whatsapp: Boolean(agent?.whatsappPhoneId && agent?.whatsappToken),
+      storeInfo: Boolean(fullUser?.storeName && safeAgent?.name && safeAgent?.domain),
+      whatsapp: Boolean(safeAgent?.whatsappPhoneId && safeAgent?.whatsappToken),
       product: productsCount > 0,
     }
 
@@ -45,7 +48,7 @@ export async function GET(request) {
       completed,
       steps,
       user: fullUser,
-      agent,
+      agent: safeAgent,
       productsCount,
     })
   } catch (error) {

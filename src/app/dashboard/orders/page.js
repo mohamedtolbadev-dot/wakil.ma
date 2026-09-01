@@ -311,7 +311,31 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
   const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const buttonRef = useRef(null)
+  const [menuStyle, setMenuStyle] = useState(null)
   const allowedStatuses = new Set([currentStatus, ...(ALLOWED_STATUS_TRANSITIONS[currentStatus] || [])])
+
+  useEffect(() => {
+    if (!open || !buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    const menuWidth = 208
+    const menuHeight = 248
+    const viewportPadding = 8
+    const left = Math.min(
+      Math.max(rect.right - menuWidth, viewportPadding),
+      window.innerWidth - menuWidth - viewportPadding
+    )
+    const preferredTop = rect.bottom + 4
+    const top =
+      preferredTop + menuHeight > window.innerHeight - viewportPadding
+        ? Math.max(rect.top - menuHeight - 4, viewportPadding)
+        : preferredTop
+    setMenuStyle({
+      top,
+      left,
+      width: menuWidth,
+    })
+  }, [open])
 
   async function changeStatus(newStatus) {
     if (newStatus === currentStatus) { setOpen(false); return }
@@ -330,6 +354,7 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setOpen(!open)}
         disabled={loading}
         className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground border border-border/50 hover:border-border px-2 py-1 rounded-lg transition-all"
@@ -339,11 +364,18 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 bottom-full mb-1 z-20 border border-border rounded-xl shadow-xl overflow-hidden w-36 bg-card">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            style={menuStyle || undefined}
+            className={cn(
+              "fixed z-50 border border-border rounded-xl shadow-xl overflow-hidden bg-card",
+              !menuStyle && "invisible"
+            )}
+          >
             {STATUS_ORDER.map(s => {
               const cfg = STATUS_CONFIG[s]
               const Icon = cfg.icon
+              const isCurrent = s === currentStatus
               const disabled = !allowedStatuses.has(s)
               return (
                 <button
@@ -351,13 +383,20 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
                   onClick={() => { if (!disabled) changeStatus(s) }}
                   disabled={disabled}
                   className={cn(
-                    "w-full flex items-center gap-2 px-4 py-2.5 text-[13px] transition-colors hover:bg-secondary",
-                    s === currentStatus ? "bg-secondary/60 font-semibold" : "",
+                    "w-full flex items-start gap-2 px-4 py-2.5 text-[13px] text-start transition-colors hover:bg-secondary",
+                    isCurrent ? "bg-secondary/60 font-semibold" : "",
                     disabled ? "opacity-40 cursor-not-allowed hover:bg-transparent" : ""
                   )}
                 >
-                  <Icon size={14} className={cfg.color} />
-                  <span className={cfg.color}>{t(cfg.key)}</span>
+                  <Icon size={14} className={cn("mt-0.5 shrink-0", cfg.color)} />
+                  <span className="min-w-0">
+                    <span className={cn("block", cfg.color)}>{t(cfg.key)}</span>
+                    {(isCurrent || disabled) && (
+                      <span className="mt-0.5 block text-[10px] font-normal leading-4 text-muted-foreground">
+                        {isCurrent ? t('orders.status_current') : t('orders.status_not_allowed')}
+                      </span>
+                    )}
+                  </span>
                 </button>
               )
             })}
@@ -976,13 +1015,22 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
 }
 
 /* ─── Add Order Modal ─────────────────────────────────────────── */
-function OrdersTable({ orders, onDeleteRequest, onOpenDetail, selectedOrderIds = [], onToggleSelect, onToggleAllVisible }) {
+function OrdersTable({
+  orders,
+  onDeleteRequest,
+  onOpenDetail,
+  onStatusChange,
+  sendMessage,
+  selectedOrderIds = [],
+  onToggleSelect,
+  onToggleAllVisible,
+}) {
   const { t, language } = useLanguage()
   const selectedSet = new Set(selectedOrderIds)
   const allVisibleSelected = orders.length > 0 && orders.every(order => selectedSet.has(order.id))
 
   return (
-    <div className="hidden lg:block overflow-hidden rounded-lg border border-border/70 bg-card">
+    <div className="hidden lg:block overflow-x-auto overflow-y-visible rounded-lg border border-border/70 bg-card">
       <table className="w-full border-collapse text-left">
         <thead className="bg-secondary/40">
           <tr className="h-7 border-b border-border/70 text-[11px] uppercase text-muted-foreground">
@@ -1056,8 +1104,17 @@ function OrdersTable({ orders, onDeleteRequest, onOpenDetail, selectedOrderIds =
                   <p className="max-w-[230px] truncate text-[13px] text-foreground">{order.address || "—"}</p>
                   <p className="max-w-[230px] truncate text-[12px] text-muted-foreground">{order.city || "—"}</p>
                 </td>
-                <td className="px-2">
-                  <StatusBadge status={order.status} />
+                <td className="px-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={order.status} />
+                    <StatusDropdown
+                      orderId={order.id}
+                      currentStatus={order.status}
+                      onUpdated={onStatusChange}
+                      sendMessage={sendMessage}
+                      trackingNumber={order.trackingNumber}
+                    />
+                  </div>
                 </td>
                 <td className="px-3 text-right text-[14px] font-bold text-foreground whitespace-nowrap">
                   MAD {Number(order.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1264,6 +1321,40 @@ function AddOrderModal({ onClose, onCreated }) {
 }
 
 /* ─── Main Page ──────────────────────────────────────────────── */
+function getDeliveryErrorReason(error, t) {
+  const reason = error?.reason
+  const reasonMap = {
+    missing_reference: t('orders.delivery_error_missing_reference') || "Missing reference",
+    order_not_found: t('orders.delivery_error_order_not_found') || "Order not found",
+    missing_tracking_or_status: t('orders.delivery_error_missing_tracking_or_status') || "Missing tracking/status",
+    invalid_delivery_transition: t('orders.delivery_error_invalid_transition') || "Invalid status transition",
+  }
+  return reasonMap[reason] || reason || t('orders.delivery_error_unknown') || "Unknown reason"
+}
+
+function formatDeliveryError(error, t) {
+  const parts = []
+  if (error?.row) parts.push(`${t('orders.delivery_row') || "Row"} ${error.row}`)
+  if (error?.reference) parts.push(`${t('orders.delivery_reference') || "Reference"} ${error.reference}`)
+  if (!error?.reference && error?.orderId) parts.push(`#${String(error.orderId).slice(-8).toUpperCase()}`)
+  parts.push(getDeliveryErrorReason(error, t))
+  if (error?.currentStatus && error?.nextStatus) {
+    const from = STATUS_CONFIG[error.currentStatus]?.key ? t(STATUS_CONFIG[error.currentStatus].key) : error.currentStatus
+    const to = STATUS_CONFIG[error.nextStatus]?.key ? t(STATUS_CONFIG[error.nextStatus].key) : error.nextStatus
+    parts.push(`${from} → ${to}`)
+  }
+  return parts.filter(Boolean).join(" - ")
+}
+
+function formatDeliverySummary(prefix, data, t) {
+  const base = `${prefix}: ${data.updated || 0} updated, ${data.notified || 0} WhatsApp, ${data.skipped || 0} skipped.`
+  const errors = Array.isArray(data.errors) ? data.errors.slice(0, 3) : []
+  if (errors.length === 0) return base
+  const details = errors.map(error => formatDeliveryError(error, t)).join(" | ")
+  const more = data.errors.length > errors.length ? ` +${data.errors.length - errors.length}` : ""
+  return `${base} ${t('orders.delivery_skipped_reasons') || "Skipped reasons"}: ${details}${more}`
+}
+
 export default function OrdersPage() {
   const { t } = useLanguage()
   const [orders, setOrders] = useState([])
@@ -1441,7 +1532,7 @@ export default function OrdersPage() {
       const csvText = await file.text()
       const res = await ordersAPI.importDeliveryTracking({ csvText, sendMessage })
       const data = res?.data || {}
-      setDeliveryNotice(`Import: ${data.updated || 0} updated, ${data.notified || 0} WhatsApp, ${data.skipped || 0} skipped.`)
+      setDeliveryNotice(formatDeliverySummary("Import", data, t))
       await fetchOrders({ silent: true })
     } catch (err) {
       console.error("Delivery CSV import failed:", err)
@@ -1468,7 +1559,7 @@ export default function OrdersPage() {
         sendMessage,
       })
       const data = res?.data || {}
-      setDeliveryNotice(`Bulk: ${data.updated || 0} updated, ${data.notified || 0} WhatsApp, ${data.skipped || 0} skipped.`)
+      setDeliveryNotice(formatDeliverySummary("Bulk", data, t))
       setSelectedOrderIds([])
       await fetchOrders({ silent: true })
     } catch (err) {
@@ -1721,6 +1812,8 @@ export default function OrdersPage() {
             orders={orders}
             onDeleteRequest={handleDeleteRequest}
             onOpenDetail={setDetailOrder}
+            onStatusChange={handleStatusChange}
+            sendMessage={sendMessage}
             selectedOrderIds={selectedOrderIds}
             onToggleSelect={toggleOrderSelection}
             onToggleAllVisible={toggleVisibleSelection}

@@ -4,7 +4,7 @@ export const siteConfig = {
   name: "Wakil.ma",
   shortName: "Wakil",
   domain: "wakil.ma",
-  url: "https://wakil.ma",
+  url: "https://www.wakil.ma",
   ogImage: "/og-image.jpg",
   twitter: "@wakilma",
   verification: {
@@ -14,23 +14,61 @@ export const siteConfig = {
     fr: "Wakil.ma est un agent commercial IA pour WhatsApp: il repond aux clients, presente vos produits, collecte les informations de livraison et cree les commandes.",
     ar: "Wakil.ma وكيل مبيعات بالذكاء الاصطناعي على واتساب: يرد على العملاء، يعرض المنتجات، يجمع معلومات التوصيل وينشئ الطلبيات.",
   },
-  keywords: {
-    fr: [
-      "agent IA WhatsApp",
-      "vente WhatsApp Maroc",
-      "automatisation commandes",
-      "chatbot e-commerce Maroc",
-      "CRM WhatsApp",
-      "gestion commandes WhatsApp",
-    ],
-    ar: [
-      "وكيل مبيعات واتساب",
-      "ذكاء اصطناعي واتساب",
-      "إدارة طلبيات",
-      "تجارة إلكترونية المغرب",
-      "أتمتة واتساب",
-      "CRM واتساب",
-    ],
+ keywords: {
+  fr: [
+    "agent IA WhatsApp",
+    "AI Agent WhatsApp",
+    "assistant IA WhatsApp",
+    "chatbot WhatsApp",
+    "chatbot WhatsApp Maroc",
+    "vente WhatsApp Maroc",
+    "e-commerce Maroc",
+    "CRM WhatsApp",
+    "WhatsApp CRM",
+    "automatisation WhatsApp",
+    "automatisation commandes",
+    "gestion commandes WhatsApp",
+    "commandes COD Maroc",
+    "WhatsApp Business Maroc",
+    "service client WhatsApp",
+    "support client WhatsApp",
+    "agent commercial IA",
+    "intelligence artificielle WhatsApp",
+    "marketing WhatsApp Maroc",
+    "campagnes WhatsApp",
+    "dashboard e-commerce",
+    "suivi livraison Maroc",
+    "catalogue produits WhatsApp",
+    "WhatsApp Cloud API",
+    "logiciel vente WhatsApp"
+  ],
+
+  ar: [
+    "وكيل مبيعات واتساب",
+    "وكيل ذكاء اصطناعي",
+    "ذكاء اصطناعي واتساب",
+    "شات بوت واتساب",
+    "بوت واتساب",
+    "إدارة طلبيات واتساب",
+    "واتساب للأعمال",
+    "واتساب بيزنس المغرب",
+    "إدارة العملاء واتساب",
+    "CRM واتساب",
+    "أتمتة واتساب",
+    "أتمتة المبيعات",
+    "متجر واتساب",
+    "التجارة الإلكترونية المغرب",
+    "إدارة الطلبات",
+    "تتبع الشحن",
+    "الدفع عند الاستلام المغرب",
+    "وكيل مبيعات ذكي",
+    "خدمة العملاء واتساب",
+    "حملات واتساب",
+    "برنامج إدارة المبيعات",
+    "الرد التلقائي واتساب",
+    "مساعد مبيعات بالذكاء الاصطناعي"
+  ]
+
   },
 }
 
@@ -131,6 +169,20 @@ export const pageMetadata = {
         "اكتشف مميزات Wakil.ma: وكيل ذكاء اصطناعي على واتساب، كاتالوغ المنتجات، المحادثات، الطلبيات، العملاء، التوصيل CSV، الحملات والتحليلات.",
     },
     path: "/features",
+  },
+
+  pricing: {
+    fr: {
+      title: "Tarifs et forfaits WhatsApp Business au Maroc",
+      description:
+        "Decouvrez les tarifs Wakil.ma: forfait gratuit, Pro (199 DH/mois), Business (399 DH/mois) et Enterprise. Agent IA WhatsApp, produits illimites et campagnes.",
+    },
+    ar: {
+      title: "أسعار وباقات واتساب بيزنس في المغرب",
+      description:
+        "اكتشف أسعار Wakil.ma: باقة مجانية، Pro (199 درهم/شهر)، Business (399 درهم/شهر) وEnterprise. وكيل ذكاء اصطناعي، منتجات غير محدودة وحملات.",
+    },
+    path: "/pricing",
   },
 
   login: {

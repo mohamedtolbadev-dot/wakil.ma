@@ -1,6 +1,7 @@
 import { getUserFromRequest } from "@/lib/auth"
 import { errorResponse, successResponse, unauthorizedResponse } from "@/lib/response"
 import { createCampaignTemplate, listCampaignTemplatesForUser } from "@/lib/campaigns/service"
+import { requireCampaignsEntitlement } from "@/lib/planGuards"
 
 export async function GET(request) {
   const user = await getUserFromRequest(request)
@@ -20,6 +21,11 @@ export async function POST(request) {
   if (!user) return unauthorizedResponse()
 
   try {
+    const campaignAccess = requireCampaignsEntitlement(user)
+    if (!campaignAccess.allowed) {
+      return errorResponse(campaignAccess.message, 403)
+    }
+
     const payload = await request.json()
     const template = await createCampaignTemplate({ userId: user.id, data: payload })
     return successResponse({ template }, 201)

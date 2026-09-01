@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { campaignsAPI, productsAPI } from "@/lib/api"
+import { useRouter, useSearchParams } from "next/navigation"
+import { campaignsAPI, productsAPI, usageAPI } from "@/lib/api"
 import { TEMPLATE_VARIABLE_DEFS } from "@/lib/campaigns/constants"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { cn } from "@/lib/utils"
@@ -85,6 +85,10 @@ function getCopy(language) {
       optional: "اختياري",
       templateHint: "خاص اسم القالب يكون مطابق للقالب الموافق عليه فـ Meta.",
       reloadError: "وقع مشكل فالجلب.",
+      upgradeTitle: "الحملات متاحة في الخطط المدفوعة",
+      upgradeDesc: "الخطة الحالية تسمح لك تشوف وتحذف الحملات القديمة، لكن إنشاء القوالب والمعاينة والإرسال يحتاج Pro أو Business.",
+      upgradeCta: "ترقية الخطة",
+      upgradePlanLabel: "الخطة الحالية",
     }
   }
 
@@ -147,6 +151,10 @@ function getCopy(language) {
     optional: "Optionnel",
     templateHint: "Le nom doit correspondre au template approuve dans Meta.",
     reloadError: "Erreur de chargement.",
+    upgradeTitle: "Campagnes reservees aux plans payants",
+    upgradeDesc: "Votre plan actuel permet de consulter et supprimer les anciennes campagnes, mais la creation de templates, la previsualisation et l'envoi demandent Pro ou Business.",
+    upgradeCta: "Mettre a niveau",
+    upgradePlanLabel: "Plan actuel",
   }
 }
 
@@ -172,6 +180,36 @@ function getStatusClass(status) {
   }[status] || "bg-secondary text-foreground border-border"
 }
 
+function CampaignPaywall({ copy, planLabel, onUpgrade }) {
+  return (
+    <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-600">
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-bold text-foreground">{copy.upgradeTitle}</h2>
+              <span className="rounded-full border border-amber-500/30 bg-card px-2.5 py-1 text-xs font-semibold text-amber-700">
+                {copy.upgradePlanLabel}: {planLabel}
+              </span>
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{copy.upgradeDesc}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onUpgrade}
+          className="inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          {copy.upgradeCta}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function readPayload(response) {
   return response?.data || response || {}
 }
@@ -181,6 +219,7 @@ function readError(error, fallback) {
 }
 
 export default function CampaignsPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { language } = useLanguage()
   const copy = getCopy(language)
@@ -230,6 +269,7 @@ export default function CampaignsPage() {
   const [products, setProducts] = useState([])
   const [templates, setTemplates] = useState([])
   const [campaigns, setCampaigns] = useState([])
+  const [usage, setUsage] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -268,20 +308,24 @@ export default function CampaignsPage() {
   const [templateForm, setTemplateForm] = useState(defaultTemplateForm)
 
   const selectedProduct = products.find((item) => item.id === builder.productId)
+  const campaignsEnabled = usage?.entitlements?.campaignsEnabled !== false
+  const currentPlanLabel = usage?.planLabel || usage?.plan || "FREE"
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
-      const [productsRes, templatesRes, campaignsRes] = await Promise.all([
+      const [productsRes, templatesRes, campaignsRes, usageRes] = await Promise.all([
         productsAPI.getAll({ active: true }),
         campaignsAPI.getTemplates(),
         campaignsAPI.getAll(),
+        usageAPI.getMe(),
       ])
 
       setProducts(readPayload(productsRes).products || readPayload(productsRes) || [])
       setTemplates(readPayload(templatesRes).templates || [])
       setCampaigns(readPayload(campaignsRes).campaigns || [])
+      setUsage(readPayload(usageRes))
     } catch (loadError) {
       setError(readError(loadError, copy.reloadError))
     } finally {
@@ -351,7 +395,16 @@ export default function CampaignsPage() {
     },
   })
 
+  const guardCampaignsEntitlement = () => {
+    if (campaignsEnabled) return true
+    setError(copy.upgradeDesc)
+    setSuccess("")
+    return false
+  }
+
   const handlePreview = async () => {
+    if (!guardCampaignsEntitlement()) return
+
     setPreviewing(true)
     setError("")
     setSuccess("")
@@ -371,6 +424,8 @@ export default function CampaignsPage() {
   }
 
   const handleCreateCampaign = async () => {
+    if (!guardCampaignsEntitlement()) return
+
     setCreatingCampaign(true)
     setError("")
     setSuccess("")
@@ -401,6 +456,8 @@ export default function CampaignsPage() {
   }
 
   const handleCreateTemplate = async () => {
+    if (!guardCampaignsEntitlement()) return
+
     setCreatingTemplate(true)
     setError("")
     setSuccess("")
@@ -428,6 +485,8 @@ export default function CampaignsPage() {
   }
 
   const handleEditTemplate = (template) => {
+    if (!guardCampaignsEntitlement()) return
+
     setEditingTemplateId(template.id)
     setTemplateForm({
       name: template.name || "",
@@ -472,6 +531,8 @@ export default function CampaignsPage() {
   }
 
   const handleLaunch = async (campaignId) => {
+    if (!guardCampaignsEntitlement()) return
+
     setDispatchingId(campaignId)
     setError("")
     setSuccess("")
@@ -501,6 +562,8 @@ export default function CampaignsPage() {
   }
 
   const handleRestart = async (campaignId) => {
+    if (!guardCampaignsEntitlement()) return
+
     setDispatchingId(campaignId)
     setError("")
     setSuccess("")
@@ -541,6 +604,7 @@ export default function CampaignsPage() {
         icon: Pause,
         loading: pausingId === campaign.id,
         onClick: () => handlePause(campaign.id),
+        disabled: false,
         className: "inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-background disabled:opacity-60",
       }
     }
@@ -551,7 +615,11 @@ export default function CampaignsPage() {
         icon: RotateCcw,
         loading: dispatchingId === campaign.id,
         onClick: () => handleRestart(campaign.id),
-        className: "inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60",
+        disabled: !campaignsEnabled,
+        className: cn(
+          "inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60",
+          !campaignsEnabled && "cursor-not-allowed hover:bg-brand-600"
+        ),
       }
     }
 
@@ -560,7 +628,11 @@ export default function CampaignsPage() {
       icon: Play,
       loading: dispatchingId === campaign.id,
       onClick: () => handleLaunch(campaign.id),
-      className: "inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60",
+      disabled: !campaignsEnabled,
+      className: cn(
+        "inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60",
+        !campaignsEnabled && "cursor-not-allowed hover:bg-brand-600"
+      ),
     }
   }
 
@@ -639,6 +711,14 @@ export default function CampaignsPage() {
             <span>{error || success}</span>
           </div>
         </div>
+      )}
+
+      {!campaignsEnabled && (
+        <CampaignPaywall
+          copy={copy}
+          planLabel={currentPlanLabel}
+          onUpgrade={() => router.push("/dashboard/invoices")}
+        />
       )}
 
       {deleteDialog && (
@@ -792,16 +872,16 @@ export default function CampaignsPage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={handlePreview}
-              disabled={previewing}
-              className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60"
+              disabled={!campaignsEnabled || previewing}
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {previewing ? <Loader2 size={15} className="animate-spin" /> : <Users size={15} />}
               {copy.preview}
             </button>
             <button
               onClick={handleCreateCampaign}
-              disabled={creatingCampaign || !builder.templateId}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+              disabled={!campaignsEnabled || creatingCampaign || !builder.templateId}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {creatingCampaign ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
               {copy.createCampaign}
@@ -934,8 +1014,8 @@ export default function CampaignsPage() {
 
             <button
               onClick={handleCreateTemplate}
-              disabled={creatingTemplate}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-90 disabled:opacity-60"
+              disabled={!campaignsEnabled || creatingTemplate}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {creatingTemplate ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
               {editingTemplateId ? templateActionCopy.update : copy.createTemplateBtn}
@@ -975,7 +1055,8 @@ export default function CampaignsPage() {
                       <button
                         type="button"
                         onClick={() => handleEditTemplate(template)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-background"
+                        disabled={!campaignsEnabled}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Pencil size={12} />
                         {templateActionCopy.edit}
@@ -1040,7 +1121,7 @@ export default function CampaignsPage() {
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={action.onClick}
-                      disabled={action.loading || deleteLoading}
+                      disabled={action.disabled || action.loading || deleteLoading}
                       className={action.className}
                     >
                       {action.loading ? <Loader2 size={15} className="animate-spin" /> : <ActionIcon size={15} />}

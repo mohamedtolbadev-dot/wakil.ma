@@ -115,7 +115,12 @@ export default function PhoneSetupPage() {
     try {
       setLoading(true)
       setError(null)
-      await authAPI.phoneSetupVerify(fullPhone, code)
+      const res = await authAPI.phoneSetupVerify(fullPhone, code)
+      const verifiedPhone = res.data?.phone || fullPhone
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+        localStorage.setItem("user", JSON.stringify({ ...storedUser, phone: verifiedPhone }))
+      } catch {}
       setSuccess(true)
       setTimeout(() => router.push("/dashboard"), 1200)
     } catch (err) {

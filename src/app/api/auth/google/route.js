@@ -3,6 +3,7 @@ import { generateToken, AUTH_USER_SELECT } from "@/lib/auth"
 import { getEffectivePlan } from "@/lib/billingPlans"
 import { successResponse, errorResponse } from "@/lib/response"
 import { rateLimit } from "@/lib/rateLimit"
+import { sendWelcomeEmail } from "@/lib/email"
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 
@@ -127,6 +128,12 @@ export async function POST(request) {
           googleId: true,
         }
       })
+
+      // إرسال إيميل ترحيبي للمستخدم الجديد
+      sendWelcomeEmail({ 
+        to: user.email, 
+        name: user.name 
+      }).catch(err => console.error("⚠️ Failed to send welcome email:", err.message))
     }
 
     const jwtToken = generateToken(user.id)
@@ -138,10 +145,12 @@ export async function POST(request) {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         storeName: user.storeName,
         plan: effectivePlan,
         rawPlan: user.plan,
         planExpiresAt: user.planExpiresAt,
+        createdAt: user.createdAt,
         role: user.role,
         agent: user.agent ? {
           id: user.agent.id,

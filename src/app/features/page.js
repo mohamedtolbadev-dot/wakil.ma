@@ -11,18 +11,17 @@ import {
   Megaphone,
   MessageCircle,
   MessageSquare,
-  Moon,
   PackageCheck,
   Phone,
   Settings2,
   Shield,
   ShoppingBag,
-  Sun,
   Truck,
   Upload,
   Users,
 } from "lucide-react"
-import { Logo } from "@/components/shared/Logo"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { PublicHeader } from "@/components/public/PublicHeader"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { useAppTheme } from "@/hooks/useAppTheme"
 
@@ -239,9 +238,117 @@ const copy = {
   },
 }
 
+Object.assign(copy, {
+  ar: {
+    nav: [
+      { label: "الرئيسية", href: "/" },
+      { label: "المميزات", href: "/features", active: true },
+      { label: "المدونة", href: "/blogs" },
+      { label: "الأسئلة", href: "/#faq" },
+    ],
+    login: "دخول",
+    start: "ابدأ الآن",
+    eyebrow: "منصة واتساب للمتاجر المغربية",
+    title: "كل أدوات Wakil.ma للبيع وتأكيد وتتبع طلبيات واتساب",
+    subtitle:
+      "جمع الكاتالوغ، المحادثات، وكيل AI، الطلبيات، العملاء، الحملات وتتبع التوصيل في مساحة واحدة واضحة.",
+    primaryCta: "أنشئ حساب",
+    secondaryCta: "شوف وكيل AI",
+    proof: ["وكيل AI مضبوط على المتجر", "الطلبيات والعملاء مربوطين", "Export CSV للتوصيل والتتبع"],
+    panelTitle: "طلبية واتساب خدمها Wakil.ma",
+    panelClient: "سلام، بغيت نطلب Oud Royal",
+    panelAgent: "واخا. عطيني المدينة، العنوان والاسم الكامل باش نوجد الطلبية.",
+    panelOrder: "الطلبية تأكدات",
+    panelDelivery: "رقم التتبع واجد",
+    sectionEyebrow: "المميزات",
+    sectionTitle: "شنو كتسير المنصة دابا",
+    sectionText:
+      "كل وحدة معمولة باش تنقص الخدمة اليدوية عند متجر كيبِيع من واتساب.",
+    workflowEyebrow: "المسار",
+    workflowTitle: "من أول سؤال ديال الزبون حتى تتبع التوصيل",
+    workflowText:
+      "Wakil.ma كيخلي نفس الخيط مربوط بين المحادثة، الطلبية، العميل وحالة التوصيل.",
+    ctaTitle: "واجد تخلي واتساب قناة بيع منظمة؟",
+    ctaText: "ربط المتجر ديالك، زيد المنتجات وخلي وكيل AI يعاون العملاء ديالك.",
+    footerText: "وكيل مبيعات AI على واتساب، معمول للمتاجر المغربية.",
+    features: [
+      {
+        key: "catalog",
+        icon: ShoppingBag,
+        title: "كاتالوغ المنتجات",
+        text: "زيد المنتجات بالثمن، الصور، الوصف، الخيارات والمخزون باش الوكيل يجاوب بمعلومات صحيحة.",
+        points: ["صور وأثمنة", "خيارات ومخزون", "Import سريع"],
+      },
+      {
+        key: "agent",
+        icon: Bot,
+        title: "وكيل AI على واتساب",
+        text: "الوكيل كيفهم رسالة الزبون، كيقدم المنتجات، كيتعامل مع الاعتراضات وكيجمع معلومات الطلبية.",
+        points: ["لغة تلقائية", "تعليمات لكل متجر", "جمع معلومات الطلب"],
+      },
+      {
+        key: "conversations",
+        icon: MessageSquare,
+        title: "صندوق المحادثات",
+        text: "تابع محادثات واتساب، الرسائل، الصور والرسائل الصوتية من بلاصة واضحة.",
+        points: ["تاريخ كامل", "رد يدوي", "صور وفوكالات"],
+      },
+      {
+        key: "orders",
+        icon: PackageCheck,
+        title: "طلبيات أوتوماتيك",
+        text: "ملي الزبون كيأكد، الطلبية كتحفظ المنتج، الكمية، العميل، المدينة، العنوان والمجموع.",
+        points: ["ملخص الطلبية", "الحالات", "معلومات العميل"],
+      },
+      {
+        key: "customers",
+        icon: Users,
+        title: "العملاء والتاريخ",
+        text: "شوف معلومات العميل، الطلبيات ديالو والتاريخ باش تبقى متابع كل مشتري.",
+        points: ["بروفايل العميل", "تاريخ الشراء", "تقسيم العملاء"],
+      },
+      {
+        key: "delivery",
+        icon: Truck,
+        title: "التوصيل CSV والتتبع",
+        text: "خرج الطلبيات المؤكدة، دخل أرقام التتبع وصيفط إشعارات واتساب حسب القوالب ديالك.",
+        points: ["Export للتوصيل", "Import للتتبع", "تحديث جماعي"],
+      },
+      {
+        key: "campaigns",
+        icon: Megaphone,
+        title: "حملات واتساب",
+        text: "وجد حملات بالقوالب، الشرائح والتتبع باش ترجع تتواصل مع العملاء بطريقة منظمة.",
+        points: ["Templates Meta", "شرائح العملاء", "تتبع الإرسال"],
+      },
+      {
+        key: "analytics",
+        icon: BarChart3,
+        title: "التحليلات",
+        text: "تابع المبيعات، الطلبيات، أداء وكيل AI، الاستهلاك ومؤشرات التوصيل.",
+        points: ["المبيعات", "التحويل", "استهلاك AI"],
+      },
+      {
+        key: "settings",
+        icon: Settings2,
+        title: "إعدادات المتجر",
+        text: "تحكم في WhatsApp Cloud API، لغة التواصل، قوالب الرسائل والتتبع.",
+        points: ["قوالب الطلبية", "رابط التتبع", "قواعد الوكيل"],
+      },
+    ],
+    workflow: [
+      { title: "رسالة واتساب", text: "الزبون كيسول أو كيطلب منتج.", icon: MessageCircle },
+      { title: "رد وكيل AI", text: "الوكيل كيجاوب من الكاتالوغ وكيعاون فالبيع.", icon: Brain },
+      { title: "إنشاء الطلبية", text: "المعلومات المهمة كتبقى محفوظة في Orders.", icon: PackageCheck },
+      { title: "Export للتوصيل", text: "الأدمن كيخرج CSV لشركة التوصيل.", icon: FileSpreadsheet },
+      { title: "تتبع العميل", text: "التتبع وإشعارات واتساب كيبقاو في السيستم.", icon: Truck },
+    ],
+  },
+})
+
 export default function FeaturesPage() {
-  const { language, setLanguage } = useLanguage()
-  const { isDark, toggleTheme } = useAppTheme()
+  const { language } = useLanguage()
+  const { isDark } = useAppTheme()
   const lang = language === "ar" ? "ar" : "fr"
   const data = copy[lang]
   const isRTL = lang === "ar"
@@ -253,13 +360,7 @@ export default function FeaturesPage() {
         isDark ? "bg-[#090817] text-white" : "bg-[#fbfbff] text-slate-950"
       }`}
     >
-      <Header
-        data={data}
-        isDark={isDark}
-        isRTL={isRTL}
-        onToggleTheme={toggleTheme}
-        onToggleLanguage={() => setLanguage(isRTL ? "fr" : "ar")}
-      />
+      <PublicHeader />
 
       <section className="relative px-4 sm:px-6 pt-12 pb-14 sm:pt-16 sm:pb-18">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1.02fr_0.98fr]">
@@ -390,75 +491,8 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      <Footer data={data} isDark={isDark} />
+      <PublicFooter />
     </main>
-  )
-}
-
-function Header({ data, isDark, isRTL, onToggleTheme, onToggleLanguage }) {
-  return (
-    <header
-      className={`sticky top-0 z-50 border-b backdrop-blur-xl ${
-        isDark ? "border-white/10 bg-[#090817]/78" : "border-brand-100 bg-white/78"
-      }`}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Logo />
-
-        <nav className="hidden items-center gap-5 md:flex">
-          {data.nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              className={`text-sm font-bold transition ${
-                item.active
-                  ? "text-brand-600"
-                  : isDark
-                    ? "text-white/60 hover:text-white"
-                    : "text-slate-600 hover:text-slate-950"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onToggleTheme}
-            aria-label="Toggle theme"
-            className={`grid h-9 w-9 place-items-center rounded-xl border transition ${
-              isDark ? "border-white/12 bg-white/8 text-white" : "border-brand-100 bg-white text-brand-700"
-            }`}
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <button
-            onClick={onToggleLanguage}
-            className={`h-9 rounded-xl border px-3 text-xs font-black transition ${
-              isDark ? "border-white/12 bg-white/8 text-white" : "border-brand-100 bg-white text-brand-700"
-            }`}
-          >
-            {isRTL ? "FR" : "عربي"}
-          </button>
-          <Link
-            href="/login"
-            className={`hidden rounded-xl px-3 py-2 text-sm font-bold transition sm:inline-flex ${
-              isDark ? "text-white/70 hover:text-white" : "text-slate-600 hover:text-slate-950"
-            }`}
-          >
-            {data.login}
-          </Link>
-          <Link
-            href="/register"
-            className="inline-flex rounded-xl bg-brand-600 px-3 py-2 text-sm font-black text-white transition hover:bg-brand-700 sm:px-4"
-          >
-            {data.start}
-          </Link>
-        </div>
-      </div>
-    </header>
   )
 }
 
@@ -600,29 +634,5 @@ function WorkflowStep({ step, index, isDark, showLine }) {
         <p className={`mt-2 text-xs leading-6 ${isDark ? "text-white/58" : "text-slate-600"}`}>{step.text}</p>
       </div>
     </div>
-  )
-}
-
-function Footer({ data, isDark }) {
-  return (
-    <footer className={`border-t px-4 py-8 sm:px-6 ${isDark ? "border-white/10" : "border-brand-100"}`}>
-      <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Logo />
-          <p className={`mt-3 max-w-md text-sm leading-6 ${isDark ? "text-white/55" : "text-slate-600"}`}>{data.footerText}</p>
-        </div>
-        <div className="flex flex-wrap gap-4 text-sm font-bold">
-          {data.nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={item.active ? "text-brand-600" : isDark ? "text-white/58 hover:text-white" : "text-slate-600 hover:text-slate-950"}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-    </footer>
   )
 }

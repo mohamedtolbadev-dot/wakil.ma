@@ -1,6 +1,23 @@
 import PDFDocument from "pdfkit"
 import { getInvoicePlanLabel } from "@/lib/invoiceHelpers"
 
+const BRAND_COLOR = "#534AB7"
+const BRAND_TINT = "#EFEDFF"
+const BORDER_COLOR = "#E6E3F7"
+const TEXT_COLOR = "#111827"
+const MUTED_COLOR = "#374151"
+
+function drawWakilLogo(doc, x, y) {
+  doc.save()
+  doc.roundedRect(x, y, 42, 42, 10).fill(BRAND_COLOR)
+  doc.roundedRect(x + 7, y + 7, 26, 20, 6).fill("#FFFFFF")
+  doc.polygon([x + 10, y + 27], [x + 5, y + 35], [x + 17, y + 27]).fill("#FFFFFF")
+  doc.circle(x + 13, y + 17, 2.4).fill(BRAND_COLOR)
+  doc.circle(x + 21, y + 17, 2.4).fill(BRAND_COLOR)
+  doc.circle(x + 29, y + 17, 2.4).fill(BRAND_COLOR)
+  doc.restore()
+}
+
 export function generateInvoicePDF(invoice, locale = "fr") {
   return new Promise((resolve, reject) => {
     try {
@@ -26,7 +43,7 @@ export function generateInvoicePDF(invoice, locale = "fr") {
         notes:       "Notes",
         total:       "TOTAL:",
         footer1:     "Merci de votre confiance!",
-        footer2:     "salesbot.ma - Agent de vente intelligent",
+        footer2:     "Wakil.ma - Agent WhatsApp IA",
         dateLocale:  "fr-MA",
       } : {
         title:       "FACTURE",
@@ -47,7 +64,7 @@ export function generateInvoicePDF(invoice, locale = "fr") {
         notes:       "Notes",
         total:       "TOTAL:",
         footer1:     "Thank you for your trust!",
-        footer2:     "salesbot.ma - Smart Sales Agent",
+        footer2:     "Wakil.ma - AI WhatsApp Agent",
         dateLocale:  "en-MA",
       }
 
@@ -66,38 +83,40 @@ export function generateInvoicePDF(invoice, locale = "fr") {
       doc.on("error", reject)
 
       // ── Header ──
-      doc.fontSize(28).fillColor("#2563eb").text(L.title, { align: "center" })
-      doc.moveDown(0.3)
-      doc.fontSize(12).fillColor("#555").text(`${L.invoiceNum} ${invoice.invoiceNumber}`, { align: "center" })
-      doc.moveDown(1)
-      doc.strokeColor("#e5e7eb").lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
+      drawWakilLogo(doc, 50, 42)
+      doc.fontSize(24).fillColor(BRAND_COLOR).text("Wakil.ma", 100, 48, { width: 190 })
+      doc.fontSize(8).fillColor("#8A84C9").text("AI WHATSAPP AGENT", 102, 76, { width: 190, characterSpacing: 1.2 })
+      doc.fontSize(28).fillColor(BRAND_COLOR).text(L.title, 330, 52, { width: 215, align: "right" })
+      doc.fontSize(12).fillColor("#555").text(`${L.invoiceNum} ${invoice.invoiceNumber}`, 330, 84, { width: 215, align: "right" })
+      doc.y = 110
+      doc.strokeColor(BORDER_COLOR).lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
       doc.moveDown(1)
 
       // ── Client Info ──
-      doc.fontSize(13).fillColor("#111827").text(L.clientInfo)
+      doc.fontSize(13).fillColor(TEXT_COLOR).text(L.clientInfo)
       doc.moveDown(0.4)
-      doc.fontSize(11).fillColor("#374151")
+      doc.fontSize(11).fillColor(MUTED_COLOR)
       doc.text(`${L.name}: ${invoice.client.name}`)
       doc.text(`${L.store}: ${invoice.client.storeName || "-"}`)
       if (invoice.client.email) doc.text(`${L.email}: ${invoice.client.email}`)
       if (invoice.client.phone) doc.text(`${L.phone}: ${invoice.client.phone}`)
       doc.moveDown(1)
-      doc.strokeColor("#e5e7eb").lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
+      doc.strokeColor(BORDER_COLOR).lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
       doc.moveDown(1)
 
       // ── Table ──
-      doc.fontSize(13).fillColor("#111827").text(L.details)
+      doc.fontSize(13).fillColor(TEXT_COLOR).text(L.details)
       doc.moveDown(0.5)
 
       const tableY = doc.y
       // header row
-      doc.fillColor("#dbeafe").rect(50, tableY, 500, 28).fill()
-      doc.fillColor("#1e40af").fontSize(10)
+      doc.fillColor(BRAND_TINT).rect(50, tableY, 500, 28).fill()
+      doc.fillColor(BRAND_COLOR).fontSize(10)
       doc.text(L.colDesc,   60, tableY + 8, { width: 300 })
       doc.text(L.colAmount, 380, tableY + 8, { width: 150, align: "right" })
       // data row
       doc.fillColor("#f9fafb").rect(50, tableY + 28, 500, 28).fill()
-      doc.fillColor("#374151").fontSize(11)
+      doc.fillColor(MUTED_COLOR).fontSize(11)
       doc.text(`${L.plan}: ${planLabel}`, 60, tableY + 36, { width: 300 })
       doc.text(`${invoice.amount} ${L.currency}`, 380, tableY + 36, { width: 150, align: "right" })
 
@@ -105,35 +124,35 @@ export function generateInvoicePDF(invoice, locale = "fr") {
       doc.moveDown(0.8)
 
       // ── Dates ──
-      doc.fontSize(11).fillColor("#374151")
+      doc.fontSize(11).fillColor(MUTED_COLOR)
       doc.text(`${L.issueDate} ${createdDateStr}`)
       doc.text(`${L.dueDate} ${dueDateStr}`)
       doc.moveDown(1)
 
       // ── Bank Info ──
       if (invoice.bankInfo) {
-        doc.strokeColor("#e5e7eb").lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
+        doc.strokeColor(BORDER_COLOR).lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
         doc.moveDown(0.8)
-        doc.fontSize(13).fillColor("#111827").text(L.bankInfo)
+        doc.fontSize(13).fillColor(TEXT_COLOR).text(L.bankInfo)
         doc.moveDown(0.4)
-        doc.fontSize(11).fillColor("#374151").text(invoice.bankInfo, { lineGap: 3 })
+        doc.fontSize(11).fillColor(MUTED_COLOR).text(invoice.bankInfo, { lineGap: 3 })
         doc.moveDown(1)
       }
 
       // ── Notes ──
       if (invoice.notes) {
-        doc.strokeColor("#e5e7eb").lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
+        doc.strokeColor(BORDER_COLOR).lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
         doc.moveDown(0.8)
-        doc.fontSize(13).fillColor("#111827").text(L.notes)
+        doc.fontSize(13).fillColor(TEXT_COLOR).text(L.notes)
         doc.moveDown(0.4)
-        doc.fontSize(11).fillColor("#374151").text(invoice.notes, { lineGap: 3 })
+        doc.fontSize(11).fillColor(MUTED_COLOR).text(invoice.notes, { lineGap: 3 })
         doc.moveDown(1)
       }
 
       // ── Total ──
-      doc.strokeColor("#2563eb").lineWidth(2).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
+      doc.strokeColor(BRAND_COLOR).lineWidth(2).moveTo(50, doc.y).lineTo(550, doc.y).stroke()
       doc.moveDown(0.6)
-      doc.fontSize(16).fillColor("#2563eb")
+      doc.fontSize(16).fillColor(BRAND_COLOR)
         .text(`${L.total}  ${invoice.amount} ${L.currency}`, { align: "center" })
       doc.moveDown(1.5)
 

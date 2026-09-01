@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/prisma"
 import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse } from "@/lib/response"
+import { normalizePhone } from "@/lib/phone"
 
 export async function POST(request) {
   try {
     const user = await getUserFromRequest(request)
     if (!user) return errorResponse("fr:Non autorisé||ar:غير مصرح", 401)
 
-    const { phone, code } = await request.json()
+    const { phone: rawPhone, code } = await request.json()
+    const phone = normalizePhone(rawPhone)
     if (!phone || !code) return errorResponse("fr:Données manquantes||ar:بيانات ناقصة", 400)
 
     const record = await prisma.verificationToken.findFirst({

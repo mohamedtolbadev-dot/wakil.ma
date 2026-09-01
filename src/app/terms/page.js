@@ -1,7 +1,8 @@
 "use client"
 
-import Link from "next/link"
-import { MessageCircle, ArrowLeft, Scale, FileText, AlertTriangle, CheckCircle } from "lucide-react"
+import { Scale, FileText, AlertTriangle, CheckCircle } from "lucide-react"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { PublicHeader } from "@/components/public/PublicHeader"
 import { useLanguage } from "@/contexts/LanguageContext"
 
 const translations = {
@@ -141,24 +142,7 @@ export default function TermsPage() {
   const isRTL = language === "ar"
   return (
     <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-              <MessageCircle size={16} className="text-white" />
-            </div>
-            <span className="font-bold text-foreground">Wakil.ma</span>
-          </div>
-          <Link 
-            href="/"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand-600 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            {t.back}
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Content */}
       <main className="max-w-3xl mx-auto px-4 py-12">
@@ -299,13 +283,9 @@ export default function TermsPage() {
           </section>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-12 pt-8 border-t border-border text-center">
-          <p className="text-xs text-muted-foreground">
-            © 2025 wakil.ma - {t.footer}
-          </p>
-        </footer>
       </main>
+
+      <PublicFooter />
     </div>
   )
 }

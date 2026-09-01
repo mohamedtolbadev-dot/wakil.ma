@@ -13,6 +13,7 @@ import {
 } from "@/lib/campaigns/engagement"
 import { sanitizeInput } from "@/lib/helpers"
 import { normalizePhone } from "@/lib/phone"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 import crypto from "crypto"
 
 const PROFILE_NAME_SENTENCE_RE = /\b(?:rah|ra|rani|hani|sift|syft|siftlik|syftlik|siftlek|smyti|smiti|smiyti|smitiya|name|nom|sent|send|already|deja|déjà|عطيتك|رسلت|رسلتلك|صيفطت|صيفطتلك|سميتي|الاسم|الإسم|قبل|من\s*قبل|راه|ها|هادي|هدا)\b/i
@@ -272,6 +273,11 @@ export async function POST(request) {
       return new Response("OK", { status: 200 })
     }
   } else {
+    if (process.env.NODE_ENV === "production") {
+      console.error("WHATSAPP_APP_SECRET is required in production")
+      return new Response("Webhook signature secret missing", { status: 500 })
+    }
+
     console.warn("WHATSAPP_APP_SECRET not configured; skipping webhook signature verification")
     try {
       parsedBody = await request.json()
@@ -297,10 +303,10 @@ export async function POST(request) {
           return
         }
 
-        const agent = await prisma.agent.findFirst({
+        const agent = decryptAgentSecrets(await prisma.agent.findFirst({
           where: { whatsappPhoneId: incoming.phoneId },
           include: { user: true },
-        })
+        }))
 
         if (!agent) {
           console.log(`âš ï¸ [${maskedIncomingPhone}] no agent for phoneId ${incoming.phoneId}`)
@@ -490,7 +496,7 @@ export async function POST(request) {
           .replace(/\[SEND[_ ]IMAGES?\]/gi, "")
           .trim()
 
-        // ─── Send reply (always text, even if original was voice) ───────────
+        // ─── Send reply (text, even if original was voice) ──────────────────
         let sent
 
         const replyDelayMs = resolveReplyDelayMs(agent)
@@ -499,7 +505,6 @@ export async function POST(request) {
           await sleep(replyDelayMs)
         }
 
-        // Normal text reply — AI understands voice but replies in text
         console.log("📤 [AI Reply] sending:", {
           conversationId: result.conversationId,
           to: incoming.from,

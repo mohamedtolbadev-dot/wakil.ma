@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { withProductInsight } from "@/lib/productInsights"
 
 import { getUserFromRequest } from "@/lib/auth"
+import { getEffectivePlanEntitlements } from "@/lib/billingPlans"
 
 import {
 
@@ -87,8 +88,19 @@ export async function POST(request) {
 
   try {
 
+    const entitlements = getEffectivePlanEntitlements(user)
+    if (Number.isInteger(entitlements.productLimit)) {
+      const productsCount = await prisma.product.count({ where: { userId: user.id } })
+      if (productsCount >= entitlements.productLimit) {
+        return errorResponse(
+          `Product limit reached for ${entitlements.plan} plan (${entitlements.productLimit} products). Upgrade to add more products.`,
+          403
+        )
+      }
+    }
+
     const body = await request.json()
-    const { name, price, salePrice, category, variants, askQuantity, description, images, stock } = body
+    const { name, price, salePrice, category, variants, askQuantity, description, images, videos, stock } = body
 
 
 
@@ -170,6 +182,7 @@ export async function POST(request) {
         description: description || "",
 
         images: images ? JSON.stringify(images) : null,
+        videos: videos ? JSON.stringify(videos) : null,
 
         stock: parsedStock,
 

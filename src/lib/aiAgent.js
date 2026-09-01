@@ -13,6 +13,7 @@ import {
 } from "@/lib/orderExtraction"
 import { reserveAIReply, releaseAIReplyReservation, recordAIUsage, estimateCostUsd, getEffectivePlan } from "@/lib/usageLimits"
 import { sendWhatsAppMessage } from "@/lib/whatsapp"
+import { decryptAgentSecrets } from "@/lib/secretCrypto"
 // دالة تطبيع رقم الهاتف (منع التكرار)
 export function normalizePhone(phone) {
   if (!phone) return null
@@ -1908,18 +1909,18 @@ function detectOrderFollowUpIntent(text) {
 }
 function formatOrderStatusLabel(status, lang = "darija") {
   const ar = {
-    PENDING: "في الانتظار ⏳",
-    CONFIRMED: "مؤكدة ✅",
-    SHIPPED: "في الشحن 🚚",
-    DELIVERED: "تم التسليم ✅",
-    CANCELLED: "ملغية ❌",
+    PENDING: "في الانتظار ",
+    CONFIRMED: "مؤكدة ",
+    SHIPPED: "في الشحن ",
+    DELIVERED: "تم التسليم ",
+    CANCELLED: "ملغية ",
   }
   const fr = {
-    PENDING: "En attente ⏳",
-    CONFIRMED: "Confirmée ✅",
-    SHIPPED: "Expédiée 🚚",
-    DELIVERED: "Livrée ✅",
-    CANCELLED: "Annulée ❌",
+    PENDING: "En attente ",
+    CONFIRMED: "Confirmée ",
+    SHIPPED: "Expédiée ",
+    DELIVERED: "Livrée ",
+    CANCELLED: "Annulée ",
   }
   const map = lang === "french"
     ? fr
@@ -2525,14 +2526,14 @@ export async function processIncomingMessage({
     const mentionedOrdersFromIntent = []
     console.log(`[processIncomingMessage] userId=${userId}, hasPhone=${!!customerPhone}, hasName=${!!customerName}`)
     // 1. جلب Agent مع المنتجات والردود
-    const agent = await prisma.agent.findUnique({
+    const agent = decryptAgentSecrets(await prisma.agent.findUnique({
       where: { userId },
       include: {
         objectionReplies: {
           orderBy: { order: "asc" }
         }
       }
-    })
+    }))
     if (!agent || !agent.isActive) {
       console.log(`[processIncomingMessage] Agent not found or inactive`)
       return { reply: null, skipped: true, imageUrls: [] }
@@ -3035,7 +3036,7 @@ export async function processIncomingMessage({
           content: greetingReply,
         }
       })
-      // Update conversation stage
+      // Updapp/api/webhook/route.tste conversation stage
       await prisma.conversation.update({
         where: { id: conversation.id },
         data: {

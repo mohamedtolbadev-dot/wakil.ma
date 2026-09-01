@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, memo } from "react"
 import { useRouter } from "next/navigation"
-import { statsAPI, conversationsAPI, agentAPI } from "@/lib/api"
+import { statsAPI, conversationsAPI, agentAPI, authAPI, apiRequest } from "@/lib/api"
 import { getStageConfig, getStageLabel, getStageClassName, getScoreColor, getInitials } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
 import {
@@ -27,7 +27,7 @@ const globalStyles = `
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle at 30% 30%, rgba(83, 74, 183, 0.15) 0%, transparent 50%);
+    background: rgba(83, 74, 183, 0.08);
     opacity: 0;
     transition: opacity 0.4s ease;
     pointer-events: none;
@@ -39,7 +39,7 @@ const globalStyles = `
   
   .shimmer-border {
     position: relative;
-    background: linear-gradient(135deg, rgba(83, 74, 183, 0.1) 0%, rgba(83, 74, 183, 0.05) 100%);
+    background: rgba(83, 74, 183, 0.08);
     border: 1px solid rgba(83, 74, 183, 0.2);
     transition: all 0.3s ease;
   }
@@ -49,14 +49,14 @@ const globalStyles = `
   }
   
   .glass-purple {
-    background: linear-gradient(135deg, rgba(83, 74, 183, 0.95) 0%, rgba(83, 74, 183, 0.85) 100%);
+    background: rgba(83, 74, 183, 0.95);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,0.15);
   }
   
   .glass-purple-strong {
-    background: linear-gradient(145deg, rgba(83, 74, 183, 0.98) 0%, rgba(70, 60, 160, 0.95) 50%, rgba(83, 74, 183, 0.98) 100%);
+    background: rgba(83, 74, 183, 0.98);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255,255,255,0.2);
@@ -92,7 +92,7 @@ const globalStyles = `
   }
   
   .gradient-text {
-    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+    background: #fff;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -109,12 +109,7 @@ const globalStyles = `
     left: -100%;
     width: 50%;
     height: 200%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255,255,255,0.1),
-      transparent
-    );
+    background: rgba(255,255,255,0.1);
     transform: rotate(25deg);
     transition: all 0.6s ease;
   }
@@ -130,7 +125,7 @@ const globalStyles = `
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.3) 0%, transparent 60%);
+    background: rgba(255,255,255,0.15);
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -175,7 +170,7 @@ const globalStyles = `
   }
   
   .stat-icon-bg {
-    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+    background: rgba(255,255,255,0.15);
     box-shadow: 
       inset 0 1px 0 rgba(255,255,255,0.3),
       0 4px 12px rgba(0,0,0,0.1);
@@ -193,7 +188,7 @@ const globalStyles = `
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(83, 74, 183, 0.03), transparent);
+    background: rgba(83, 74, 183, 0.03);
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -421,12 +416,7 @@ const skeletonStyles = `
   /* ── base bone ── */
   .sk-bone {
     border-radius: 8px;
-    background: linear-gradient(
-      90deg,
-      rgba(83,74,183,0.07) 0%,
-      rgba(83,74,183,0.16) 40%,
-      rgba(83,74,183,0.07) 80%
-    );
+    background: rgba(83,74,183,0.12);
     background-size: 600px 100%;
     animation: shimmer 1.6s ease-in-out infinite;
   }
@@ -443,7 +433,7 @@ const skeletonStyles = `
   /* ── stat card (matches bg-brand-600 originals) ── */
   .sk-stat-card {
     border-radius: 14px;
-    background: linear-gradient(135deg, rgba(83,74,183,0.18) 0%, rgba(83,74,183,0.10) 100%);
+    background: rgba(83,74,183,0.14);
     border: 1px solid rgba(83,74,183,0.22);
     padding: 18px 20px 16px;
     animation: fade-in 0.5s ease both;
@@ -454,12 +444,7 @@ const skeletonStyles = `
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(83,74,183,0.08) 50%,
-      transparent 100%
-    );
+    background: rgba(83,74,183,0.08);
     background-size: 600px 100%;
     animation: shimmer 2s ease-in-out infinite;
   }
@@ -467,7 +452,7 @@ const skeletonStyles = `
   /* ── agent card (matches bg-brand-600 solid) ── */
   .sk-agent-card {
     border-radius: 14px;
-    background: linear-gradient(145deg, rgba(83,74,183,0.22) 0%, rgba(70,60,160,0.18) 100%);
+    background: rgba(83,74,183,0.20);
     border: 1px solid rgba(83,74,183,0.30);
     overflow: hidden;
     animation: border-breathe 3s ease-in-out infinite;
@@ -480,7 +465,7 @@ const skeletonStyles = `
     left: -40%;
     width: 180%;
     height: 180%;
-    background: radial-gradient(circle, rgba(83,74,183,0.12) 0%, transparent 60%);
+    background: rgba(83,74,183,0.06);
     animation: glow-pulse 3s ease-in-out infinite;
     pointer-events: none;
   }
@@ -612,7 +597,7 @@ function DashboardSkeleton() {
                 <div style={{
                   height: "100%",
                   width: "60%",
-                  background: "linear-gradient(90deg, rgba(83,74,183,0.3), rgba(83,74,183,0.6))",
+                  background: "rgba(83,74,183,0.45)",
                   borderRadius: 99,
                   animation: "shimmer 2s ease-in-out infinite",
                   backgroundSize: "200px 100%",
@@ -740,7 +725,7 @@ function DashboardSkeleton() {
                 height: "100%",
                 width: "72%",
                 borderRadius: 999,
-                background: "linear-gradient(90deg, rgba(83,74,183,0.35), rgba(83,74,183,0.70))",
+                background: "rgba(83,74,183,0.52)",
                 animation: "shimmer 2s ease-in-out infinite",
                 backgroundSize: "200px 100%",
               }}
@@ -856,7 +841,7 @@ function DashboardSkeleton() {
                       height: "100%",
                       width: `${pct}%`,
                       borderRadius: 99,
-                      background: "linear-gradient(90deg, rgba(83,74,183,0.25), rgba(83,74,183,0.50))",
+                      background: "rgba(83,74,183,0.38)",
                       animation: "shimmer 1.8s ease-in-out infinite",
                       backgroundSize: "200px 100%",
                       transition: "width 0.8s ease",
@@ -944,7 +929,7 @@ function DashboardSkeleton() {
                       height: "100%",
                       width: "42%",
                       borderRadius: 99,
-                      background: "linear-gradient(90deg, rgba(255,255,255,0.30), rgba(255,255,255,0.65))",
+                      background: "rgba(255,255,255,0.48)",
                       animation: "shimmer 2s ease-in-out infinite",
                       backgroundSize: "200px 100%",
                     }} />
@@ -993,8 +978,14 @@ export default function DashboardPage() {
   const [stats, setStats] = useState(null)
   const [conversations, setConversations] = useState([])
   const [agent, setAgent] = useState(null)
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false)
+  const [phoneInput, setPhoneInput] = useState("")
+  const [phoneSaving, setPhoneSaving] = useState(false)
+  const [phoneError, setPhoneError] = useState("")
+  const [phoneToast, setPhoneToast] = useState(null)
 
   const agentLanguageLabel = useMemo(() => {
     if (!agent?.language) return "—"
@@ -1013,17 +1004,59 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchDashboardData() }, [])
 
+  useEffect(() => {
+    if (user && !user.phone) setPhoneModalOpen(true)
+  }, [user])
+
+  function showPhoneToast(message, type = "success") {
+    setPhoneToast({ message, type })
+    setTimeout(() => setPhoneToast(null), 3500)
+  }
+
+  async function handleSavePhone() {
+    const phone = phoneInput.trim()
+    if (!phone) {
+      setPhoneError(language === "ar" ? "دخل رقم واتساب أولا" : "Entrez votre numero WhatsApp")
+      return
+    }
+
+    try {
+      setPhoneSaving(true)
+      setPhoneError("")
+      const response = await apiRequest("/api/auth/update-profile", {
+        method: "PATCH",
+        body: JSON.stringify({ phone }),
+      })
+      const updatedUser = response.data
+      setUser((prev) => ({ ...prev, ...updatedUser }))
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
+        localStorage.setItem("user", JSON.stringify({ ...storedUser, ...updatedUser }))
+      } catch {}
+      setPhoneModalOpen(false)
+      showPhoneToast(
+        language === "ar" ? "تم حفظ رقم واتساب في إعدادات الحساب" : "Numero WhatsApp enregistre dans le compte"
+      )
+    } catch (err) {
+      setPhoneError(err?.message || (language === "ar" ? "تعذر حفظ الرقم" : "Impossible d'enregistrer le numero"))
+    } finally {
+      setPhoneSaving(false)
+    }
+  }
+
   async function fetchDashboardData() {
     try {
       setLoading(true)
-      const [statsData, conversationsData, agentData] = await Promise.all([
+      const [statsData, conversationsData, agentData, userData] = await Promise.all([
         statsAPI.getStats(),
         conversationsAPI.getAll({ limit: 5 }),
         agentAPI.get(),
+        authAPI.me(),
       ])
       setStats(statsData.data)
       setConversations(conversationsData.data?.conversations || [])
       setAgent(agentData.data)
+      setUser(userData.data || null)
     } catch (err) {
       setError(err?.message || "error")
     } finally {
@@ -1060,6 +1093,103 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-5">
       <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+
+      {phoneModalOpen && !user?.phone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPhoneModalOpen(false)} />
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600/10 text-brand-600">
+                <MessageCircle size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-bold text-foreground">
+                  {language === "ar" ? "سجل رقم واتساب ديالك" : "Ajoutez votre numero WhatsApp"}
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {language === "ar"
+                    ? "باش توصلك الفواتير والتنبيهات المهمة، دخل رقم واتساب ديالك. غادي يتسجل مباشرة في إعدادات الحساب."
+                    : "Entrez votre numero WhatsApp pour recevoir les factures et les alertes importantes. Il sera enregistre dans les parametres du compte."}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <label className="text-xs font-semibold text-muted-foreground">
+                {language === "ar" ? "رقم واتساب" : "Numero WhatsApp"}
+              </label>
+              <input
+                type="tel"
+                value={phoneInput}
+                onChange={(e) => { setPhoneInput(e.target.value); setPhoneError("") }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSavePhone() }}
+                placeholder="06 00 00 00 00"
+                dir="ltr"
+                className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition-colors focus:border-brand-400"
+                autoFocus
+              />
+              {phoneError && <p className="mt-2 text-xs text-red-500">{phoneError}</p>}
+            </div>
+
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                onClick={() => setPhoneModalOpen(false)}
+                className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                {language === "ar" ? "لاحقا" : "Plus tard"}
+              </button>
+              <button
+                onClick={handleSavePhone}
+                disabled={phoneSaving}
+                className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+              >
+                {phoneSaving
+                  ? (language === "ar" ? "جاري الحفظ..." : "Enregistrement...")
+                  : (language === "ar" ? "حفظ الرقم" : "Enregistrer")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {phoneToast && (
+        <div className={cn(
+          "fixed right-4 top-4 z-50 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg",
+          phoneToast.type === "success"
+            ? "border-green-500/30 bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300"
+            : "border-red-500/30 bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
+        )}>
+          {phoneToast.message}
+        </div>
+      )}
+
+      {false && !user?.phone && (
+        <div className="rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/15">
+                <MessageCircle size={17} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">
+                  {language === "ar" ? "سجل رقم واتساب ديالك" : "Ajoutez votre numero WhatsApp"}
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed opacity-80">
+                  {language === "ar"
+                    ? "هاد الرقم غادي نستعملوه باش توصلك الفواتير والتنبيهات المهمة، وغادي يبان في إعدادات الحساب."
+                    : "Ce numero sera utilise pour recevoir les factures et les alertes importantes, puis apparaitra dans les parametres du compte."}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/phone-setup")}
+              className="shrink-0 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700"
+            >
+              {language === "ar" ? "تسجيل الرقم" : "Ajouter le numero"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── 1. Header ── */}
       <div className="flex justify-between items-center">
@@ -1335,7 +1465,7 @@ export default function DashboardPage() {
                   className="h-full rounded-full"
                   style={{
                     width: `${stats?.conversionRate ?? 0}%`,
-                    background: "linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0.9))",
+                    background: "rgba(255,255,255,0.70)",
                     transition: "width 1s cubic-bezier(0.16,1,0.3,1)",
                   }}
                 />

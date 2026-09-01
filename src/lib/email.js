@@ -49,6 +49,73 @@ export async function sendOTPEmail({ to, code, appName = "wakil.ma" }) {
   }
 }
 
+export async function sendWelcomeEmail({ to, name, appName = "wakil.ma" }) {
+  const emailUser = process.env.EMAIL_USER
+  const emailPass = process.env.EMAIL_PASS
+
+  if (!emailUser || !emailPass) {
+    console.warn("⚠️ EMAIL_USER or EMAIL_PASS not configured")
+    return { success: false, error: "Email credentials not configured" }
+  }
+
+  try {
+    const transporter = createTransporter()
+
+    await transporter.sendMail({
+      from: `"${appName}" <${emailUser}>`,
+      to,
+      subject: `🎉 Bienvenue sur ${appName}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:32px;border-radius:12px;">
+          <div style="background:#ffffff;border-radius:10px;padding:40px;border:1px solid #e5e7eb;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <h1 style="color:#4f46e5;margin:0 0 8px;font-size:32px;">🎉</h1>
+              <h2 style="color:#1e293b;margin:0;font-size:24px;">Bienvenue sur ${appName}!</h2>
+            </div>
+            
+            <p style="color:#334155;font-size:15px;line-height:1.7;margin:0 0 24px;">
+              Bonjour <strong>${name}</strong>,<br/><br/>
+              Nous sommes ravis de vous accueillir ! Votre compte a été créé avec succès.
+            </p>
+
+            <div style="background:#f8fafc;border-left:4px solid #4f46e5;padding:20px;margin:24px 0;border-radius:6px;">
+              <p style="color:#334155;font-size:14px;line-height:1.6;margin:0;">
+                <strong>🤖 Votre agent IA est prêt</strong><br/>
+                Transformez vos conversations WhatsApp en ventes automatiquement.
+              </p>
+            </div>
+
+            <div style="text-align:center;margin:32px 0;">
+              <a href="https://www.wakil.ma/dashboard" style="display:inline-block;background:#4f46e5;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">
+                Accéder au tableau de bord
+              </a>
+            </div>
+
+            <div style="border-top:1px solid #e5e7eb;padding-top:24px;margin-top:32px;">
+              <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0;">
+                <strong>Prochaines étapes :</strong><br/>
+                1️⃣ Configurez votre agent<br/>
+                2️⃣ Ajoutez vos produits<br/>
+                3️⃣ Connectez WhatsApp
+              </p>
+            </div>
+
+            <p style="color:#94a3b8;font-size:12px;text-align:center;margin:24px 0 0;">
+              Besoin d'aide ? Contactez-nous
+            </p>
+          </div>
+        </div>
+      `,
+    })
+
+    console.log(`✅ Welcome email sent to ${to}`)
+    return { success: true }
+  } catch (error) {
+    console.error("❌ sendWelcomeEmail error:", error.message)
+    return { success: false, error: error.message }
+  }
+}
+
 export async function sendPasswordResetEmail({ to, resetUrl, appName = "wakil.ma" }) {
   const emailUser = process.env.EMAIL_USER
   const emailPass = process.env.EMAIL_PASS

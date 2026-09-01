@@ -280,7 +280,9 @@ export function TopBar() {
                   // Mobile: full-width with margins
                   "top-[60px] left-3 right-3",
                   // Desktop: anchored, fixed width
-                  "sm:absolute sm:top-[calc(100%+8px)] sm:left-auto sm:right-0 sm:w-[320px]",
+                  "sm:absolute sm:top-[calc(100%+8px)] sm:w-[320px]",
+                  // RTL positioning
+                  isRTL ? "sm:left-0 sm:right-auto" : "sm:left-auto sm:right-0",
                 )}
                 style={{
                   backgroundColor: "var(--modal-surface, var(--card))",
