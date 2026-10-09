@@ -58,7 +58,7 @@ function ConvCard({ conv, stage, scoreColor, onRestore, onDelete }) {
       <div className="absolute left-2 top-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
         <button
           onClick={() => onRestore(conv.id)}
-          className="w-7 h-7 rounded-full bg-brand-100 hover:bg-brand-200 flex items-center justify-center"
+          className="w-7 h-7 rounded-full bg-brand-600/10 hover:bg-brand-600/20 flex items-center justify-center"
           title="استعادة من الأرشيف"
         >
           <RotateCcw size={14} className="text-brand-600" />

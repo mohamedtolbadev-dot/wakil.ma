@@ -143,12 +143,10 @@ function useLightboxKeyboard({ isOpen, onClose, onPrev, onNext, length }) {
 
 function SectionBadge({ icon: Icon, label, isDark = false }) {
   return (
-    <div className={`inline-flex items-center gap-2 backdrop-blur-md rounded-full px-5 py-2.5 mb-6 shadow-sm
-      ${isDark
-        ? 'bg-white/10 border border-white/20'
-        : 'bg-white/80 border border-slate-200/70'}`}>
-      <Icon size={15} className={isDark ? 'text-brand-300 shrink-0' : 'text-brand-600 shrink-0'} />
-      <span className={`text-sm font-bold ${isDark ? 'text-white/90' : 'text-brand-700'}`}>{label}</span>
+    <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 mb-6
+      ${isDark ? 'border border-brand-400 text-brand-300' : 'border border-brand-600 text-brand-600'}`}>
+      <Icon size={14} className="shrink-0" />
+      <span className="text-xs font-extrabold tracking-wide">{label}</span>
     </div>
   )
 }
@@ -164,7 +162,7 @@ function AnimatedBadge({ text, visible, isDark = false }) {
         <Sparkles size={12} className={`shrink-0 ${isDark ? 'text-brand-300' : 'text-brand-600'}`} />
         <span className={`relative text-center text-[11px] font-bold leading-relaxed sm:text-xs ${isDark ? 'text-white/90' : 'text-brand-700'}`}>
           {text}
-          <span className="absolute -bottom-1 left-0 h-0.5 w-full rounded-full bg-[#534AB7]" />
+          <span className="absolute -bottom-1 left-0 h-0.5 w-full rounded-full bg-[#712DDE]" />
         </span>
       </div>
     </div>
@@ -306,7 +304,7 @@ function WhatsAppFan({ images, visible, isDark, onImageClick, className = "" }) 
                 ${isDark ? 'bg-black/30' : 'bg-black/20'}`}>
                 <div className="bg-white/90 rounded-full p-2.5 shadow-lg">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="#534AB7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    stroke="#712DDE" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                     <line x1="11" y1="8" x2="11" y2="14" />
@@ -706,31 +704,31 @@ function HeroSection({ theme }) {
       }
 
   return (
-    <section ref={ref} className="relative overflow-visible px-4 pt-5 pb-6 sm:px-6 sm:pt-8 lg:pt-8">
+    <section ref={ref} className="relative overflow-visible px-4 pt-10 pb-12 sm:px-6 sm:pt-16 lg:pt-20">
       <div className="mx-auto max-w-[1500px]">
         <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(310px,0.72fr)] lg:gap-10 xl:gap-12">
           <div className={`relative z-10 ${isRTL ? "text-right" : "text-left"}`}>
             <div className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"}`}>
-              <div className="inline-flex max-w-full items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-[12px] font-extrabold text-white shadow-lg shadow-brand-600/20 sm:text-[13px] md:px-5">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-[12px] font-extrabold text-white shadow-xl shadow-brand-600/30 ring-4 ring-brand-600/15 sm:text-[13px] md:px-5">
                 <span className="truncate">{hero.badge}</span>
               </div>
             </div>
 
             <div className={`transition-all duration-700 delay-100 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-              <h1 className={`mt-6 max-w-[620px] text-[2.05rem] font-black leading-[1.08] tracking-normal min-[390px]:text-[2.35rem] sm:text-[3.35rem] lg:text-[3.9rem] xl:text-[4.35rem] ${isDark ? "text-white" : "text-[#080d35]"}`}>
+              <h1 className={`mt-5 max-w-[620px] text-[2.2rem] font-black leading-[1.1] tracking-tight min-[390px]:text-[2.5rem] sm:text-[3.0rem] lg:text-[3.4rem] xl:text-[3.8rem] ${isDark ? "text-white" : "text-[#080d35]"}`}>
                 {hero.title1}
                 <br />
-                <span className={isDark ? "text-brand-300" : "text-brand-600"}>{hero.title2}</span>
+                <span className={`block ${isDark ? "text-brand-300" : "text-brand-600"}`}>{hero.title2}</span>
               </h1>
             </div>
 
             <div className={`transition-all duration-700 delay-200 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-              <p className={`mt-5 max-w-[570px] text-[14px] font-medium leading-7 sm:text-[16px] ${isDark ? "text-white/76" : "text-slate-700"}`}>
+              <p className={`mt-4 max-w-[540px] text-[14px] font-medium leading-7 sm:text-[15px] ${isDark ? "text-white/70" : "text-slate-600"}`}>
                 {hero.sub}
               </p>
             </div>
 
-            <div className={`mt-6 grid max-w-[600px] gap-3 sm:grid-cols-3 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
+            <div className={`mt-5 grid max-w-[560px] gap-2.5 sm:grid-cols-3 transition-all duration-700 delay-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
               {hero.features.map((item) => (
                 <HeroFeatureItem key={item.title} item={item} isDark={isDark} />
               ))}
@@ -739,17 +737,17 @@ function HeroSection({ theme }) {
             <div className={`mt-7 flex flex-col gap-3 sm:flex-row transition-all duration-700 delay-[400ms] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
               <Link
                 href="/register"
-                className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-brand-600 px-5 py-3.5 text-[14px] font-extrabold text-white shadow-xl shadow-brand-600/25 transition hover:-translate-y-0.5 hover:bg-brand-700 sm:px-7"
+                className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-brand-600 px-5 py-3.5 text-[14px] font-extrabold text-white shadow-2xl shadow-brand-600/35 ring-4 ring-brand-600/10 transition hover:-translate-y-1 hover:bg-brand-700 hover:shadow-brand-600/45 sm:px-7"
               >
                 {hero.ctaPrimary}
                 <ArrowLeft size={18} className={`transition ${isRTL ? "group-hover:-translate-x-1" : "rotate-180 group-hover:translate-x-1"}`} />
               </Link>
               <a
                 href="#ai-agent"
-                className={`inline-flex items-center justify-center gap-3 rounded-2xl border px-5 py-3.5 text-[14px] font-extrabold backdrop-blur-md transition hover:-translate-y-0.5 sm:px-7 ${
+                className={`inline-flex items-center justify-center gap-3 rounded-2xl border px-5 py-3.5 text-[14px] font-extrabold transition hover:-translate-y-0.5 sm:px-7 ${
                   isDark
-                    ? "border-white/15 bg-white/10 text-white hover:bg-white/15"
-                    : "border-slate-200 bg-white/85 text-brand-700 hover:border-slate-300 hover:bg-white"
+                    ? "border-white/25 text-white hover:border-white/60"
+                    : "border-slate-300 text-brand-700 hover:border-brand-600"
                 }`}
               >
                 {hero.ctaSecondary}
@@ -785,8 +783,8 @@ function HeroFeatureItem({ item, isDark }) {
   const Icon = item.icon
 
   return (
-    <div className="flex items-start gap-3">
-      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${isDark ? "bg-white/10 text-brand-200" : "border border-slate-200 bg-white text-brand-600"}`}>
+    <div className={`flex items-start gap-3 rounded-2xl p-3 border transition-all duration-200 ${isDark ? 'border-white/15 text-white' : 'border-slate-200'}`}>
+      <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${isDark ? 'border-brand-400 text-brand-300' : 'border-brand-600 text-brand-600'}`}>
         <Icon size={22} strokeWidth={2.4} />
       </div>
       <div>
@@ -799,7 +797,7 @@ function HeroFeatureItem({ item, isDark }) {
 
 function HeroFlow({ steps, isDark, isRTL, visible }) {
   return (
-    <div className={`mt-5 rounded-[24px] border p-3 shadow-xl backdrop-blur-xl transition-all duration-700 delay-500 sm:p-4 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"} ${isDark ? "border-white/10 bg-white/10 shadow-black/20" : "border-slate-200/70 bg-white/78 shadow-slate-200/60"}`}>
+    <div className={`mt-8 rounded-[24px] border p-3 transition-all duration-700 delay-500 sm:p-4 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"} ${isDark ? "border-white/15" : "border-slate-200"}`}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:gap-2">
         {steps.map((step, index) => (
           <HeroFlowStep key={step.title} step={step} index={index} isDark={isDark} isRTL={isRTL} showArrow={index < steps.length - 1} />
@@ -846,61 +844,60 @@ function FeaturesSection({ theme }) {
   }))
 
   return (
-    <section id="features" className="py-12 sm:py-16 md:py-28 relative overflow-hidden">
+    <section id="features" className="py-16 sm:py-24 md:py-32 relative overflow-hidden">
       <div ref={ref} className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className={`mx-auto max-w-2xl text-center mb-8 sm:mb-14 transition-all duration-700
+
+        <div className={`mx-auto max-w-2xl text-center mb-12 sm:mb-16 transition-all duration-700
           ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
           <SectionBadge icon={Zap} label={t("land.feat_badge")} isDark={isDark} />
-          <h2 className={`mx-auto max-w-[19rem] sm:max-w-2xl text-[1.65rem] leading-[1.15] sm:text-3xl md:text-5xl font-extrabold mb-3 sm:mb-5 ${isRTL ? "tracking-normal" : "tracking-tight"} ${isDark ? 'text-white' : 'text-brand-900'}`}>
+          <h2 className={`text-[1.65rem] leading-[1.15] sm:text-3xl md:text-4xl font-extrabold mb-4 ${
+            isRTL ? "tracking-normal" : "tracking-tight"
+          } ${isDark ? "text-white" : "text-black"}`}>
             {t("land.feat_title")}
           </h2>
-          <p className={`mx-auto max-w-xl text-[13px] sm:text-base leading-relaxed sm:leading-loose ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
+          <p className={`text-[13px] sm:text-base leading-relaxed ${isDark ? "text-white/70" : "text-slate-500"}`}>
             {t("land.feat_sub")}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px border rounded-2xl overflow-hidden
+          ${isDark ? 'border-white/10' : 'border-slate-200'}">
           {features.map((feature, i) => (
             <div
               key={i}
               dir={isRTL ? "rtl" : "ltr"}
-              className={`backdrop-blur-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 transition-all duration-500 hover:-translate-y-1.5 group relative overflow-hidden flex items-start gap-3.5 sm:block ${isRTL ? "text-right" : "text-left"}
-                ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}
+              className={`group flex gap-4 p-6 sm:p-7 transition-all duration-300
+                ${isRTL ? "text-right" : "text-left"}
+                ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
                 ${isDark
-                  ? 'bg-white/10 border border-white/20 hover:bg-white/15 hover:border-white/30 hover:shadow-2xl hover:shadow-white/10'
-                  : 'bg-white/80 border border-slate-200/70 hover:bg-white hover:border-slate-300/70 hover:shadow-2xl hover:shadow-slate-200/70'}`}
-              style={{ transitionDelay: visible ? `${150 + i * 80}ms` : "0ms" }}
+                  ? "border-white/8 hover:bg-white/4"
+                  : "border-slate-100 hover:bg-slate-50/60"}
+                border-b last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0 lg:[&:nth-last-child(-n+3)]:border-b-0
+                sm:border-r sm:[&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r lg:[&:nth-child(3n)]:border-r-0`}
+              style={{ transitionDelay: visible ? `${i * 50}ms` : "0ms" }}
             >
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl sm:rounded-2xl flex items-center justify-center mb-0 sm:mb-5 relative transition-all duration-300
+              <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border transition-colors duration-300
                 ${isDark
-                  ? 'bg-white/10 border border-white/20 group-hover:border-white/30'
-                  : 'bg-white/80 border border-slate-200/70 group-hover:border-brand-300/50'}`}>
-                <feature.icon
-                  size={20}
-                  className={`group-hover:scale-110 transition-transform duration-300 ${isDark ? 'text-brand-300' : 'text-brand-600'}`}
-                />
+                  ? "border-brand-400/60 text-brand-300 group-hover:border-brand-300"
+                  : "border-brand-600/50 text-brand-600 group-hover:border-brand-600"}`}>
+                <feature.icon size={20} />
               </div>
-
-              <div className="min-w-0 flex-1">
-                <h3 className={`font-bold mb-1 sm:mb-2 text-sm sm:text-base lg:text-lg leading-snug transition-colors duration-300
-                  ${isDark ? 'text-white group-hover:text-brand-300' : 'text-brand-800 group-hover:text-brand-600'}`}>
-                  {feature.title}
-                </h3>
-                <p className={`text-[12px] sm:text-sm leading-relaxed relative ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
-                  {feature.desc}
-                </p>
-
-                <div className={`mt-4 sm:mt-5 h-0.5 w-10 sm:w-0 rounded-full sm:group-hover:w-full transition-all duration-500
-                  ${isDark ? 'bg-white/30' : 'bg-slate-300/60'}`} />
+              <div className="min-w-0">
+                <h3 className={`text-sm font-bold mb-1 leading-snug ${
+                  isDark ? "text-white" : "text-slate-900"
+                }`}>{feature.title}</h3>
+                <p className={`text-[13px] leading-relaxed ${
+                  isDark ? "text-white/55" : "text-slate-500"
+                }`}>{feature.desc}</p>
               </div>
             </div>
           ))}
         </div>
+
       </div>
     </section>
   )
 }
-
 function ScreenshotsSection({ theme }) {
   const { ref, visible } = useReveal()
   const { t, language } = useLanguage()
@@ -920,7 +917,7 @@ function ScreenshotsSection({ theme }) {
   const nextImage = () => setLightboxIndex((prev) => (prev + 1) % screenshots.length)
 
   return (
-    <section id="screenshots" className="py-10 sm:py-16 md:py-28 relative overflow-hidden">
+    <section id="screenshots" className="py-16 sm:py-24 md:py-32 relative overflow-hidden">
       {lightboxIndex !== null && (
         <Lightbox
           images={screenshots}
@@ -996,7 +993,7 @@ function ScreenshotsSection({ theme }) {
                     ${isDark ? 'bg-black/30' : 'bg-black/20'}`}>
                     <div className="bg-white/90 rounded-full p-2.5 shadow-lg">
                       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                        stroke="#534AB7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        stroke="#712DDE" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="11" cy="11" r="8" />
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         <line x1="11" y1="8" x2="11" y2="14" />
@@ -1092,7 +1089,7 @@ function WorkspacePreviewSection({ theme }) {
   const ActiveIcon = active.icon
 
   return (
-    <section className="relative overflow-hidden py-10 sm:py-16 md:py-24">
+    <section className="relative overflow-hidden py-16 sm:py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mx-auto mb-8 max-w-3xl text-center">
           <SectionBadge icon={MessageCircle} label={copy.badge} isDark={isDark} />
@@ -1115,10 +1112,10 @@ function WorkspacePreviewSection({ theme }) {
                 onClick={() => setActiveView(view.key)}
                 className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-extrabold transition-all active:scale-95
                   ${selected
-                    ? "border-brand-500 bg-brand-600 text-white shadow-lg shadow-brand-600/20"
+                    ? "border-brand-600 bg-brand-600 text-white"
                     : isDark
-                      ? "border-white/15 bg-white/10 text-white/75 hover:text-white"
-                      : "border-slate-200 bg-white/80 text-slate-600 hover:text-brand-700"}`}
+                      ? "border-white/20 text-white/75 hover:border-brand-400 hover:text-white"
+                      : "border-slate-300 text-slate-600 hover:border-brand-600 hover:text-brand-700"}`}
               >
                 <Icon size={15} />
                 {view.label}
@@ -1128,22 +1125,22 @@ function WorkspacePreviewSection({ theme }) {
         </div>
 
         <div
-          className={`relative overflow-hidden rounded-[28px] border p-2 shadow-2xl sm:rounded-[34px] sm:p-3
-            ${isDark ? "border-white/15 bg-slate-950/55 shadow-black/30" : "border-slate-200/80 bg-white/80 shadow-slate-900/10"}`}
+          className={`relative overflow-hidden rounded-[28px] border p-2 sm:rounded-[34px] sm:p-3
+            ${isDark ? "border-white/15" : "border-slate-200"}`}
         >
-          <div className={`flex items-center justify-between gap-3 border-b px-3 py-2.5 sm:px-4 ${isDark ? "border-white/10" : "border-slate-200/80"}`}>
+          <div className={`flex items-center justify-between gap-3 border-b px-3 py-2.5 sm:px-4 ${isDark ? "border-white/10" : "border-slate-200"}`}>
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
             </div>
             <div className={`hidden items-center gap-2 text-[11px] font-bold sm:flex ${isDark ? "text-white/60" : "text-slate-500"}`}>
-              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${isDark ? "border-white/10 bg-white/10" : "border-slate-200 bg-white"}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${isDark ? "border-white/20" : "border-slate-300"}`}>
                 <ActiveIcon size={12} />
                 {active.label}
               </span>
               {active.points.map((point) => (
-                <span key={point} className={`rounded-full border px-2.5 py-1 ${isDark ? "border-white/10 bg-white/10" : "border-slate-200 bg-white"}`}>
+                <span key={point} className={`rounded-full border px-2.5 py-1 ${isDark ? "border-white/20" : "border-slate-300"}`}>
                   {point}
                 </span>
               ))}
@@ -1183,12 +1180,12 @@ function FAQSection({ theme }) {
   ]
 
   return (
-    <section id="faq" className="py-10 sm:py-16 md:py-28 relative overflow-hidden">
+    <section id="faq" className="py-16 sm:py-24 md:py-32 relative overflow-hidden">
       <div ref={ref} className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className={`text-center mb-8 sm:mb-14 transition-all duration-700
           ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
           <SectionBadge icon={MessageCircle} label={t("land.faq_badge")} isDark={isDark} />
-          <h2 className={`text-2xl sm:text-3xl md:text-5xl font-extrabold mb-3 sm:mb-5 tracking-tight ${isDark ? 'text-white' : 'text-brand-900'}`}>
+          <h2 className={`text-2xl sm:text-3xl md:text-5xl font-extrabold mb-3 sm:mb-5 tracking-tight ${isDark ? 'text-white' : 'text-black'}`}>
             {t("land.faq_title")}
           </h2>
           <p className={`text-sm sm:text-base leading-loose ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
@@ -1200,29 +1197,29 @@ function FAQSection({ theme }) {
           {faqs.map((faq, i) => (
             <div
               key={i}
-              className={`backdrop-blur-md rounded-2xl overflow-hidden transition-all duration-500
+              className={`rounded-2xl overflow-hidden transition-all duration-500
                 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}
                 ${isDark
-                  ? 'bg-white/10 border border-white/20'
-                  : 'bg-white/80 border border-slate-200/70'}`}
+                  ? 'border border-white/15 hover:border-brand-400'
+                  : 'border border-slate-200 hover:border-brand-600'}`}
               style={{ transitionDelay: visible ? `${200 + i * 100}ms` : "0ms" }}
             >
               <button
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className={`w-full flex items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5 lg:p-6 transition-colors
                   ${isRTL ? 'text-right flex-row-reverse' : 'text-left'}
-                  ${isDark ? 'hover:bg-white/15' : 'hover:bg-white/80'}`}
+                  ${isDark ? '' : ''}`}
               >
                 <span className={`font-bold text-sm sm:text-base lg:text-lg leading-relaxed ${isDark ? 'text-white' : 'text-brand-800'}`}>
-                  <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0 align-middle mx-2
-                    ${isDark ? 'bg-white/10 text-brand-300' : 'border border-slate-200 bg-white text-brand-600'}`}>
+                  <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0 align-middle mx-2 border
+                    ${isDark ? 'border-brand-400 text-brand-300' : 'border-brand-600 text-brand-600'}`}>
                     <faq.icon size={16} />
                   </span>
                   {faq.q}
                 </span>
-                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300 border
                   ${openIndex === i ? "rotate-180" : ""}
-                  ${isDark ? 'bg-white/10' : 'border border-slate-200 bg-white/80'}`}>
+                  ${isDark ? 'border-white/30' : 'border-slate-300'}`}>
                   <ChevronDown size={14} className={`sm:w-4 sm:h-4 ${isDark ? 'text-brand-300' : 'text-brand-600'}`} />
                 </div>
               </button>
@@ -1247,7 +1244,7 @@ function WhatsAppFloatButton() {
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-110 active:scale-95"
-      style={{ backgroundColor: "#534AB7", boxShadow: "0 10px 25px rgba(83,74,183,0.35)" }}
+      style={{ backgroundColor: "#712DDE", boxShadow: "0 10px 25px rgba(113,45,222,0.35)" }}
       aria-label="WhatsApp"
     >
       <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -1263,20 +1260,18 @@ function CTASection({ theme }) {
   const isDark = theme === "dark"
 
   return (
-    <section ref={ref} className="py-10 sm:py-16 md:py-28 relative overflow-hidden">
+    <section ref={ref} className="py-16 sm:py-24 md:py-32 relative overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative">
         <div className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-          <div className={`inline-flex items-center gap-2 backdrop-blur-sm rounded-full px-4 py-2 mb-6 shadow-sm
-            ${isDark
-              ? 'bg-white/10 border border-white/20'
-              : 'bg-white/80 border border-slate-200/70'}`}>
+          <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 mb-6
+            ${isDark ? 'border border-brand-400 text-brand-300' : 'border border-brand-600 text-brand-600'}`}>
             <Zap size={13} className={isDark ? 'text-brand-300 shrink-0' : 'text-brand-600 shrink-0'} />
-            <span className={`text-xs sm:text-sm font-bold ${isDark ? 'text-white/90' : 'text-brand-700'}`}>{t("land.cta_badge")}</span>
+            <span className={`text-xs font-extrabold tracking-wide ${isDark ? 'text-brand-200' : 'text-brand-700'}`}>{t("land.cta_badge")}</span>
           </div>
         </div>
 
         <div className={`transition-all duration-700 delay-150 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}>
-          <h2 className={`text-2xl sm:text-4xl md:text-6xl font-extrabold mb-4 sm:mb-7 leading-tight tracking-tight ${isDark ? 'text-white' : 'text-brand-900'}`}>
+          <h2 className={`text-2xl sm:text-4xl md:text-6xl font-extrabold mb-4 sm:mb-7 leading-tight tracking-tight ${isDark ? 'text-white' : 'text-black'}`}>
             {t("land.cta_title1")}
             <br />
             {t("land.cta_title2")}
@@ -1301,10 +1296,10 @@ function CTASection({ theme }) {
             </Link>
             <Link
               href="/login"
-              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-semibold transition-colors px-5 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl backdrop-blur-sm
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-semibold transition-colors px-5 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-2xl
                 ${isDark
-                  ? 'text-white/80 hover:text-white border border-white/25 hover:border-white/50 hover:bg-white/10'
-                  : 'text-brand-700 hover:text-brand-800 border border-slate-200/80 hover:border-slate-300 hover:bg-white bg-white/80'}`}
+                  ? 'text-white/80 hover:text-white border border-white/25 hover:border-white/60'
+                  : 'text-brand-700 hover:text-brand-800 border border-slate-300 hover:border-brand-600'}`}
             >
               {t("land.cta_login")}
             </Link>
@@ -1353,7 +1348,7 @@ export default function LandingPage() {
         }
         .landing-dashboard-scroll {
           scrollbar-width: thin;
-          scrollbar-color: rgba(83, 74, 183, 0.35) transparent;
+          scrollbar-color: rgba(113, 45, 222, 0.35) transparent;
         }
         .landing-dashboard-scroll::-webkit-scrollbar {
           height: 6px;
@@ -1362,7 +1357,7 @@ export default function LandingPage() {
           background: transparent;
         }
         .landing-dashboard-scroll::-webkit-scrollbar-thumb {
-          background: rgba(83, 74, 183, 0.35);
+          background: rgba(113, 45, 222, 0.35);
           border-radius: 999px;
         }
       `}</style>
@@ -1373,14 +1368,15 @@ export default function LandingPage() {
         style={{
           backgroundImage: isDark
             ? "url('/img_hero_bg/img_home_page_darck_bg.jpg')"
-            : "url('/img_hero_bg/img_hero_bg.jpg')",
+            : "none",
+          backgroundColor: isDark ? undefined : "#ffffff",
           backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
         }}
       />
       <div className={`fixed inset-0 -z-10 transition-all duration-700
-        ${isDark ? 'bg-black/50' : 'bg-white/45'}`}
+        ${isDark ? 'bg-black/75' : 'bg-white'}`}
       />
 
       <PublicHeader />

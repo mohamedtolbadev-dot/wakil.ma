@@ -612,13 +612,14 @@ export default function PricingPage() {
         style={{
           backgroundImage: isDark
             ? "url('/img_hero_bg/img_home_page_darck_bg.jpg')"
-            : "url('/img_hero_bg/img_hero_bg.jpg')",
+            : "none",
+          backgroundColor: isDark ? undefined : "#ffffff",
           backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
         }}
       />
-      <div className={`fixed inset-0 -z-10 transition-all duration-700 ${isDark ? 'bg-black/50' : 'bg-white/45'}`} />
+      <div className={`fixed inset-0 -z-10 transition-all duration-700 ${isDark ? 'bg-black/50' : 'bg-white'}`} />
 
       <PublicHeader />
 
@@ -671,7 +672,7 @@ function PlanCard({ plan, index, isDark, isRTL, data }) {
         ${plan.popular
           ? isDark
             ? 'bg-brand-600/15 border-brand-400/40 shadow-xl shadow-brand-900/20'
-            : 'bg-brand-50/80 border-brand-300/60 shadow-xl shadow-brand-200/40'
+            : 'bg-white border-brand-300/60 shadow-xl shadow-brand-200/40'
           : isDark
             ? 'bg-white/10 border-white/20'
             : 'bg-white/80 border-slate-200/70'}`}
@@ -767,7 +768,7 @@ function WhatsAppFloatButton() {
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-110 active:scale-95"
-      style={{ backgroundColor: "#534AB7", boxShadow: "0 10px 25px rgba(83,74,183,0.35)" }}
+      style={{ backgroundColor: "#712DDE", boxShadow: "0 10px 25px rgba(113,45,222,0.35)" }}
       aria-label="WhatsApp"
     >
       <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

@@ -60,14 +60,15 @@ function ResetPasswordInner() {
         style={{
           backgroundImage: isDark
             ? "url('/img_hero_bg/img_home_page_darck_bg.jpg')"
-            : "url('/img_hero_bg/img_hero_bg.jpg')",
+            : "none",
+          backgroundColor: isDark ? undefined : "#ffffff",
           backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
         }}
       />
       <div className={`fixed inset-0 -z-10 transition-all duration-700
-        ${isDark ? 'bg-black/50' : 'bg-white/45'}`}
+        ${isDark ? 'bg-black/50' : 'bg-white'}`}
       />
 
       <div className="w-full max-w-md">

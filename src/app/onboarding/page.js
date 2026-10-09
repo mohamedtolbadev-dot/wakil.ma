@@ -425,7 +425,7 @@ export default function OnboardingPage() {
                 subtitle={t('onboarding.step2_subtitle') || "أدخل بيانات WhatsApp Cloud API"}
               />
 
-              <div className="bg-brand-600/5 border border-brand-600/15 rounded-xl p-4 mb-5">
+              <div className="bg-white border border-brand-600/15 rounded-xl p-4 mb-5">
                 <p className="text-xs font-semibold text-foreground mb-2">
                   💡 {t('onboarding.wa_help') || "تحتاج إعداد WhatsApp Business API أولاً من Meta"}
                 </p>
@@ -594,7 +594,7 @@ export default function OnboardingPage() {
                 ].map((item, i) => {
                   const Icon = item.icon
                   return (
-                    <div key={i} className="bg-brand-600/5 border border-brand-600/15 rounded-xl p-3 flex items-center gap-2">
+                    <div key={i} className="bg-white border border-brand-600/15 rounded-xl p-3 flex items-center gap-2">
                       <Icon size={16} className="text-brand-600 shrink-0" />
                       <span className="text-xs font-semibold text-foreground">{item.label}</span>
                     </div>

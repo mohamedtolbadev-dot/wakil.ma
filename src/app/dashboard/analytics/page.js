@@ -36,9 +36,9 @@ function AnalyticsSkeleton() {
           border-radius: 4px;
           background: linear-gradient(
             90deg,
-            rgba(83,74,183,0.28) 25%,
-            rgba(83,74,183,0.50) 50%,
-            rgba(83,74,183,0.28) 75%
+            rgba(113,45,222,0.28) 25%,
+            rgba(113,45,222,0.50) 50%,
+            rgba(113,45,222,0.28) 75%
           );
           background-size: 700px 100%;
           animation: sk-shimmer 1.5s ease-in-out infinite;
@@ -47,9 +47,9 @@ function AnalyticsSkeleton() {
           border-radius: 4px 4px 0 0;
           background: linear-gradient(
             90deg,
-            rgba(83,74,183,0.32) 25%,
-            rgba(83,74,183,0.55) 50%,
-            rgba(83,74,183,0.32) 75%
+            rgba(113,45,222,0.32) 25%,
+            rgba(113,45,222,0.55) 50%,
+            rgba(113,45,222,0.32) 75%
           );
           background-size: 700px 100%;
           animation: sk-shimmer 1.5s ease-in-out infinite;
@@ -58,9 +58,9 @@ function AnalyticsSkeleton() {
           border-radius: 4px 4px 0 0;
           background: linear-gradient(
             90deg,
-            rgba(83,74,183,0.55) 25%,
-            rgba(83,74,183,0.82) 50%,
-            rgba(83,74,183,0.55) 75%
+            rgba(113,45,222,0.55) 25%,
+            rgba(113,45,222,0.82) 50%,
+            rgba(113,45,222,0.55) 75%
           );
           background-size: 700px 100%;
           animation: sk-shimmer 1.5s ease-in-out infinite;
@@ -84,7 +84,7 @@ function AnalyticsSkeleton() {
         .prog-shine::after {
           content: '';
           position: absolute; inset: 0;
-          background: linear-gradient(90deg,transparent 25%,rgba(83,74,183,0.45) 50%,transparent 75%);
+          background: linear-gradient(90deg,transparent 25%,rgba(113,45,222,0.45) 50%,transparent 75%);
           background-size: 300px 100%;
           animation: sk-shimmer 1.5s ease-in-out infinite;
         }

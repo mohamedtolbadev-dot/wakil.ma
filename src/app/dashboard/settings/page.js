@@ -201,7 +201,7 @@ function TextareaModal({ isOpen, onClose, title, value, onChange, placeholder, h
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/50 transition-opacity"
         onClick={onClose}
       />
 
@@ -1050,7 +1050,7 @@ export default function SettingsPage() {
 
       {/* Manual Mode Banner */}
       {!isActive && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-600/5 border border-brand-600/15">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-brand-600/15">
           <div className="w-2 h-2 rounded-full bg-brand-600/60 animate-pulse shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-foreground">
@@ -1495,7 +1495,7 @@ export default function SettingsPage() {
               </div>
 
               {newObjection && (
-                <div className="bg-brand-600/5 border border-brand-600/20 rounded-2xl p-4">
+                <div className="bg-white border border-brand-600/20 rounded-2xl p-4">
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-sm font-semibold text-brand-600">{t('settings.new_reply')}</span>
                     <button onClick={() => setNewObjection(null)}
@@ -1597,7 +1597,7 @@ export default function SettingsPage() {
               {/* حالة الاتصال */}
               <div className={cn(
                 "flex items-center gap-3 p-4 rounded-xl border transition-all",
-                isWAConnected ? "bg-brand-600/5 border-brand-600/20" : "bg-secondary/50 border-border"
+                isWAConnected ? "bg-white border-brand-600/20" : "bg-secondary/50 border-border"
               )}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
                   <Phone size={16} className={isWAConnected ? "text-brand-600" : "text-muted-foreground"} />
@@ -1619,7 +1619,7 @@ export default function SettingsPage() {
               </p>
 
               {/* ════ دليل الإعدادات ════════════════════════ */}
-              <div className="p-4 bg-brand-600/5 border border-brand-600/15 rounded-xl">
+              <div className="p-4 bg-white border border-brand-600/15 rounded-xl">
                 <p className="text-[12px] font-semibold text-foreground mb-2 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-600" /> {t('settings.wa_guide')}
                 </p>
@@ -1683,7 +1683,7 @@ export default function SettingsPage() {
 
               {/* Hint about webhook hosting — shows if app URL looks like a local/dev env */}
               {(!APP_URL || APP_URL.includes("localhost") || APP_URL.includes("127.0.0.1")) && (
-                <div className="p-3 bg-brand-600/5 border border-brand-600/15 rounded-xl">
+                <div className="p-3 bg-white border border-brand-600/15 rounded-xl">
                   <p className="text-[11px] text-muted-foreground">
                     ℹ️ {t('settings.wa_env_hint')}
                   </p>
@@ -1862,7 +1862,7 @@ export default function SettingsPage() {
       {showDeleteDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
             onClick={() => setShowDeleteDialog(false)}
           />
           <div className="relative w-full max-w-sm border border-border rounded-2xl shadow-2xl animate-slideUp"
@@ -1890,12 +1890,12 @@ export default function SettingsPage() {
                 ].map(item => (
                   <div key={item}
                     className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand-600/50 shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white0 shrink-0" />
                     {item}
                   </div>
                 ))}
               </div>
-              <div className="p-3 bg-brand-600/5 border border-brand-600/15 rounded-xl">
+              <div className="p-3 bg-white border border-brand-600/15 rounded-xl">
                 <p className="text-[12px] text-muted-foreground font-medium">
                   ⚠️ {t('settings.delete_irreversible')}
                 </p>

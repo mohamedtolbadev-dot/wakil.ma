@@ -1,21 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cairo:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=Josefin+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
 * {
-  font-family: "Montserrat", sans-serif !important;
+  font-family: "Inter", "IBM Plex Sans Arabic", sans-serif;
 }
 
 @theme {
-  --font-sans: "Montserrat", sans-serif;
-  --font-dashboard: "Droid Arabic Kufi", "Josefin Sans", sans-serif;
-  --color-brand-50:  #E8E6FD;
-  --color-brand-100: #D4CFF9;
-  --color-brand-200: #AFA9EC;
-  --color-brand-400: #7F77DD;
-  --color-brand-600: #534AB7;
-  --color-brand-800: #3C3489;
-  --color-brand-900: #26215C;
+  --font-sans: "Inter", "IBM Plex Sans Arabic", sans-serif;
+  --font-heading: "Sora", sans-serif;
+ 
+  --color-brand-50:  #FFFFFF;
+  --color-brand-100: #E4CFFB;
+  --color-brand-200: #C99DF5;
+  --color-brand-300: #AE6BEF;
+  --color-brand-400: #9B5AE8;
+  --color-brand-600: #712DDE;
+  --color-brand-700: #5E22C4;
+  --color-brand-800: #5218A8;
+  --color-brand-900: #350D72;
+  --color-brand-950: #1E0745;
   --color-success:   #0F6E56;
   --color-warning:   #BA7517;
   --color-danger:    #E24B4A;
@@ -40,34 +44,34 @@
   --foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
   --card-foreground: 240 10% 3.9%;
-  --primary: 249 50% 50%;
+  --primary: 263 73% 52%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 249 20% 96%;
+  --secondary: 0 0% 100%;
   --secondary-foreground: 240 5.9% 10%;
-  --muted: 249 20% 96%;
+  --muted: 0 0% 100%;
   --muted-foreground: 240 3.8% 46.1%;
   --border: 249 30% 90%;
   --radius: 0.75rem;
   --modal-surface: #ffffff;
-  --brand-primary: #534AB7;
-  --brand-vibrant: #534AB7;
+  --brand-primary: #712DDE;
+  --brand-vibrant: #712DDE;
 }
 
 .dark {
-  --background: 248 24% 8%;
+  --background: 270 24% 8%;
   --foreground: 0 0% 98%;
-  --card: 248 18% 11%;
+  --card: 270 18% 11%;
   --card-foreground: 0 0% 98%;
-  --primary: 249 50% 60%;
-  --primary-foreground: 248 24% 8%;
-  --secondary: 248 15% 16%;
+  --primary: 276 73% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 270 15% 16%;
   --secondary-foreground: 0 0% 98%;
-  --muted: 248 15% 16%;
-  --muted-foreground: 245 9% 72%;
-  --border: 248 14% 23%;
-  --modal-surface: #1c1a2a;
-  --brand-primary: #534AB7;
-  --brand-vibrant: #7F77DD;
+  --muted: 270 15% 16%;
+  --muted-foreground: 270 9% 72%;
+  --border: 270 14% 23%;
+  --modal-surface: #1a1225;
+  --brand-primary: #712DDE;
+  --brand-vibrant: #9B5AE8;
 }
 
 @layer base {
@@ -79,21 +83,21 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-size: 15px;
-    font-family: "Montserrat", sans-serif;
-    font-feature-settings: "kern" 1, "tnum" 1;
+    font-family: "Inter", "IBM Plex Sans Arabic", sans-serif;
+    font-feature-settings: "kern" 1, "tnum" 1, "cv02" 1, "cv03" 1, "cv04" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
   html {
-    font-family: "Montserrat", sans-serif;
+    font-family: "Inter", "IBM Plex Sans Arabic", sans-serif;
   }
 
-  h1 { font-size: 28px; font-weight: 600; line-height: 1.25; letter-spacing: -0.02em; font-family: "Montserrat", sans-serif; }
-  h2 { font-size: 22px; font-weight: 600; line-height: 1.3;  letter-spacing: -0.01em; font-family: "Montserrat", sans-serif; }
-  h3 { font-size: 18px; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; font-family: "Montserrat", sans-serif; }
-  h4, h5, h6 { font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; font-family: "Montserrat", sans-serif; }
+  h1 { font-size: 24px; font-weight: 700; line-height: 1.15; letter-spacing: -0.03em; font-family: "Sora", sans-serif; }
+  h2 { font-size: 19px; font-weight: 600; line-height: 1.2;  letter-spacing: -0.02em; font-family: "Sora", sans-serif; }
+  h3 { font-size: 16px; font-weight: 600; line-height: 1.3;  letter-spacing: -0.015em; font-family: "Sora", sans-serif; }
+  h4, h5, h6 { font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; font-family: "Sora", sans-serif; }
 
   p, span, li, td, th {
     font-size: 14px;
@@ -119,26 +123,49 @@
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
   }
+
+  /* IBM Plex Sans Arabic للعناوين والنصوص العربية */
+  :lang(ar) h1, [dir="rtl"] h1,
+  :lang(ar) h2, [dir="rtl"] h2,
+  :lang(ar) h3, [dir="rtl"] h3,
+  :lang(ar) h4, [dir="rtl"] h4,
+  :lang(ar) h5, [dir="rtl"] h5,
+  :lang(ar) h6, [dir="rtl"] h6 {
+    font-family: "IBM Plex Sans Arabic", sans-serif !important;
+    letter-spacing: 0;
+  }
+
+  :lang(ar) p, [dir="rtl"] p,
+  :lang(ar) span, [dir="rtl"] span,
+  :lang(ar) li, [dir="rtl"] li,
+  :lang(ar) button, [dir="rtl"] button,
+  :lang(ar) label, [dir="rtl"] label {
+    font-family: "IBM Plex Sans Arabic", sans-serif;
+  }
 }
 
-.text-ui-xs    { font-size: 0.75rem;   line-height: 1.5;  font-weight: 500; }  /* 12px */
-.text-ui-sm    { font-size: 0.8125rem; line-height: 1.5;  font-weight: 500; }  /* 13px */
-.text-ui-base  { font-size: 0.9375rem; line-height: 1.55; font-weight: 400; }  /* 15px */
-.text-ui-md    { font-size: 1rem;      line-height: 1.55; font-weight: 400; }  /* 16px */
-.text-ui-label { font-size: 0.75rem;   line-height: 1.4;  font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; } /* 12px */
-
-/* Montserrat for headings on public/landing pages only (not dashboard) */
+/* Sora for headings on public/landing pages */
 body:not(:has(.dashboard-layout)) h1,
 body:not(:has(.dashboard-layout)) h2,
 body:not(:has(.dashboard-layout)) h3,
 body:not(:has(.dashboard-layout)) h4,
 body:not(:has(.dashboard-layout)) h5,
 body:not(:has(.dashboard-layout)) h6 {
-  font-family: var(--font-montserrat), Montserrat, sans-serif !important;
+  font-family: "Sora", sans-serif !important;
 }
 
-/* Droid Arabic Kufi + Josefin Sans for dashboard */
-.dashboard-layout,
-.dashboard-layout * {
-  font-family: "Droid Arabic Kufi", "Josefin Sans", sans-serif !important;
+body:not(:has(.dashboard-layout)):lang(ar) h1,
+body:not(:has(.dashboard-layout))[dir="rtl"] h1,
+body:not(:has(.dashboard-layout)):lang(ar) h2,
+body:not(:has(.dashboard-layout))[dir="rtl"] h2,
+body:not(:has(.dashboard-layout)):lang(ar) h3,
+body:not(:has(.dashboard-layout))[dir="rtl"] h3,
+body:not(:has(.dashboard-layout)):lang(ar) h4,
+body:not(:has(.dashboard-layout))[dir="rtl"] h4,
+body:not(:has(.dashboard-layout)):lang(ar) h5,
+body:not(:has(.dashboard-layout))[dir="rtl"] h5,
+body:not(:has(.dashboard-layout)):lang(ar) h6,
+body:not(:has(.dashboard-layout))[dir="rtl"] h6 {
+  font-family: "IBM Plex Sans Arabic", sans-serif !important;
+  letter-spacing: 0;
 }

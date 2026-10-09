@@ -43,9 +43,9 @@ function CustomersSkeleton() {
         .sk-brand {
           border-radius: 10px;
           background: linear-gradient(90deg,
-            rgba(83,74,183,0.12) 25%,
-            rgba(83,74,183,0.26) 50%,
-            rgba(83,74,183,0.12) 75%
+            rgba(113,45,222,0.12) 25%,
+            rgba(113,45,222,0.26) 50%,
+            rgba(113,45,222,0.12) 75%
           );
           background-size: 700px 100%;
           animation: shimmer 1.5s ease-in-out infinite;
@@ -334,7 +334,7 @@ export default function CustomersPage() {
   /* ── Error ── */
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-      <div className="w-12 h-12 rounded-full border border-brand-600/20 bg-brand-600/5 flex items-center justify-center">
+      <div className="w-12 h-12 rounded-full border border-brand-600/20 bg-white flex items-center justify-center">
         <AlertCircle size={22} className="text-brand-600" />
       </div>
       <div className="text-center">

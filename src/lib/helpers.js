@@ -22,14 +22,14 @@ export function getStageConfig(stage, t = null) {
   if (stage === "CLOSED") {
     return {
       label: t ? t('conv.stage_ordered') : "تم الطلب",
-      className: "bg-brand-50 text-brand-700 border-brand-200"
+      className: "bg-brand-600/10 text-brand-700 border-brand-600/20"
     }
   }
 
   const configs = {
     GREETING: { label: t ? t('stage.greeting') : "ترحيب", className: "bg-secondary text-muted-foreground border-border" },
     DISCOVERY: { label: t ? t('stage.discovery') : "استكشاف", className: "bg-blue-100 text-blue-800 border-blue-200" },
-    PITCHING: { label: t ? t('stage.pitching') : "إقناع", className: "bg-brand-50 text-brand-800 border-brand-200" },
+    PITCHING: { label: t ? t('stage.pitching') : "إقناع", className: "bg-brand-600/10 text-brand-800 border-brand-600/20" },
     OBJECTION: { label: t ? t('stage.objection') : "اعتراض", className: "bg-red-100 text-red-800 border-red-200" },
     ABANDONED: { label: t ? t('stage.abandoned') : "مهجورة", className: "bg-gray-100 text-gray-500 border-gray-200" },
   }
@@ -51,7 +51,7 @@ export function getStageClassName(stage) {
 
 // لون score حسب النسبة
 export function getScoreColor(score) {
-  if (score >= 70) return "#534AB7"
+  if (score >= 70) return "#712DDE"
   if (score >= 40) return "#BA7517"
   return "#E24B4A"
 }
@@ -60,7 +60,7 @@ export function getScoreColor(score) {
 export function getCustomerTagConfig(tag, t = null) {
   const configs = {
     VIP: { label: "VIP", className: "bg-teal-100 text-teal-800 border-teal-200" },
-    NEW: { label: t ? t('customers.tag_new') : "جديد", className: "bg-brand-50 text-brand-800 border-brand-200" },
+    NEW: { label: t ? t('customers.tag_new') : "جديد", className: "bg-brand-600/10 text-brand-800 border-brand-600/20" },
     REGULAR: { label: t ? t('customers.tag_regular') : "عادي", className: "bg-green-100 text-green-800 border-green-200" },
     PROSPECT: { label: t ? t('customers.tag_prospect') : "محتمل", className: "bg-amber-100 text-amber-800 border-amber-200" },
   }

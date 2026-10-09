@@ -1,7 +1,7 @@
 import PDFDocument from "pdfkit"
 import { getInvoicePlanLabel } from "@/lib/invoiceHelpers"
 
-const BRAND_COLOR = "#534AB7"
+const BRAND_COLOR = "#712DDE"
 const BRAND_TINT = "#EFEDFF"
 const BORDER_COLOR = "#E6E3F7"
 const TEXT_COLOR = "#111827"

@@ -336,7 +336,7 @@ export function TopBar() {
                         className={cn(
                           "flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-0",
                           "cursor-pointer transition-colors hover:bg-secondary/60",
-                          !n.isRead && "bg-brand-600/5"
+                          !n.isRead && "bg-white"
                         )}
                       >
                         <NotifIcon type={n.type} />

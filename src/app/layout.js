@@ -3,12 +3,11 @@ import { Providers } from "@/components/shared/Providers";
 import Script from "next/script";
 import { getPageMetadata } from "@/lib/metadata";
 // إضافة الخطوط بطريقة Next.js الصحيحة للـ SEO
-import { Cairo, Plus_Jakarta_Sans, Montserrat } from "next/font/google";
+import { Montserrat, Josefin_Sans } from "next/font/google";
 
-// إعداد الخطوط
-const cairo = Cairo({ subsets: ["latin", "arabic"], display: 'swap' });
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: 'swap' });
-const montserrat = Montserrat({ subsets: ["latin"], display: 'swap', variable: '--font-montserrat' });
+// إعداد الخطوط — Montserrat للمنصة العامة (عناوين + نصوص)، Josefin Sans كـ fallback للداشبورد جنب Droid Arabic Kufi
+const montserrat = Montserrat({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700", "800"], display: 'swap', variable: '--font-heading' });
+const josefinSans = Josefin_Sans({ subsets: ["latin"], display: 'swap', variable: '--font-dashboard' });
 
 // هنا كنجيبو الميتا (حاول ترد lang ديناميكي مستقبلا إذا كنتي داير [lang] folder)
 export const metadata = {
@@ -79,7 +78,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`antialiased ${jakarta.className} ${montserrat.variable}`} suppressHydrationWarning>
+      <body className={`antialiased ${montserrat.className} ${montserrat.variable} ${josefinSans.variable}`} suppressHydrationWarning>
         <noscript>
           <iframe
             src="https://www.googletagmanager.com/ns.html?id=GTM-5MCS3GVG"

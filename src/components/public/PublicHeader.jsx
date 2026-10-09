@@ -252,7 +252,7 @@ export function PublicHeader() {
                   item.active
                     ? isDark
                       ? "bg-brand-600/15 text-brand-300"
-                      : "bg-brand-50 text-brand-600"
+                      : "bg-white text-brand-600"
                     : isDark
                       ? "text-white/70 hover:bg-white/10 hover:text-white"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"

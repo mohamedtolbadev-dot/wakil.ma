@@ -27,7 +27,7 @@ const globalStyles = `
     left: -50%;
     width: 200%;
     height: 200%;
-    background: rgba(83, 74, 183, 0.08);
+    background: rgba(113, 45, 222, 0.08);
     opacity: 0;
     transition: opacity 0.4s ease;
     pointer-events: none;
@@ -39,31 +39,24 @@ const globalStyles = `
   
   .shimmer-border {
     position: relative;
-    background: rgba(83, 74, 183, 0.08);
-    border: 1px solid rgba(83, 74, 183, 0.2);
+    background: rgba(113, 45, 222, 0.08);
+    border: 1px solid rgba(113, 45, 222, 0.2);
     transition: all 0.3s ease;
   }
   .shimmer-border:hover {
-    border-color: rgba(83, 74, 183, 0.4);
-    box-shadow: 0 0 20px rgba(83, 74, 183, 0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+    border-color: rgba(113, 45, 222, 0.4);
+    box-shadow: 0 0 20px rgba(113, 45, 222, 0.15), inset 0 1px 0 rgba(255,255,255,0.1);
   }
   
   .glass-purple {
-    background: rgba(83, 74, 183, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgb(113, 45, 222);
     border: 1px solid rgba(255,255,255,0.15);
   }
   
   .glass-purple-strong {
-    background: rgba(83, 74, 183, 0.98);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgb(113, 45, 222);
     border: 1px solid rgba(255,255,255,0.2);
-    box-shadow: 
-      0 8px 32px rgba(83, 74, 183, 0.4),
-      inset 0 1px 0 rgba(255,255,255,0.2),
-      inset 0 -1px 0 rgba(0,0,0,0.1);
+    box-shadow: 0 8px 32px rgba(113, 45, 222, 0.4);
   }
   
   .float-hover {
@@ -81,7 +74,7 @@ const globalStyles = `
     position: absolute;
     inset: -4px;
     border-radius: 50%;
-    background: rgba(83, 74, 183, 0.2);
+    background: rgba(113, 45, 222, 0.2);
     opacity: 0;
     transform: scale(0.5);
     transition: all 0.3s ease;
@@ -139,13 +132,13 @@ const globalStyles = `
   }
   
   @keyframes glow-pulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(83, 74, 183, 0.3); }
-    50% { box-shadow: 0 0 40px rgba(83, 74, 183, 0.5), 0 0 60px rgba(83, 74, 183, 0.2); }
+    0%, 100% { box-shadow: 0 0 20px rgba(113, 45, 222, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(113, 45, 222, 0.5), 0 0 60px rgba(113, 45, 222, 0.2); }
   }
   
   @keyframes border-glow {
-    0%, 100% { border-color: rgba(83, 74, 183, 0.3); }
-    50% { border-color: rgba(83, 74, 183, 0.6); }
+    0%, 100% { border-color: rgba(113, 45, 222, 0.3); }
+    50% { border-color: rgba(113, 45, 222, 0.6); }
   }
   
   @keyframes slide-in-up {
@@ -177,7 +170,7 @@ const globalStyles = `
   }
   
   .progress-glow {
-    box-shadow: 0 0 10px rgba(83, 74, 183, 0.5);
+    box-shadow: 0 0 10px rgba(113, 45, 222, 0.5);
   }
   
   .table-row-hover {
@@ -188,7 +181,7 @@ const globalStyles = `
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(83, 74, 183, 0.03);
+    background: rgba(113, 45, 222, 0.03);
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -346,7 +339,7 @@ function DeliveryOverview({ delivery = {}, onManage, t }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
         {items.map(({ key, icon: Icon, label, value }) => (
-          <div key={key} className="rounded-lg border border-brand-600/15 bg-brand-600/5 px-3 py-2.5 text-brand-700 dark:text-brand-300">
+          <div key={key} className="rounded-lg border border-brand-600/15 bg-white px-3 py-2.5 text-brand-700 dark:text-brand-300">
             <div className="flex items-center justify-between gap-2">
               <Icon size={15} />
               <span className="text-lg font-bold tabular-nums">{value}</span>
@@ -369,7 +362,7 @@ function DeliveryOverview({ delivery = {}, onManage, t }) {
             />
           </div>
         </div>
-        <div className="rounded-lg border border-brand-600/15 bg-brand-600/5 px-3 py-2.5 flex items-center justify-between gap-3">
+        <div className="rounded-lg border border-brand-600/15 bg-white px-3 py-2.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <AlertTriangle size={15} className="text-brand-600 shrink-0" />
             <span className="text-[13px] font-semibold text-brand-700 dark:text-brand-300 truncate">{t('dash.delivery_missing_tracking')}</span>
@@ -405,8 +398,8 @@ const skeletonStyles = `
     50%       { opacity: 1;   }
   }
   @keyframes border-breathe {
-    0%, 100% { border-color: rgba(83,74,183,0.15); box-shadow: 0 0 0 0 rgba(83,74,183,0); }
-    50%       { border-color: rgba(83,74,183,0.40); box-shadow: 0 0 18px 2px rgba(83,74,183,0.12); }
+    0%, 100% { border-color: rgba(113,45,222,0.15); box-shadow: 0 0 0 0 rgba(113,45,222,0); }
+    50%       { border-color: rgba(113,45,222,0.40); box-shadow: 0 0 18px 2px rgba(113,45,222,0.12); }
   }
   @keyframes fade-in {
     from { opacity: 0; transform: translateY(8px); }
@@ -416,7 +409,7 @@ const skeletonStyles = `
   /* ── base bone ── */
   .sk-bone {
     border-radius: 8px;
-    background: rgba(83,74,183,0.12);
+    background: rgba(113,45,222,0.12);
     background-size: 600px 100%;
     animation: shimmer 1.6s ease-in-out infinite;
   }
@@ -424,8 +417,8 @@ const skeletonStyles = `
   /* ── card wrapper ── */
   .sk-card {
     border-radius: 14px;
-    background: rgba(83,74,183,0.04);
-    border: 1px solid rgba(83,74,183,0.12);
+    background: rgba(113,45,222,0.04);
+    border: 1px solid rgba(113,45,222,0.12);
     animation: border-breathe 3s ease-in-out infinite;
     overflow: hidden;
   }
@@ -433,8 +426,8 @@ const skeletonStyles = `
   /* ── stat card (matches bg-brand-600 originals) ── */
   .sk-stat-card {
     border-radius: 14px;
-    background: rgba(83,74,183,0.14);
-    border: 1px solid rgba(83,74,183,0.22);
+    background: rgba(113,45,222,0.14);
+    border: 1px solid rgba(113,45,222,0.22);
     padding: 18px 20px 16px;
     animation: fade-in 0.5s ease both;
     overflow: hidden;
@@ -444,7 +437,7 @@ const skeletonStyles = `
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(83,74,183,0.08);
+    background: rgba(113,45,222,0.08);
     background-size: 600px 100%;
     animation: shimmer 2s ease-in-out infinite;
   }
@@ -452,8 +445,8 @@ const skeletonStyles = `
   /* ── agent card (matches bg-brand-600 solid) ── */
   .sk-agent-card {
     border-radius: 14px;
-    background: rgba(83,74,183,0.20);
-    border: 1px solid rgba(83,74,183,0.30);
+    background: rgba(113,45,222,0.20);
+    border: 1px solid rgba(113,45,222,0.30);
     overflow: hidden;
     animation: border-breathe 3s ease-in-out infinite;
     position: relative;
@@ -465,7 +458,7 @@ const skeletonStyles = `
     left: -40%;
     width: 180%;
     height: 180%;
-    background: rgba(83,74,183,0.06);
+    background: rgba(113,45,222,0.06);
     animation: glow-pulse 3s ease-in-out infinite;
     pointer-events: none;
   }
@@ -535,7 +528,7 @@ function B({ w, h, r, className = "", style = {} }) {
 /* ── Row of avatar + text (conversations) ── */
 function ConvRow({ delay = "" }) {
   return (
-    <div className={`sk-row ${delay}`} style={{ padding: "14px 16px", borderTop: "1px solid rgba(83,74,183,0.08)" }}>
+    <div className={`sk-row ${delay}`} style={{ padding: "14px 16px", borderTop: "1px solid rgba(113,45,222,0.08)" }}>
       <B w={34} h={34} r="50%" />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
         <B w={90} h={11} r={6} />
@@ -578,7 +571,7 @@ function DashboardSkeleton() {
             >
               {/* icon + badge */}
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18 }}>
-                <B w={32} h={32} r={8} style={{ background: "rgba(83,74,183,0.20)" }} />
+                <B w={32} h={32} r={8} style={{ background: "rgba(113,45,222,0.20)" }} />
                 <B w={44} h={22} r={6} className="sk-hidden-mobile" />
               </div>
               {/* big number */}
@@ -590,14 +583,14 @@ function DashboardSkeleton() {
                 marginTop: 14,
                 height: 2,
                 width: "100%",
-                background: "rgba(83,74,183,0.15)",
+                background: "rgba(113,45,222,0.15)",
                 borderRadius: 99,
                 overflow: "hidden"
               }}>
                 <div style={{
                   height: "100%",
                   width: "60%",
-                  background: "rgba(83,74,183,0.45)",
+                  background: "rgba(113,45,222,0.45)",
                   borderRadius: 99,
                   animation: "shimmer 2s ease-in-out infinite",
                   backgroundSize: "200px 100%",
@@ -620,7 +613,7 @@ function DashboardSkeleton() {
             }}
           >
             <div className="sk-row" style={{ alignItems: "flex-start" }}>
-              <B w={32} h={32} r={8} style={{ background: "rgba(83,74,183,0.14)" }} />
+              <B w={32} h={32} r={8} style={{ background: "rgba(113,45,222,0.14)" }} />
               <div className="sk-col" style={{ gap: 7 }}>
                 <B w={92} h={18} r={6} />
                 <B w={210} h={11} r={5} className="sk-hidden-mobile" />
@@ -636,8 +629,8 @@ function DashboardSkeleton() {
                 style={{
                   minHeight: 84,
                   borderRadius: 12,
-                  border: "1px solid rgba(83,74,183,0.12)",
-                  background: "rgba(83,74,183,0.035)",
+                  border: "1px solid rgba(113,45,222,0.12)",
+                  background: "rgba(113,45,222,0.035)",
                   padding: "14px 16px",
                   display: "flex",
                   flexDirection: "column",
@@ -661,22 +654,22 @@ function DashboardSkeleton() {
             <div
               style={{
                 borderRadius: 12,
-                border: "1px solid rgba(83,74,183,0.10)",
-                background: "rgba(255,255,255,0.45)",
+                border: "1px solid rgba(113,45,222,0.10)",
+                background: "rgba(113,45,222,0.04)",
                 padding: 14,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <B w={120} h={13} r={6} />
-                <B w={38} h={18} r={6} style={{ background: "rgba(83,74,183,0.16)" }} />
+                <B w={38} h={18} r={6} style={{ background: "rgba(113,45,222,0.16)" }} />
               </div>
               <B w="100%" h={8} r={999} />
             </div>
             <div
               style={{
                 borderRadius: 12,
-                border: "1px solid rgba(83,74,183,0.10)",
-                background: "rgba(255,255,255,0.45)",
+                border: "1px solid rgba(113,45,222,0.10)",
+                background: "rgba(113,45,222,0.04)",
                 padding: 14,
                 display: "flex",
                 justifyContent: "space-between",
@@ -706,7 +699,7 @@ function DashboardSkeleton() {
             }}
           >
             <div className="sk-row">
-              <B w={34} h={34} r={10} style={{ background: "rgba(83,74,183,0.16)" }} />
+              <B w={34} h={34} r={10} style={{ background: "rgba(113,45,222,0.16)" }} />
               <div className="sk-col" style={{ gap: 7 }}>
                 <B w={142} h={18} r={6} />
                 <B w={96} h={11} r={5} className="sk-hidden-mobile" />
@@ -719,20 +712,20 @@ function DashboardSkeleton() {
             <B w={92} h={20} r={6} />
             <B w={80} h={12} r={6} className="sk-hidden-mobile" />
           </div>
-          <div style={{ height: 8, width: "100%", borderRadius: 999, background: "rgba(83,74,183,0.13)", overflow: "hidden" }}>
+          <div style={{ height: 8, width: "100%", borderRadius: 999, background: "rgba(113,45,222,0.13)", overflow: "hidden" }}>
             <div
               style={{
                 height: "100%",
                 width: "72%",
                 borderRadius: 999,
-                background: "rgba(83,74,183,0.52)",
+                background: "rgba(113,45,222,0.52)",
                 animation: "shimmer 2s ease-in-out infinite",
                 backgroundSize: "200px 100%",
               }}
             />
           </div>
 
-          <div style={{ height: 1, background: "rgba(83,74,183,0.10)", margin: "18px 0" }} />
+          <div style={{ height: 1, background: "rgba(113,45,222,0.10)", margin: "18px 0" }} />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }} className="sk-main-grid">
             {[0, 1].map(i => (
@@ -756,7 +749,7 @@ function DashboardSkeleton() {
               justifyContent: "space-between",
               alignItems: "center",
               padding: "14px 16px",
-              borderBottom: "1px solid rgba(83,74,183,0.08)",
+              borderBottom: "1px solid rgba(113,45,222,0.08)",
             }}>
               <div className="sk-row">
                 <B w={28} h={28} r={8} />
@@ -771,7 +764,7 @@ function DashboardSkeleton() {
               display: "flex",
               gap: 8,
               padding: "10px 16px",
-              borderBottom: "1px solid rgba(83,74,183,0.08)",
+              borderBottom: "1px solid rgba(113,45,222,0.08)",
             }} className="sk-filter-tabs">
               {[56, 80, 80].map((w, i) => (
                 <B key={i} w={w} h={28} r={8} />
@@ -783,8 +776,8 @@ function DashboardSkeleton() {
               display: "flex",
               gap: 16,
               padding: "10px 16px",
-              background: "rgba(83,74,183,0.03)",
-              borderBottom: "1px solid rgba(83,74,183,0.08)",
+              background: "rgba(113,45,222,0.03)",
+              borderBottom: "1px solid rgba(113,45,222,0.08)",
             }} className="sk-table-header">
               {[100, 140, 80, 70].map((w, i) => (
                 <B key={i} w={w} h={10} r={4} />
@@ -801,7 +794,7 @@ function DashboardSkeleton() {
             {/* Mobile rows */}
             <div className="sk-mobile-rows">
               {[0, 1, 2, 3, 4].map(i => (
-                <div key={i} className="sk-row sk-mobile-row" style={{ padding: "14px 16px", borderTop: "1px solid rgba(83,74,183,0.08)" }}>
+                <div key={i} className="sk-row sk-mobile-row" style={{ padding: "14px 16px", borderTop: "1px solid rgba(113,45,222,0.08)" }}>
                   <B w={36} h={36} r="50%" />
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -833,7 +826,7 @@ function DashboardSkeleton() {
                   <div style={{
                     flex: 1,
                     height: 3,
-                    background: "rgba(83,74,183,0.08)",
+                    background: "rgba(113,45,222,0.08)",
                     borderRadius: 99,
                     overflow: "hidden",
                   }}>
@@ -841,7 +834,7 @@ function DashboardSkeleton() {
                       height: "100%",
                       width: `${pct}%`,
                       borderRadius: 99,
-                      background: "rgba(83,74,183,0.38)",
+                      background: "rgba(113,45,222,0.38)",
                       animation: "shimmer 1.8s ease-in-out infinite",
                       backgroundSize: "200px 100%",
                       transition: "width 0.8s ease",
@@ -855,7 +848,7 @@ function DashboardSkeleton() {
               <div style={{
                 marginTop: 10,
                 paddingTop: 12,
-                borderTop: "1px solid rgba(83,74,183,0.08)",
+                borderTop: "1px solid rgba(113,45,222,0.08)",
                 display: "flex",
                 justifyContent: "space-between",
               }}>
@@ -876,8 +869,8 @@ function DashboardSkeleton() {
                       width: 40,
                       height: 40,
                       borderRadius: "50%",
-                      background: "rgba(83,74,183,0.25)",
-                      border: "2px solid rgba(83,74,183,0.30)",
+                      background: "rgba(113,45,222,0.25)",
+                      border: "2px solid rgba(113,45,222,0.30)",
                       flexShrink: 0,
                       animation: "glow-pulse 2.5s ease-in-out infinite",
                     }} />
@@ -954,7 +947,7 @@ function DashboardSkeleton() {
               <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
                 {[0, 1, 2].map(i => (
                   <React.Fragment key={i}>
-                    {i > 0 && <div style={{ width: 1, height: 32, background: "rgba(83,74,183,0.10)", flexShrink: 0 }} />}
+                    {i > 0 && <div style={{ width: 1, height: 32, background: "rgba(113,45,222,0.10)", flexShrink: 0 }} />}
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "8px 0" }}>
                       <B w={20} h={20} r={5} />
                       <B w={52} h={10} r={4} />
@@ -1071,7 +1064,7 @@ export default function DashboardPage() {
   if (error || !stats) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <div className="w-12 h-12 rounded-full border border-brand-600/20 bg-brand-600/5 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full border border-brand-600/20 bg-white flex items-center justify-center">
           <AlertCircle size={20} className="text-brand-600" />
         </div>
         <div className="text-center">
@@ -1096,7 +1089,7 @@ export default function DashboardPage() {
 
       {phoneModalOpen && !user?.phone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPhoneModalOpen(false)} />
+          <div className="absolute inset-0 bg-black/60" onClick={() => setPhoneModalOpen(false)} />
           <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600/10 text-brand-600">

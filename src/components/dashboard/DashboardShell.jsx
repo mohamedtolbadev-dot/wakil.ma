@@ -42,11 +42,11 @@ export function DashboardShell({ children }) {
 
   return (
     <MobileMenuProvider>
-      <div className="dashboard-layout flex h-screen overflow-hidden bg-background text-foreground" dir={dir}>
+      <div className="dashboard-layout flex h-screen overflow-hidden bg-background text-foreground" style={{ fontFamily: '"Droid Arabic Kufi", "Josefin Sans", sans-serif' }} dir={dir}>
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
           <TopBar />
-          <main className="flex-1 overflow-y-auto bg-secondary/20 dark:bg-background pb-20 md:pb-6">
+          <main className="flex-1 overflow-y-auto bg-white dark:bg-background pb-20 md:pb-6">
             <div className="w-full px-3 md:px-6 pt-3 md:pt-5">
               {children}
             </div>

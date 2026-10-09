@@ -32,7 +32,7 @@ function ProductsSkeleton() {
         }
         .sk-brand{
           border-radius:10px;
-          background:linear-gradient(90deg,rgba(83,74,183,.12) 25%,rgba(83,74,183,.26) 50%,rgba(83,74,183,.12) 75%);
+          background:linear-gradient(90deg,rgba(113,45,222,.12) 25%,rgba(113,45,222,.26) 50%,rgba(113,45,222,.12) 75%);
           background-size:700px 100%;
           animation:sk-shimmer 1.5s ease-in-out infinite;
           flex-shrink:0;

@@ -357,7 +357,7 @@ export default function FeaturesPage() {
     <main
       dir={isRTL ? "rtl" : "ltr"}
       className={`min-h-screen overflow-hidden transition-colors duration-300 ${
-        isDark ? "bg-[#090817] text-white" : "bg-[#fbfbff] text-slate-950"
+        isDark ? "bg-[#090817] text-white" : "bg-white text-slate-950"
       }`}
     >
       <PublicHeader />
@@ -503,7 +503,7 @@ function HeroPanel({ data, isDark, isRTL }) {
         isDark ? "border-white/10 bg-white/8 shadow-black/30" : "border-brand-100 bg-white shadow-brand-200/40"
       }`}
     >
-      <div className={`rounded-[24px] border p-4 ${isDark ? "border-white/10 bg-[#111026]" : "border-brand-100 bg-[#f7f6ff]"}`}>
+      <div className={`rounded-[24px] border p-4 ${isDark ? "border-white/10 bg-[#111026]" : "border-brand-100 bg-white"}`}>
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className={`text-xs font-bold ${isDark ? "text-white/45" : "text-slate-500"}`}>wakil.ma</p>
@@ -570,7 +570,7 @@ function MessageBubble({ text, align, isDark, agent = false }) {
 
 function MiniMetric({ label, value, isDark }) {
   return (
-    <div className={`rounded-xl p-3 ${isDark ? "bg-black/20" : "bg-brand-50"}`}>
+    <div className={`rounded-xl p-3 ${isDark ? "bg-black/20" : "bg-white"}`}>
       <p className={`text-[11px] font-bold ${isDark ? "text-white/45" : "text-slate-500"}`}>{label}</p>
       <p className="mt-1 truncate text-sm font-black">{value}</p>
     </div>
@@ -621,7 +621,7 @@ function WorkflowStep({ step, index, isDark, showLine }) {
       {showLine && <div className={`absolute top-6 hidden h-px w-full md:block ${isDark ? "bg-white/10" : "bg-brand-100"}`} />}
       <div
         className={`relative rounded-2xl border p-4 ${
-          isDark ? "border-white/10 bg-[#090817]" : "border-brand-100 bg-[#fbfbff]"
+          isDark ? "border-white/10 bg-[#090817]" : "border-brand-100 bg-white"
         }`}
       >
         <div className="mb-4 flex items-center justify-between">

@@ -65,9 +65,9 @@ function ConversationsSkeleton() {
         .sk-bubble-customer {
           border-radius: 14px 14px 4px 14px;
           background: linear-gradient(90deg,
-            rgba(83,74,183,0.38) 25%,
-            rgba(83,74,183,0.62) 50%,
-            rgba(83,74,183,0.38) 75%
+            rgba(113,45,222,0.38) 25%,
+            rgba(113,45,222,0.62) 50%,
+            rgba(113,45,222,0.38) 75%
           );
           background-size: 700px 100%;
           animation: sk-shimmer 1.5s ease-in-out infinite;
@@ -713,7 +713,7 @@ function MediaAttachButton({ conversationId, disabled, onSent }) {
 
       {/* ── Preview Modal (Portal-style overlay) ── */}
       {preview && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) handleCancelPreview() }}>
           <div className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}>
@@ -860,7 +860,7 @@ function ImageMessageViewer({ conversationId, messageId, mediaUrl = null }) {
         >
           <button
             onClick={() => setFullscreen(false)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
           >
             <X size={20} />
           </button>
@@ -1360,7 +1360,7 @@ function ActionableMessageBubble({
           type="button"
           onClick={() => setMenuOpen(prev => !prev)}
           className={cn(
-            "absolute -top-2 z-10 w-7 h-7 rounded-full border border-border bg-card/95 backdrop-blur-sm",
+            "absolute -top-2 z-10 w-7 h-7 rounded-full border border-border bg-card",
             "items-center justify-center text-muted-foreground shadow-sm transition-all",
             "hover:text-foreground hover:border-brand-300 active:scale-95",
             menuOpen ? "flex opacity-100" : "opacity-0 group-hover/message:opacity-100 md:flex",
@@ -2055,7 +2055,7 @@ function ConversationsContent() {
     return (
       <>
         <div className="fixed inset-0 z-50 flex flex-col lg:hidden bg-card">
-          <div className="flex items-center gap-3 px-3 py-3 border-b border-border bg-card/95 backdrop-blur-sm shrink-0"
+          <div className="flex items-center gap-3 px-3 py-3 border-b border-border bg-card shrink-0"
             style={{ paddingTop: "calc(env(safe-area-inset-top) + 12px)" }}>
             <button onClick={() => { setSelected(null); setMessages([]) }}
               className="flex items-center gap-1 text-brand-600 font-semibold text-sm shrink-0">

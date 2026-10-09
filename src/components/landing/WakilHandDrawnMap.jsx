@@ -47,7 +47,7 @@ function SketchCard({ icon: Icon, index, title, desc, isDark, className = "" }) 
 }
 
 function SchematicConnectors({ isDark, isArabic, loopLabel }) {
-  const stroke = isDark ? "#A9A3FF" : "#534AB7"
+  const stroke = isDark ? "#A9A3FF" : "#712DDE"
   const opacity = isDark ? "0.48" : "0.42"
 
   return (
@@ -92,7 +92,7 @@ function SchematicConnectors({ isDark, isArabic, loopLabel }) {
 }
 
 function MobileSketchConnector({ isDark }) {
-  const stroke = isDark ? "#A9A3FF" : "#534AB7"
+  const stroke = isDark ? "#A9A3FF" : "#712DDE"
 
   return (
     <div className="flex justify-center py-1.5 lg:hidden">

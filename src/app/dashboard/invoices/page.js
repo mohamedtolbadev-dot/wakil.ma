@@ -176,7 +176,7 @@ function PlanRequestCards({ invoices, onRequest, requesting, usage, copy }) {
             key={key}
             className={cn(
               "bg-card border rounded-2xl p-5 flex flex-col gap-4",
-              isCurrent ? "border-brand-600/40 bg-brand-600/5" : "border-border/60"
+              isCurrent ? "border-brand-600/40 bg-white" : "border-border/60"
             )}
           >
             <div className="flex items-start justify-between gap-3">

@@ -69,7 +69,7 @@ export default function UsageWidget({ className = "", compact = false }) {
   const pctColor = "bg-brand-600"
   const tone = allowed
     ? "border-border bg-card"
-    : "border-brand-600/30 bg-brand-600/5"
+    : "border-brand-600/30 bg-white"
 
   return (
     <div className={cn(

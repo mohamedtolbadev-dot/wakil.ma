@@ -852,7 +852,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
             {conversationLink ? (
               <a
                 href={conversationLink}
-                className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-background hover:bg-brand-600/5 hover:border-brand-600/30 hover:text-brand-600 text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-brand-600/20"
+                className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-background hover:bg-white hover:border-brand-600/30 hover:text-brand-600 text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-brand-600/20"
                 title={t('orders.view_conv')}
               >
                 <MessageCircle size={16} />
@@ -1657,7 +1657,7 @@ export default function OrdersPage() {
               "flex flex-col gap-1 p-4 rounded-xl border transition-all text-right",
               filterStatus === statusKey
                 ? "bg-brand-600/10 border-brand-600/30 text-brand-800 shadow-sm"
-                : "bg-card border-border/50 hover:border-brand-600/30 hover:bg-brand-600/5"
+                : "bg-card border-border/50 hover:border-brand-600/30 hover:bg-white"
             )}
           >
             <div className="flex items-center justify-between">
