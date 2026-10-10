@@ -1011,7 +1011,9 @@ export default function SettingsPage() {
     ? "جميع المنتجات النشيطة (تلقائي)"
     : "Tous les produits actifs (auto)"
 
-  const isWAConnected = !!(whatsappForm.whatsappPhoneId && whatsappForm.whatsappToken)
+  const isWAConnected = waProvider === "twilio"
+    ? !!(twilioForm.accountSid && twilioForm.authToken && twilioForm.phoneNumber)
+    : !!(whatsappForm.whatsappPhoneId && whatsappForm.whatsappToken)
 
   // Canonical webhook URL for Meta Developers.
   const APP_URL = getPublicAppUrl()

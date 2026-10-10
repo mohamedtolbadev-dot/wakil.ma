@@ -1,6 +1,5 @@
 import { getUserFromRequest } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { sendTwilioWhatsAppMessage } from "@/lib/whatsapp"
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/response"
 import { encryptSecret } from "@/lib/secretCrypto"
 
@@ -15,24 +14,6 @@ export async function POST(request) {
       return errorResponse("Account SID, Auth Token, و Phone Number مطلوبين")
     }
 
-    // اختبار الاتصال عبر Twilio API
-    const testRes = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`,
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-        },
-      }
-    )
-
-    if (testRes.status === 401) {
-      return errorResponse("Account SID أو Auth Token غير صحيح", 401)
-    }
-    if (!testRes.ok) {
-      return errorResponse("فشل الاتصال بـ Twilio API", 400)
-    }
-
-    // حفظ بيانات Twilio مع تشفير الـ token
     await prisma.agent.update({
       where: { userId: user.id },
       data: {
@@ -46,6 +27,6 @@ export async function POST(request) {
     return successResponse({ connected: true })
   } catch (error) {
     console.error("Twilio connect error:", error)
-    return errorResponse("خطأ في ربط Twilio", 500)
+    return errorResponse("خطأ في حفظ إعدادات Twilio", 500)
   }
 }
