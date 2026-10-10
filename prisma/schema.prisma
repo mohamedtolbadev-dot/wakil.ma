@@ -75,8 +75,15 @@ model Agent {
   isActive            Boolean  @default(true)
   instructions        String?  @db.Text
   productInstructions String?  @db.Text
+  // Meta WhatsApp Cloud API
   whatsappPhoneId     String?
   whatsappToken       String?  @db.Text
+
+  // Twilio WhatsApp
+  waProvider          String   @default("meta") // "meta" | "twilio"
+  twilioAccountSid    String?
+  twilioAuthToken     String?  @db.Text
+  twilioPhoneNumber   String?  // e.g. +16204072940
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   selectedProductId   String?

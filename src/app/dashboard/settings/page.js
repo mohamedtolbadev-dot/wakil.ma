@@ -5,7 +5,7 @@ import { useAgentStore } from "@/store/agentStore"
 import { productsAPI } from "@/lib/api"
 import { getToken } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
-import { getPublicAppUrl, getWhatsAppWebhookUrl } from "@/lib/publicAppUrl"
+import { getPublicAppUrl, getWhatsAppWebhookUrl, getTwilioWebhookUrl } from "@/lib/publicAppUrl"
 import { Loader2, Package, Clock, Store, Eye, EyeOff, Sparkles, Zap, Heart, Crown, Flame, Maximize2, XCircle, Truck } from "lucide-react"
 import {
   Bot, Save, Plus, Trash2, MessageCircle,
@@ -729,7 +729,10 @@ export default function SettingsPage() {
   const [orderCancelledMessage, setOrderCancelledMessage] = useState("")
   const [trackingUrlTemplate, setTrackingUrlTemplate] = useState("")
   const [whatsappForm, setWhatsappForm] = useState({ whatsappPhoneId: "", whatsappToken: "" })
+  const [twilioForm, setTwilioForm] = useState({ accountSid: "", authToken: "", phoneNumber: "" })
+  const [waProvider, setWaProvider] = useState("meta") // "meta" | "twilio"
   const [showToken, setShowToken] = useState(false)
+  const [showTwilioToken, setShowTwilioToken] = useState(false)
   const [testingWA, setTestingWA] = useState(false)
   const [savingWA, setSavingWA] = useState(false)
   const [products, setProducts] = useState([])
@@ -837,6 +840,12 @@ export default function SettingsPage() {
       setOrderCancelledMessage(agent.orderCancelledMessage || "")
       setTrackingUrlTemplate(agent.trackingUrlTemplate || "")
       setWhatsappForm({ whatsappPhoneId: agent.whatsappPhoneId || "", whatsappToken: agent.whatsappToken || "" })
+      setWaProvider(agent.waProvider || "meta")
+      setTwilioForm({
+        accountSid:   agent.twilioAccountSid   || "",
+        authToken:    agent.twilioAuthToken    || "",
+        phoneNumber:  agent.twilioPhoneNumber  || "",
+      })
     }
   }, [agent])
 
@@ -1007,6 +1016,7 @@ export default function SettingsPage() {
   // Canonical webhook URL for Meta Developers.
   const APP_URL = getPublicAppUrl()
   const webhookUrl = getWhatsAppWebhookUrl(APP_URL)
+  const twilioWebhookUrl = getTwilioWebhookUrl(APP_URL)
 
   return (
     <div className="flex flex-col gap-3 sm:gap-5 pb-8">

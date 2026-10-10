@@ -1,7 +1,131 @@
-// دوال التواصل مع WhatsApp Cloud API
+// دوال التواصل مع WhatsApp Cloud API + Twilio
 
 const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL ||
   "https://graph.facebook.com/v19.0"
+
+const TWILIO_API_URL = "https://api.twilio.com/2010-04-01"
+
+// ─── Twilio: إرسال رسالة واتساب ───────────────────────────────
+export async function sendTwilioWhatsAppMessage({
+  accountSid,
+  authToken,
+  from,   // e.g. "whatsapp:+16204072940"
+  to,     // e.g. "whatsapp:+212600000000"
+  message,
+  mediaUrl = null,
+}) {
+  if (!accountSid || !authToken || !from || !to) {
+    return { success: false, error: "Missing Twilio credentials" }
+  }
+
+  const fromWa = from.startsWith("whatsapp:") ? from : `whatsapp:${from}`
+  const toWa   = to.startsWith("whatsapp:")   ? to   : `whatsapp:${to}`
+
+  const params = new URLSearchParams({ From: fromWa, To: toWa, Body: message || "" })
+  if (mediaUrl) params.append("MediaUrl", mediaUrl)
+
+  try {
+    const response = await fetch(
+      `${TWILIO_API_URL}/Accounts/${accountSid}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      }
+    )
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      const isAuthError = response.status === 401 || data?.code === 20003
+      console.error(`❌ Twilio error ${response.status}:`, data?.message || data?.code)
+      return { success: false, error: data?.message || "Twilio error", isAuthError }
+    }
+
+    console.log(`✅ Twilio message sent (SID: ${data.sid})`)
+    return { success: true, data, messageSid: data.sid }
+  } catch (error) {
+    console.error("❌ sendTwilioWhatsAppMessage error:", error?.message)
+    return { success: false, error: error?.message || "Unknown error" }
+  }
+}
+
+// ─── Twilio: تحميل ميديا (صوت/صورة) ──────────────────────────
+export async function downloadTwilioMedia({ accountSid, authToken, mediaUrl }) {
+  if (!mediaUrl) return null
+  try {
+    const response = await fetch(mediaUrl, {
+      headers: {
+        "Authorization": `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+      },
+    })
+    if (!response.ok) {
+      console.error("❌ downloadTwilioMedia:", response.status)
+      return null
+    }
+    const mimeType = response.headers.get("content-type") || "application/octet-stream"
+    const buffer = await response.arrayBuffer()
+    return { buffer, mimeType }
+  } catch (e) {
+    console.error("❌ downloadTwilioMedia:", e?.message)
+    return null
+  }
+}
+
+// ─── Twilio: تحليل webhook الوارد ─────────────────────────────
+export function parseTwilioIncomingMessage(formData) {
+  // Twilio يبعث Form data
+  const messageSid  = formData.get("MessageSid") || ""
+  const from        = formData.get("From") || ""        // "whatsapp:+212600000000"
+  const to          = formData.get("To") || ""          // "whatsapp:+16204072940"
+  const body        = formData.get("Body") || ""
+  const numMedia    = parseInt(formData.get("NumMedia") || "0", 10)
+  const profileName = formData.get("ProfileName") || ""
+  const mediaUrl    = numMedia > 0 ? formData.get("MediaUrl0") || null : null
+  const mediaType   = numMedia > 0 ? formData.get("MediaContentType0") || "" : ""
+
+  // نزيل prefix "whatsapp:"
+  const fromPhone = from.replace("whatsapp:", "")
+  const toPhone   = to.replace("whatsapp:", "")
+
+  let type = "text"
+  if (numMedia > 0) {
+    if (mediaType.startsWith("audio/")) type = "audio"
+    else if (mediaType.startsWith("image/")) type = "image"
+    else if (mediaType.startsWith("video/")) type = "video"
+    else type = "document"
+  }
+
+  return {
+    messageId:    messageSid,
+    from:         fromPhone,
+    toPhone,
+    customerName: profileName || fromPhone,
+    text:         body.trim(),
+    type,
+    mediaUrl,
+    mediaType,
+    timestamp:    String(Math.floor(Date.now() / 1000)),
+  }
+}
+
+// ─── Twilio: التحقق من التوقيع ─────────────────────────────────
+export function verifyTwilioSignature({ authToken, url, params, signature }) {
+  if (!authToken || !signature) return false
+  try {
+    const crypto = require("crypto")
+    // Twilio signature: HMAC-SHA1 على URL + params مرتبة أبجدياً
+    const sortedKeys = Object.keys(params).sort()
+    const str = url + sortedKeys.map(k => k + params[k]).join("")
+    const expected = crypto.createHmac("sha1", authToken).update(str).digest("base64")
+    return expected === signature
+  } catch {
+    return false
+  }
+}
 const OPENAI_AUDIO_API_URL = "https://api.openai.com/v1/audio"
 const OPENAI_AUDIO_UPLOAD_LIMIT_BYTES = 25 * 1024 * 1024
 const OPENAI_CHAT_API_URL = "https://api.openai.com/v1/chat/completions"

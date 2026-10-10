@@ -1,0 +1,4 @@
+ALTER TABLE `agents` ADD COLUMN `waProvider` VARCHAR(191) NOT NULL DEFAULT 'meta';
+ALTER TABLE `agents` ADD COLUMN `twilioAccountSid` VARCHAR(191) NULL;
+ALTER TABLE `agents` ADD COLUMN `twilioAuthToken` TEXT NULL;
+ALTER TABLE `agents` ADD COLUMN `twilioPhoneNumber` VARCHAR(191) NULL;

@@ -78,6 +78,7 @@ export function decryptAgentSecrets(agent) {
   if (!agent) return agent
   return {
     ...agent,
-    whatsappToken: decryptSecret(agent.whatsappToken),
+    whatsappToken:    decryptSecret(agent.whatsappToken),
+    twilioAuthToken:  decryptSecret(agent.twilioAuthToken),
   }
 }
