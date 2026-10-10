@@ -1604,6 +1604,21 @@ export default function SettingsPage() {
           <Section title={t('settings.wa_connect')}>
             <div className="flex flex-col gap-4">
 
+              {/* Provider Switcher */}
+              <div className="grid grid-cols-2 gap-2">
+                {[{key:"meta",label:"Meta (WhatsApp Cloud API)"},{key:"twilio",label:"Twilio"}].map(p=>(
+                  <button key={p.key} onClick={()=>setWaProvider(p.key)}
+                    className={cn(
+                      "py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all",
+                      waProvider===p.key
+                        ? "bg-brand-600 text-white border-brand-600 shadow-md shadow-brand-600/25"
+                        : "border-border text-muted-foreground hover:border-brand-300/60 hover:bg-secondary"
+                    )}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
               {/* حالة الاتصال */}
               <div className={cn(
                 "flex items-center gap-3 p-4 rounded-xl border transition-all",
@@ -1624,124 +1639,180 @@ export default function SettingsPage() {
                   isWAConnected ? "bg-brand-600 animate-pulse shadow-sm shadow-brand-600/60" : "bg-border")} />
               </div>
 
-              <p className="text-[12px] text-muted-foreground leading-relaxed">
-                {t('settings.wa_intro')}
-              </p>
+              {/* ════ Meta Form ════ */}
+              {waProvider === "meta" && (<>
+                <p className="text-[12px] text-muted-foreground leading-relaxed">{t('settings.wa_intro')}</p>
 
-              {/* ════ دليل الإعدادات ════════════════════════ */}
-              <div className="p-4 bg-white border border-brand-600/15 rounded-xl">
-                <p className="text-[12px] font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-600" /> {t('settings.wa_guide')}
-                </p>
-                <div className="flex flex-col gap-2">
-                  <a href="https://developers.facebook.com/apps/"
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-[12px] text-brand-600 hover:text-brand-800 hover:underline transition-colors">
-                    <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">1</span>
-                    <span>{t('settings.wa_step1')}</span>
-                    <span className="text-[11px] opacity-60">{t('settings.wa_new_win')}</span>
-                  </a>
-                  <a href="https://business.facebook.com/settings/system-users"
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-[12px] text-brand-600 hover:text-brand-800 hover:underline transition-colors">
-                    <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">2</span>
-                    <span>{t('settings.wa_step2')}</span>
-                    <span className="text-[11px] opacity-60">(System User)</span>
-                  </a>
-                  <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks"
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-[12px] text-brand-600 hover:text-brand-800 hover:underline transition-colors">
-                    <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">3</span>
-                    <span>{t('settings.wa_step3')}</span>
-                    <span className="text-[11px] opacity-60">{t('settings.wa_last_step')}</span>
-                  </a>
-                </div>
-              </div>
-
-              <Field label={t('settings.phone_id')}>
-                <input type="text" value={whatsappForm.whatsappPhoneId}
-                  onChange={(e) => setWhatsappForm({ ...whatsappForm, whatsappPhoneId: e.target.value })}
-                  placeholder="ex: 819683327841970" className={inputCls} />
-              </Field>
-
-              <Field label={t('settings.token')}>
-                <div className="relative">
-                  <input type={showToken ? "text" : "password"}
-                    value={whatsappForm.whatsappToken}
-                    onChange={(e) => setWhatsappForm({ ...whatsappForm, whatsappToken: e.target.value })}
-                    placeholder="EAASY1Mu..."
-                    className={cn(inputCls, "pr-3 pl-10")} />
-                  <button type="button" onClick={() => setShowToken(!showToken)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                    {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </Field>
-
-              <Field label={t('settings.webhook_url')} hint={t('settings.webhook_hint')}>
-                <div className="flex gap-2">
-                  <input readOnly value={webhookUrl}
-                    className={cn(inputCls, "flex-1 text-[11px] text-muted-foreground font-mono cursor-text")} />
-                  <button onClick={() => {
-                    navigator.clipboard.writeText(webhookUrl)
-                    showToast(t('settings.copied'))
-                  }} className="shrink-0 px-3 py-2 bg-secondary border border-border rounded-xl text-sm font-medium hover:bg-secondary/80 hover:border-brand-300/60 transition-all">
-                    {t('settings.copy')}
-                  </button>
-                </div>
-              </Field>
-
-              {/* Hint about webhook hosting — shows if app URL looks like a local/dev env */}
-              {(!APP_URL || APP_URL.includes("localhost") || APP_URL.includes("127.0.0.1")) && (
-                <div className="p-3 bg-white border border-brand-600/15 rounded-xl">
-                  <p className="text-[11px] text-muted-foreground">
-                    ℹ️ {t('settings.wa_env_hint')}
+                <div className="p-4 bg-white border border-brand-600/15 rounded-xl">
+                  <p className="text-[12px] font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-600" /> {t('settings.wa_guide')}
                   </p>
+                  <div className="flex flex-col gap-2">
+                    <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[12px] text-brand-600 hover:underline">
+                      <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">1</span>
+                      <span>{t('settings.wa_step1')}</span>
+                    </a>
+                    <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[12px] text-brand-600 hover:underline">
+                      <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">2</span>
+                      <span>{t('settings.wa_step2')}</span>
+                    </a>
+                    <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[12px] text-brand-600 hover:underline">
+                      <span className="w-5 h-5 rounded bg-brand-600/10 flex items-center justify-center text-[12px] font-bold">3</span>
+                      <span>{t('settings.wa_step3')}</span>
+                    </a>
+                  </div>
                 </div>
-              )}
 
-              <Field label={t('settings.verify_token')} hint={t('settings.verify_hint')}>
-                <div className="flex gap-2">
-                  <input readOnly value={agent?.verifyToken || t('settings.wa_loading')}
-                    className={cn(inputCls, "flex-1 text-[11px] text-muted-foreground font-mono cursor-text")} />
-                  <button onClick={() => {
-                    navigator.clipboard.writeText(agent?.verifyToken)
-                    showToast(t('settings.copied'))
-                  }} disabled={!agent?.verifyToken}
-                  className="shrink-0 px-3 py-2 bg-secondary border border-border rounded-xl text-sm font-medium hover:bg-secondary/80 hover:border-brand-300/60 transition-all disabled:opacity-50">
-                    {t('settings.copy')}
-                  </button>
-                </div>
-              </Field>
+                <Field label={t('settings.phone_id')}>
+                  <input type="text" value={whatsappForm.whatsappPhoneId}
+                    onChange={(e) => setWhatsappForm({ ...whatsappForm, whatsappPhoneId: e.target.value })}
+                    placeholder="ex: 819683327841970" className={inputCls} />
+                </Field>
 
-              <button
-                disabled={savingWA}
-                onClick={async () => {
+                <Field label={t('settings.token')}>
+                  <div className="relative">
+                    <input type={showToken ? "text" : "password"}
+                      value={whatsappForm.whatsappToken}
+                      onChange={(e) => setWhatsappForm({ ...whatsappForm, whatsappToken: e.target.value })}
+                      placeholder="EAASY1Mu..."
+                      className={cn(inputCls, "pr-3 pl-10")} />
+                    <button type="button" onClick={() => setShowToken(!showToken)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </Field>
+
+                <Field label={t('settings.webhook_url')} hint={t('settings.webhook_hint')}>
+                  <div className="flex gap-2">
+                    <input readOnly value={webhookUrl} className={cn(inputCls, "flex-1 text-[11px] text-muted-foreground font-mono cursor-text")} />
+                    <button onClick={() => { navigator.clipboard.writeText(webhookUrl); showToast(t('settings.copied')) }}
+                      className="shrink-0 px-3 py-2 bg-secondary border border-border rounded-xl text-sm font-medium hover:bg-secondary/80 transition-all">
+                      {t('settings.copy')}
+                    </button>
+                  </div>
+                </Field>
+
+                {(!APP_URL || APP_URL.includes("localhost") || APP_URL.includes("127.0.0.1")) && (
+                  <div className="p-3 bg-white border border-brand-600/15 rounded-xl">
+                    <p className="text-[11px] text-muted-foreground">ℹ️ {t('settings.wa_env_hint')}</p>
+                  </div>
+                )}
+
+                <Field label={t('settings.verify_token')} hint={t('settings.verify_hint')}>
+                  <div className="flex gap-2">
+                    <input readOnly value={agent?.verifyToken || t('settings.wa_loading')}
+                      className={cn(inputCls, "flex-1 text-[11px] text-muted-foreground font-mono cursor-text")} />
+                    <button onClick={() => { navigator.clipboard.writeText(agent?.verifyToken); showToast(t('settings.copied')) }}
+                      disabled={!agent?.verifyToken}
+                      className="shrink-0 px-3 py-2 bg-secondary border border-border rounded-xl text-sm font-medium hover:bg-secondary/80 transition-all disabled:opacity-50">
+                      {t('settings.copy')}
+                    </button>
+                  </div>
+                </Field>
+
+                <button disabled={savingWA} onClick={async () => {
                   setSavingWA(true)
                   try {
                     const success = await updateAgent({
+                      waProvider: "meta",
                       whatsappPhoneId: whatsappForm.whatsappPhoneId?.trim(),
                       whatsappToken: whatsappForm.whatsappToken?.trim(),
                     })
-                    if (success === false) throw new Error("update failed")
+                    if (success === false) throw new Error()
                     showToast(t('settings.toast_wa_saved'))
-                  } catch (err) {
-                    console.error("Save WhatsApp failed:", err)
-                    showToast(t('settings.toast_save_failed') || "فشل الحفظ", "error")
-                  } finally {
-                    setSavingWA(false)
-                  }
+                  } catch { showToast(t('settings.toast_save_failed') || "فشل الحفظ", "error") }
+                  finally { setSavingWA(false) }
                 }}
-                className="w-full flex items-center gap-2 justify-center bg-brand-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-all shadow-md shadow-brand-600/25 disabled:opacity-50">
-                {savingWA ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                {savingWA ? t('settings.saving') : t('settings.save_whatsapp')}
-              </button>
+                  className="w-full flex items-center gap-2 justify-center bg-brand-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-all shadow-md shadow-brand-600/25 disabled:opacity-50">
+                  {savingWA ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  {savingWA ? t('settings.saving') : t('settings.save_whatsapp')}
+                </button>
 
-              <button onClick={handleTestWhatsAppConnection} disabled={testingWA}
-                className="w-full flex items-center gap-2 justify-center bg-secondary border border-border text-foreground py-3.5 rounded-xl text-sm font-semibold hover:bg-secondary/80 hover:border-brand-300/60 transition-all disabled:opacity-50">
-                {testingWA ? <Loader2 size={15} className="animate-spin" /> : <Phone size={15} />}
-                {testingWA ? t('settings.testing') || "جاري الاختبار..." : t('settings.test_whatsapp')}
-              </button>
+                <button onClick={handleTestWhatsAppConnection} disabled={testingWA}
+                  className="w-full flex items-center gap-2 justify-center bg-secondary border border-border text-foreground py-3.5 rounded-xl text-sm font-semibold hover:bg-secondary/80 transition-all disabled:opacity-50">
+                  {testingWA ? <Loader2 size={15} className="animate-spin" /> : <Phone size={15} />}
+                  {testingWA ? t('settings.testing') || "جاري الاختبار..." : t('settings.test_whatsapp')}
+                </button>
+              </>)}
+
+              {/* ════ Twilio Form ════ */}
+              {waProvider === "twilio" && (<>
+                <div className="p-4 bg-white border border-brand-600/15 rounded-xl">
+                  <p className="text-[12px] font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-600" /> دليل إعداد Twilio
+                  </p>
+                  <div className="flex flex-col gap-1.5 text-[12px] text-muted-foreground">
+                    <p>1. سجّل في <a href="https://www.twilio.com" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">twilio.com</a> واحصل على Account SID و Auth Token</p>
+                    <p>2. فعّل WhatsApp Sandbox أو رقم مدفوع من Twilio Console</p>
+                    <p>3. في إعدادات الـ Sandbox، ضع Webhook URL أدناه في حقل "When a message comes in"</p>
+                  </div>
+                </div>
+
+                <Field label="Account SID">
+                  <input type="text" value={twilioForm.accountSid}
+                    onChange={(e) => setTwilioForm({ ...twilioForm, accountSid: e.target.value })}
+                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className={inputCls} />
+                </Field>
+
+                <Field label="Auth Token">
+                  <div className="relative">
+                    <input type={showTwilioToken ? "text" : "password"}
+                      value={twilioForm.authToken}
+                      onChange={(e) => setTwilioForm({ ...twilioForm, authToken: e.target.value })}
+                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      className={cn(inputCls, "pr-3 pl-10")} />
+                    <button type="button" onClick={() => setShowTwilioToken(!showTwilioToken)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showTwilioToken ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </Field>
+
+                <Field label="رقم WhatsApp (Twilio)" hint="بصيغة whatsapp:+1620... أو +1620... فقط">
+                  <input type="text" value={twilioForm.phoneNumber}
+                    onChange={(e) => setTwilioForm({ ...twilioForm, phoneNumber: e.target.value })}
+                    placeholder="+16204072940" className={inputCls} />
+                </Field>
+
+                <Field label="Webhook URL" hint="انسخ هذا الرابط وضعه في Twilio Console → Messaging → Sandbox Settings">
+                  <div className="flex gap-2">
+                    <input readOnly value={twilioWebhookUrl}
+                      className={cn(inputCls, "flex-1 text-[11px] text-muted-foreground font-mono cursor-text")} />
+                    <button onClick={() => { navigator.clipboard.writeText(twilioWebhookUrl); showToast(t('settings.copied')) }}
+                      className="shrink-0 px-3 py-2 bg-secondary border border-border rounded-xl text-sm font-medium hover:bg-secondary/80 transition-all">
+                      {t('settings.copy')}
+                    </button>
+                  </div>
+                </Field>
+
+                <button disabled={savingWA} onClick={async () => {
+                  setSavingWA(true)
+                  try {
+                    const token = getToken()
+                    const res = await fetch('/api/twilio/connect', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({
+                        accountSid: twilioForm.accountSid?.trim(),
+                        authToken: twilioForm.authToken?.trim(),
+                        phoneNumber: twilioForm.phoneNumber?.trim(),
+                      })
+                    })
+                    const data = await res.json()
+                    if (data.success) showToast("تم حفظ إعدادات Twilio ✓")
+                    else showToast(data.error || "فشل الحفظ", "error")
+                  } catch { showToast("خطأ في الاتصال", "error") }
+                  finally { setSavingWA(false) }
+                }}
+                  className="w-full flex items-center gap-2 justify-center bg-brand-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-all shadow-md shadow-brand-600/25 disabled:opacity-50">
+                  {savingWA ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  {savingWA ? t('settings.saving') : "حفظ إعدادات Twilio"}
+                </button>
+              </>)}
             </div>
           </Section>
         </div>
