@@ -1,15 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
-* {
-  font-family: "Inter", "IBM Plex Sans Arabic", sans-serif;
-}
-
 @theme {
   --font-sans: "Inter", "IBM Plex Sans Arabic", sans-serif;
-  --font-heading: "Sora", sans-serif;
- 
+
   --color-brand-50:  #FFFFFF;
   --color-brand-100: #E4CFFB;
   --color-brand-200: #C99DF5;
@@ -79,25 +74,34 @@
     border-color: hsl(var(--border));
   }
 
+  html {
+    font-family: var(--font-sans);
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-size: 15px;
-    font-family: "Inter", "IBM Plex Sans Arabic", sans-serif;
     font-feature-settings: "kern" 1, "tnum" 1, "cv02" 1, "cv03" 1, "cv04" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
-  html {
-    font-family: "Inter", "IBM Plex Sans Arabic", sans-serif;
-  }
+  h1 { font-size: 24px; font-weight: 700; line-height: 1.15; letter-spacing: -0.03em; }
+  h2 { font-size: 19px; font-weight: 600; line-height: 1.2;  letter-spacing: -0.02em; }
+  h3 { font-size: 16px; font-weight: 600; line-height: 1.3;  letter-spacing: -0.015em; }
+  h4, h5, h6 { font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; }
 
-  h1 { font-size: 24px; font-weight: 700; line-height: 1.15; letter-spacing: -0.03em; font-family: "Sora", sans-serif; }
-  h2 { font-size: 19px; font-weight: 600; line-height: 1.2;  letter-spacing: -0.02em; font-family: "Sora", sans-serif; }
-  h3 { font-size: 16px; font-weight: 600; line-height: 1.3;  letter-spacing: -0.015em; font-family: "Sora", sans-serif; }
-  h4, h5, h6 { font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; font-family: "Sora", sans-serif; }
+  /* العربية: بلا letter-spacing سالب */
+  :lang(ar) h1, [dir="rtl"] h1,
+  :lang(ar) h2, [dir="rtl"] h2,
+  :lang(ar) h3, [dir="rtl"] h3,
+  :lang(ar) h4, [dir="rtl"] h4,
+  :lang(ar) h5, [dir="rtl"] h5,
+  :lang(ar) h6, [dir="rtl"] h6 {
+    letter-spacing: 0;
+  }
 
   p, span, li, td, th {
     font-size: 14px;
@@ -123,49 +127,4 @@
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
   }
-
-  /* IBM Plex Sans Arabic للعناوين والنصوص العربية */
-  :lang(ar) h1, [dir="rtl"] h1,
-  :lang(ar) h2, [dir="rtl"] h2,
-  :lang(ar) h3, [dir="rtl"] h3,
-  :lang(ar) h4, [dir="rtl"] h4,
-  :lang(ar) h5, [dir="rtl"] h5,
-  :lang(ar) h6, [dir="rtl"] h6 {
-    font-family: "IBM Plex Sans Arabic", sans-serif !important;
-    letter-spacing: 0;
-  }
-
-  :lang(ar) p, [dir="rtl"] p,
-  :lang(ar) span, [dir="rtl"] span,
-  :lang(ar) li, [dir="rtl"] li,
-  :lang(ar) button, [dir="rtl"] button,
-  :lang(ar) label, [dir="rtl"] label {
-    font-family: "IBM Plex Sans Arabic", sans-serif;
-  }
-}
-
-/* Sora for headings on public/landing pages */
-body:not(:has(.dashboard-layout)) h1,
-body:not(:has(.dashboard-layout)) h2,
-body:not(:has(.dashboard-layout)) h3,
-body:not(:has(.dashboard-layout)) h4,
-body:not(:has(.dashboard-layout)) h5,
-body:not(:has(.dashboard-layout)) h6 {
-  font-family: "Sora", sans-serif !important;
-}
-
-body:not(:has(.dashboard-layout)):lang(ar) h1,
-body:not(:has(.dashboard-layout))[dir="rtl"] h1,
-body:not(:has(.dashboard-layout)):lang(ar) h2,
-body:not(:has(.dashboard-layout))[dir="rtl"] h2,
-body:not(:has(.dashboard-layout)):lang(ar) h3,
-body:not(:has(.dashboard-layout))[dir="rtl"] h3,
-body:not(:has(.dashboard-layout)):lang(ar) h4,
-body:not(:has(.dashboard-layout))[dir="rtl"] h4,
-body:not(:has(.dashboard-layout)):lang(ar) h5,
-body:not(:has(.dashboard-layout))[dir="rtl"] h5,
-body:not(:has(.dashboard-layout)):lang(ar) h6,
-body:not(:has(.dashboard-layout))[dir="rtl"] h6 {
-  font-family: "IBM Plex Sans Arabic", sans-serif !important;
-  letter-spacing: 0;
 }

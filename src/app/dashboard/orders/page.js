@@ -8,16 +8,155 @@ import {
   ClipboardList, Search, Plus, Loader2, Trash2, ChevronDown,
   Package, Truck, CheckCircle2, Clock, XCircle, RefreshCw,
   Phone, User, Tag, DollarSign, MapPin, StickyNote, Hash, AlertTriangle, X,
-  MessageCircle, Download, ImageIcon, MoreHorizontal, Upload,
+  MessageCircle, Download, ImageIcon, Upload, Palette, Building2,
 } from "lucide-react"
 
-/* ─── Status config (labels resolved via t() at render time) ─── */
+/* ─── Messages (hardcoded strings → ar / fr) ─── */
+const messages = {
+  ar: {
+    colOrder: "الطلبية",
+    colDate: "التاريخ",
+    colClient: "الزبون",
+    colAddress: "العنوان",
+    colStatus: "الحالة",
+    colAmount: "المبلغ",
+    itemOne: "منتج",
+    itemMany: "منتجات",
+    review: "مراجعة",
+    selectOrder: "اختيار الطلبية",
+    selectVisible: "اختيار الطلبيات الظاهرة",
+    notCalculated: "غير محسوبة",
+    reliable: "جاهزة",
+    toCheck: "تحتاج مراجعة",
+    incomplete: "ناقصة",
+    missing: "ناقص: ",
+    fieldName: "الاسم", fieldPhone: "الهاتف", fieldProduct: "المنتج",
+    fieldQuantity: "الكمية", fieldCity: "المدينة", fieldAddress: "العنوان", fieldTotal: "المجموع",
+    today: "اليوم في",
+    saveFailed: "فشل الحفظ",
+    qtyInvalid: "الكمية غير صالحة",
+    amountInvalid: "المبلغ غير صالح",
+    missingFields: "عمر الحقول الإلزامية",
+    createFailed: "فشل إنشاء الطلب",
+    trackingPlaceholder: "أدخل رقم التتبع",
+    variant: "الخيار",
+    city: "المدينة",
+    edit: "تعديل",
+    details: "التفاصيل",
+    select: "اختر",
+    deliveryRef: "مرجع التوصيل",
+    deliveryWorkflow: "تدفق التوصيل (CSV)",
+    selected: "محددة",
+    providerOptional: "اسم شركة التوصيل (اختياري)",
+    bulkUpdate: "تحديث جماعي",
+    bulkConfirm: "تطبيق الحالة على الطلبيات المحددة؟",
+    noConfirmed: "ما كاين حتى طلبية مؤكدة للتصدير.",
+    selectFirst: "حدد الطلبيات أولا.",
+    exportedMsg: "طلبية تصدرات للتوصيل.",
+    exportFailed: "فشل تصدير ملف CSV.",
+    importFailed: "فشل استيراد ملف التتبع.",
+    bulkFailed: "فشل التحديث الجماعي.",
+    exportCsv: "تصدير CSV",
+    importTracking: "استيراد التتبع",
+    importLabel: "الاستيراد",
+    bulkLabel: "التحديث الجماعي",
+    updated: "تحديث",
+    whatsapp: "واتساب",
+    skipped: "متخطاة",
+    skippedReasons: "أسباب التخطي",
+    row: "السطر",
+    reference: "المرجع",
+    errMissingRef: "المرجع ناقص",
+    errNotFound: "الطلبية ما لقيناهاش",
+    errMissingTracking: "رقم التتبع أو الحالة ناقصين",
+    errTransition: "تغيير الحالة غير مسموح",
+    errUnknown: "سبب غير معروف",
+    filterAll: "الكل",
+    filterDrafts: "طلبيات ناقصة",
+    filterComplete: "طلبيات مكتملة",
+    needsReview: "تحتاج مراجعة",
+    close: "إغلاق",
+    refresh: "تحديث",
+  },
+  fr: {
+    colOrder: "Commande",
+    colDate: "Date",
+    colClient: "Client",
+    colAddress: "Adresse",
+    colStatus: "Statut",
+    colAmount: "Montant dû",
+    itemOne: "article",
+    itemMany: "articles",
+    review: "À vérifier",
+    selectOrder: "Sélectionner la commande",
+    selectVisible: "Sélectionner les commandes visibles",
+    notCalculated: "Non calculée",
+    reliable: "Fiable",
+    toCheck: "À vérifier",
+    incomplete: "Incomplète",
+    missing: "Manquant : ",
+    fieldName: "nom", fieldPhone: "téléphone", fieldProduct: "produit",
+    fieldQuantity: "quantité", fieldCity: "ville", fieldAddress: "adresse", fieldTotal: "total",
+    today: "Aujourd'hui à",
+    saveFailed: "Échec de l'enregistrement",
+    qtyInvalid: "Quantité invalide",
+    amountInvalid: "Montant invalide",
+    missingFields: "Champs obligatoires manquants",
+    createFailed: "Échec de la création de la commande",
+    trackingPlaceholder: "Saisissez le numéro de suivi",
+    variant: "Variante",
+    city: "Ville",
+    edit: "Modifier",
+    details: "Détails",
+    select: "Sélectionner",
+    deliveryRef: "Réf. livraison",
+    deliveryWorkflow: "Flux de livraison (CSV)",
+    selected: "sélectionnée(s)",
+    providerOptional: "Nom du livreur (optionnel)",
+    bulkUpdate: "Mise à jour groupée",
+    bulkConfirm: "Appliquer le statut aux commandes sélectionnées ?",
+    noConfirmed: "Aucune commande confirmée à exporter.",
+    selectFirst: "Sélectionnez d'abord des commandes.",
+    exportedMsg: "commande(s) exportée(s) pour la livraison.",
+    exportFailed: "Échec de l'export CSV.",
+    importFailed: "Échec de l'import du fichier de suivi.",
+    bulkFailed: "Échec de la mise à jour groupée.",
+    exportCsv: "Exporter CSV",
+    importTracking: "Importer le suivi",
+    importLabel: "Import",
+    bulkLabel: "Mise à jour groupée",
+    updated: "mise(s) à jour",
+    whatsapp: "WhatsApp",
+    skipped: "ignorée(s)",
+    skippedReasons: "Raisons d'exclusion",
+    row: "Ligne",
+    reference: "Référence",
+    errMissingRef: "Référence manquante",
+    errNotFound: "Commande introuvable",
+    errMissingTracking: "Suivi ou statut manquant",
+    errTransition: "Changement de statut non autorisé",
+    errUnknown: "Raison inconnue",
+    filterAll: "Toutes",
+    filterDrafts: "Commandes incomplètes",
+    filterComplete: "Commandes complètes",
+    needsReview: "À vérifier",
+    close: "Fermer",
+    refresh: "Actualiser",
+  },
+}
+
+function useM() {
+  const { language } = useLanguage()
+  return messages[language === "ar" ? "ar" : "fr"]
+}
+
+/* ─── Status config ─── */
 const STATUS_CONFIG = {
-  PENDING:   { key: "orders.pending",   color: "text-amber-600",  bg: "bg-transparent border-border/70", icon: Clock       },
-  CONFIRMED: { key: "orders.confirmed", color: "text-blue-600",   bg: "bg-transparent border-border/70", icon: CheckCircle2 },
-  SHIPPED:   { key: "orders.shipped",   color: "text-purple-600", bg: "bg-transparent border-border/70", icon: Truck       },
-  DELIVERED: { key: "orders.delivered", color: "text-green-600",  bg: "bg-transparent border-border/70", icon: Package     },
-  CANCELLED: { key: "orders.cancelled", color: "text-red-500",    bg: "bg-transparent border-border/70", icon: XCircle     },
+  PENDING:   { key: "orders.pending",   icon: Clock,        cls: "border-border bg-secondary text-muted-foreground" },
+  CONFIRMED: { key: "orders.confirmed", icon: CheckCircle2, cls: "border-brand-600/30 bg-transparent text-brand-700 dark:text-brand-300" },
+  SHIPPED:   { key: "orders.shipped",   icon: Truck,        cls: "border-brand-600/20 bg-brand-600/10 text-brand-700 dark:text-brand-300" },
+  DELIVERED: { key: "orders.delivered", icon: Package,      cls: "border-brand-600 bg-brand-600 text-white" },
+  CANCELLED: { key: "orders.cancelled", icon: XCircle,      cls: "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400" },
 }
 
 const STATUS_ORDER = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"]
@@ -29,165 +168,160 @@ const ALLOWED_STATUS_TRANSITIONS = {
   CANCELLED: ["PENDING"],
 }
 
-/* ─── Skeleton ──────────────────────────────────────────── */
+/* ─── Shared UI helpers ─── */
+function useEscape(active, onEscape) {
+  useEffect(() => {
+    if (!active) return
+    const onKey = (e) => { if (e.key === "Escape") onEscape() }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [active, onEscape])
+}
+
+function IconTile({ icon: Icon, size = 16, className = "" }) {
+  return (
+    <div className={cn("w-9 h-9 rounded-xl bg-brand-600/10 text-brand-600 flex items-center justify-center shrink-0", className)}>
+      <Icon size={size} />
+    </div>
+  )
+}
+
+function Notice({ tone = "brand", icon: Icon = AlertTriangle, children, onClose, className = "" }) {
+  const toneCls = tone === "error"
+    ? "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400"
+    : "border-brand-600/20 bg-brand-600/10 text-brand-700 dark:text-brand-300"
+  return (
+    <div className={cn("flex items-start gap-2 rounded-xl border px-3 py-2.5 text-[13px] font-medium", toneCls, className)}>
+      <Icon size={15} className="shrink-0 mt-0.5" />
+      <span className="flex-1 min-w-0 break-words">{children}</span>
+      {onClose && (
+        <button onClick={onClose} className="shrink-0 opacity-60 hover:opacity-100 transition-opacity" aria-label="close">
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/* ─── Skeleton ─── */
+function Bone({ className = "" }) {
+  return <div className={cn("rounded-lg bg-foreground/[0.07]", className)} />
+}
+
+function Accent({ className = "", ...props }) {
+  return <div className={cn("h-1.5 rounded-full bg-brand-600/15", className)} {...props} />
+}
+
 function OrdersSkeleton() {
   const rows = [1, 2, 3, 4, 5, 6]
   return (
-    <div className="flex flex-col gap-4 pb-8">
-      <style>{`
-        @keyframes sk-shimmer {
-          0%   { background-position: -700px 0; }
-          100% { background-position:  700px 0; }
-        }
-        .sk {
-          border-radius: 6px;
-          background: linear-gradient(90deg,
-            var(--color-background-secondary, rgba(0,0,0,0.06)) 25%,
-            var(--color-background-tertiary,  rgba(0,0,0,0.11)) 50%,
-            var(--color-background-secondary, rgba(0,0,0,0.06)) 75%
-          );
-          background-size: 700px 100%;
-          animation: sk-shimmer 1.5s ease-in-out infinite;
-        }
-      `}</style>
-
+    <div className="flex flex-col gap-4 pb-8 animate-pulse" aria-busy="true" aria-live="polite">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="sk w-9 h-9 rounded-2xl" />
-          <div className="flex flex-col gap-1.5">
-            <div className="sk h-5 w-24 rounded-md" />
-            <div className="sk h-3 w-16 rounded-md" />
+          <Bone className="h-9 w-9 rounded-xl" />
+          <div className="flex flex-col gap-2">
+            <Bone className="h-5 w-28 rounded-full" />
+            <Bone className="h-3 w-12 rounded-full" />
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="sk h-9 w-9 rounded-xl" />
-          <div className="sk h-9 w-32 rounded-xl hidden sm:block" />
-          <div className="sk h-9 w-36 rounded-xl hidden sm:block" />
-          <div className="sk h-9 w-28 rounded-xl" />
+          <Bone className="h-9 w-9 rounded-xl" />
+          <Bone className="h-9 w-10 sm:w-32 rounded-xl" />
+          <Bone className="h-9 w-10 sm:w-36 rounded-xl" />
+          <Bone className="h-9 w-10 sm:w-28 rounded-xl" />
         </div>
       </div>
 
-      {/* Stats row */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-        {[1,2,3,4,5,6].map((_, i) => (
-          <div key={i} className="bg-card border border-border/50 rounded-xl p-4 flex flex-col gap-2">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center justify-between">
-              <div className="sk h-6 w-8 rounded-md" />
-              <div className="sk w-6 h-6 rounded-lg" />
+              <Bone className="h-6 w-10 rounded-lg" />
+              <Bone className="h-6 w-6 rounded-lg" />
             </div>
-            <div className="sk h-3 w-20 rounded-md" />
+            <Bone className="h-3 w-16 rounded-full mt-3" />
+            <Accent className="w-1/2 mt-3" />
           </div>
         ))}
       </div>
 
-      {/* Draft chips */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="sk h-8 w-16 rounded-lg" />
-        <div className="sk h-8 w-28 rounded-lg" />
-        <div className="sk h-8 w-32 rounded-lg" />
+      {/* Chips */}
+      <div className="flex gap-2">
+        <Bone className="h-8 w-16" />
+        <Bone className="h-8 w-28" />
+        <Bone className="h-8 w-32" />
       </div>
 
-      {/* Filters bar */}
+      {/* Search */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <div className="sk h-10 rounded-xl flex-1" />
-        <div className="sk h-10 w-full sm:w-44 rounded-xl" />
+        <Bone className="h-10 flex-1 rounded-xl" />
+        <Bone className="h-10 w-full sm:w-44 rounded-xl" />
       </div>
 
       {/* Delivery workflow */}
-      <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card px-3 py-3">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="sk h-8 w-8 rounded-lg" />
-            <div className="flex flex-col gap-1.5">
-              <div className="sk h-3.5 w-36 rounded-md" />
-              <div className="sk h-3 w-24 rounded-md" />
-            </div>
+      <div className="rounded-2xl border border-border bg-card p-3 flex flex-col lg:flex-row lg:items-center gap-3">
+        <div className="flex items-center gap-3">
+          <Bone className="h-9 w-9 rounded-xl" />
+          <div className="flex flex-col gap-2">
+            <Bone className="h-3.5 w-36 rounded-full" />
+            <Bone className="h-3 w-24 rounded-full" />
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 lg:ms-auto">
-            <div className="sk h-9 w-full sm:w-56 rounded-lg" />
-            <div className="flex gap-2">
-              <div className="sk h-9 w-28 rounded-lg" />
-              <div className="sk h-9 w-32 rounded-lg" />
-            </div>
-          </div>
+        </div>
+        <div className="flex gap-2 lg:ms-auto">
+          <Bone className="h-9 w-full sm:w-56 rounded-lg" />
+          <Bone className="h-9 w-28 rounded-lg" />
         </div>
       </div>
 
       {/* Desktop table */}
-      <div className="hidden lg:block overflow-hidden rounded-lg border border-border/70 bg-card">
-        <table className="w-full border-collapse text-left">
-          <thead className="bg-secondary/40">
-            <tr className="h-7 border-b border-border/70">
-              <th className="w-8 px-2"><div className="sk h-3.5 w-3.5 rounded" /></th>
-              <th className="px-2"><div className="sk h-2.5 w-20 rounded" /></th>
-              <th className="px-2"><div className="sk h-2.5 w-14 rounded" /></th>
-              <th className="px-2"><div className="sk h-2.5 w-16 rounded" /></th>
-              <th className="px-2"><div className="sk h-2.5 w-20 rounded" /></th>
-              <th className="px-2"><div className="sk h-2.5 w-14 rounded" /></th>
-              <th className="px-3"><div className="sk h-2.5 w-20 rounded ms-auto" /></th>
-              <th className="w-10 px-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((_, i) => (
-              <tr key={i} className="h-[62px] border-b border-border/50 last:border-b-0">
-                <td className="px-2"><div className="sk h-3.5 w-3.5 rounded" /></td>
-                <td className="px-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="sk w-9 h-9 rounded-md" />
-                    <div className="min-w-0 flex flex-col gap-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="sk h-3.5 w-24 rounded-md" />
-                        <div className="sk h-5 w-14 rounded-md" />
-                      </div>
-                      <div className="sk h-3 w-52 rounded-md" />
-                    </div>
-                  </div>
-                </td>
-                <td className="px-2"><div className="sk h-3.5 w-28 rounded-md" /></td>
-                <td className="px-2">
-                  <div className="flex flex-col gap-1.5">
-                    <div className="sk h-3.5 w-28 rounded-md" />
-                    <div className="sk h-3 w-24 rounded-md" />
-                  </div>
-                </td>
-                <td className="px-2">
-                  <div className="flex flex-col gap-1.5">
-                    <div className="sk h-3.5 w-40 rounded-md" />
-                    <div className="sk h-3 w-24 rounded-md" />
-                  </div>
-                </td>
-                <td className="px-2"><div className="sk h-6 w-24 rounded-lg" /></td>
-                <td className="px-3"><div className="sk h-4 w-24 rounded-md ms-auto" /></td>
-                <td className="px-2"><div className="sk h-8 w-8 rounded-md" /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="hidden lg:block overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="grid grid-cols-[32px_2.2fr_1fr_1.4fr_1.6fr_1.4fr_1fr_40px] gap-3 px-3 py-3 border-b border-border bg-secondary/40">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <Bone key={i} className="h-2.5 w-14 rounded-full" />)}
+        </div>
+        {rows.map((i) => (
+          <div key={i} className="grid grid-cols-[32px_2.2fr_1fr_1.4fr_1.6fr_1.4fr_1fr_40px] items-center gap-3 px-3 h-[64px] border-b border-border last:border-b-0">
+            <Bone className="h-3.5 w-3.5 rounded" />
+            <div className="flex items-center gap-2.5">
+              <Bone className="h-9 w-9 rounded-xl" />
+              <div className="flex flex-col gap-2">
+                <Bone className="h-3 w-24 rounded-full" />
+                <Bone className="h-2.5 w-40 rounded-full" />
+              </div>
+            </div>
+            <Bone className="h-3 w-20 rounded-full" />
+            <div className="flex flex-col gap-2">
+              <Bone className="h-3 w-24 rounded-full" />
+              <Bone className="h-2.5 w-20 rounded-full" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Bone className="h-3 w-32 rounded-full" />
+              <Bone className="h-2.5 w-16 rounded-full" />
+            </div>
+            <Accent className="h-6 w-24 rounded-lg" />
+            <Bone className="h-4 w-20 rounded-full" />
+            <Bone className="h-8 w-8 rounded-lg" />
+          </div>
+        ))}
       </div>
 
       {/* Mobile cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
-        {rows.map((_, i) => (
-          <div key={i} className="bg-card border border-border/50 rounded-2xl p-4 flex flex-col gap-3">
+        {rows.map((i) => (
+          <div key={i} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between">
-              <div className="sk w-10 h-10 rounded-xl" />
-              <div className="sk h-5 w-20 rounded-lg" />
+              <Bone className="h-14 w-14 rounded-xl" />
+              <Accent className="h-6 w-20 rounded-lg" />
             </div>
-            <div className="sk h-4 w-3/4 rounded-md" />
-            <div className="flex flex-col gap-1">
-              <div className="sk h-3 w-1/2 rounded-md" />
-              <div className="sk h-3 w-2/3 rounded-md" />
+            <Bone className="h-4 w-3/4 rounded-full" />
+            <div className="flex flex-col gap-2">
+              <Bone className="h-3 w-1/2 rounded-full" />
+              <Bone className="h-3 w-2/3 rounded-full" />
             </div>
-            <div className="flex items-center justify-between pt-2 border-t border-border/30">
-              <div className="sk h-4 w-16 rounded-md" />
-              <div className="sk h-3 w-12 rounded-md" />
-            </div>
-            <div className="flex items-center gap-1.5 pt-2 border-t border-border/30">
-              <div className="sk h-7 w-16 rounded-lg" />
-              <div className="sk h-7 w-7 rounded-lg" />
-              <div className="sk h-7 w-7 rounded-lg ml-auto" />
+            <div className="flex items-center justify-between pt-3 border-t border-border">
+              <Bone className="h-4 w-16 rounded-full" />
+              <Bone className="h-3 w-14 rounded-full" />
             </div>
           </div>
         ))}
@@ -196,14 +330,14 @@ function OrdersSkeleton() {
   )
 }
 
-/* ─── Status Badge ────────────────────────────────────────── */
+/* ─── Status Badge ─── */
 function StatusBadge({ status }) {
   const { t } = useLanguage()
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING
   const Icon = cfg.icon
   return (
-    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[13px] font-semibold border", cfg.bg, cfg.color)}>
-      <Icon size={14} />
+    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[12px] font-semibold border whitespace-nowrap", cfg.cls)}>
+      <Icon size={13} />
       {t(cfg.key)}
     </span>
   )
@@ -213,56 +347,41 @@ function DeliveryBadge({ order }) {
   const label = order?.deliveryReference || order?.deliveryStatus || ""
   if (!label) return null
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-cyan-700">
+    <span className="inline-flex items-center gap-1 rounded-md border border-brand-600/20 bg-brand-600/10 px-1.5 py-0.5 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
       <Truck size={11} />
       {label}
     </span>
   )
 }
 
-function getConfidenceCopy(confidence, language) {
-  if (!confidence) return language === "ar" ? "غير محسوبة" : "Non calculée"
-  if (confidence.level === "high") return language === "ar" ? "جاهزة" : "Fiable"
-  if (confidence.level === "medium") return language === "ar" ? "تحتاج مراجعة" : "À vérifier"
-  return language === "ar" ? "ناقصة" : "Incomplète"
+function getConfidenceCopy(confidence, m) {
+  if (!confidence) return m.notCalculated
+  if (confidence.level === "high") return m.reliable
+  if (confidence.level === "medium") return m.toCheck
+  return m.incomplete
 }
 
-function getMissingFieldLabel(field, language) {
-  const ar = {
-    name: "الاسم",
-    phone: "الهاتف",
-    product: "المنتج",
-    quantity: "الكمية",
-    city: "المدينة",
-    address: "العنوان",
-    total: "المجموع",
+function getMissingFieldLabel(field, m) {
+  const map = {
+    name: m.fieldName, phone: m.fieldPhone, product: m.fieldProduct,
+    quantity: m.fieldQuantity, city: m.fieldCity, address: m.fieldAddress, total: m.fieldTotal,
   }
-  const fr = {
-    name: "nom",
-    phone: "téléphone",
-    product: "produit",
-    quantity: "quantité",
-    city: "ville",
-    address: "adresse",
-    total: "total",
-  }
-  return (language === "ar" ? ar : fr)[field] || field
+  return map[field] || field
+}
+
+function confidenceTone(level) {
+  if (level === "high") return "border-brand-600/30 text-brand-700 dark:text-brand-300"
+  if (level === "medium") return "border-border text-foreground"
+  return "border-red-500/30 text-red-600 dark:text-red-400"
 }
 
 function ConfidenceBadge({ confidence }) {
-  const { language } = useLanguage()
+  const m = useM()
   if (!confidence) return null
-
-  const cfg = confidence.level === "high"
-    ? "border-emerald-500/30 bg-transparent text-emerald-700"
-    : confidence.level === "medium"
-      ? "border-amber-500/30 bg-transparent text-amber-700"
-      : "border-red-500/30 bg-transparent text-red-600"
-
   return (
-    <span className={cn("inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border", cfg)}>
+    <span className={cn("inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border bg-transparent", confidenceTone(confidence.level))}>
       <CheckCircle2 size={12} />
-      {confidence.score}% {getConfidenceCopy(confidence, language)}
+      {confidence.score}% {getConfidenceCopy(confidence, m)}
     </span>
   )
 }
@@ -273,9 +392,9 @@ function getOrderImage(order) {
 
 function OrderProductThumb({ order, size = "md" }) {
   const image = getOrderImage(order)
-  const sizeClass = size === "lg" ? "w-16 h-16" : "w-9 h-9"
+  const sizeClass = size === "lg" ? "w-14 h-14" : "w-9 h-9"
   return (
-    <div className={cn(sizeClass, "rounded-md overflow-hidden bg-secondary border border-border/60 flex items-center justify-center shrink-0")}>
+    <div className={cn(sizeClass, "rounded-xl overflow-hidden bg-secondary border border-border flex items-center justify-center shrink-0")}>
       {image ? (
         <div
           aria-label={order?.productName || "Product"}
@@ -283,30 +402,24 @@ function OrderProductThumb({ order, size = "md" }) {
           style={{ backgroundImage: `url("${image.replace(/"/g, "%22")}")` }}
         />
       ) : (
-        <ImageIcon size={size === "lg" ? 24 : 16} className="text-muted-foreground/50" />
+        <ImageIcon size={size === "lg" ? 22 : 15} className="text-muted-foreground/50" />
       )}
     </div>
   )
 }
 
-function formatOrderDate(value, language) {
+function formatOrderDate(value, language, m) {
   if (!value) return "—"
   const date = new Date(value)
   const now = new Date()
   const sameDay = date.toDateString() === now.toDateString()
-  const time = date.toLocaleTimeString(language === "ar" ? "ar-MA" : "fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-  if (sameDay) return language === "ar" ? `اليوم في ${time}` : `Aujourd'hui à ${time}`
-  return date.toLocaleDateString(language === "ar" ? "ar-MA" : "fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  })
+  const locale = language === "ar" ? "ar-MA" : "fr-FR"
+  const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
+  if (sameDay) return `${m.today} ${time}`
+  return date.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })
 }
 
-/* ─── Status Dropdown ─────────────────────────────────────── */
+/* ─── Status Dropdown ─── */
 function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, trackingNumber }) {
   const { t } = useLanguage()
   const [open, setOpen] = useState(false)
@@ -315,26 +428,20 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
   const [menuStyle, setMenuStyle] = useState(null)
   const allowedStatuses = new Set([currentStatus, ...(ALLOWED_STATUS_TRANSITIONS[currentStatus] || [])])
 
+  useEscape(open, () => setOpen(false))
+
   useEffect(() => {
     if (!open || !buttonRef.current) return
     const rect = buttonRef.current.getBoundingClientRect()
     const menuWidth = 208
     const menuHeight = 248
-    const viewportPadding = 8
-    const left = Math.min(
-      Math.max(rect.right - menuWidth, viewportPadding),
-      window.innerWidth - menuWidth - viewportPadding
-    )
+    const pad = 8
+    const left = Math.min(Math.max(rect.right - menuWidth, pad), window.innerWidth - menuWidth - pad)
     const preferredTop = rect.bottom + 4
-    const top =
-      preferredTop + menuHeight > window.innerHeight - viewportPadding
-        ? Math.max(rect.top - menuHeight - 4, viewportPadding)
-        : preferredTop
-    setMenuStyle({
-      top,
-      left,
-      width: menuWidth,
-    })
+    const top = preferredTop + menuHeight > window.innerHeight - pad
+      ? Math.max(rect.top - menuHeight - 4, pad)
+      : preferredTop
+    setMenuStyle({ top, left, width: menuWidth })
   }, [open])
 
   async function changeStatus(newStatus) {
@@ -357,22 +464,22 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
         ref={buttonRef}
         onClick={() => setOpen(!open)}
         disabled={loading}
-        className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground border border-border/50 hover:border-border px-2 py-1 rounded-lg transition-all"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-brand-600/40 px-2.5 py-1.5 rounded-lg transition-colors"
       >
         {loading ? <Loader2 size={14} className="animate-spin" /> : <ChevronDown size={14} />}
-        {t('orders.change')}
+        {t("orders.change")}
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
+            role="menu"
             style={menuStyle || undefined}
-            className={cn(
-              "fixed z-50 border border-border rounded-xl shadow-xl overflow-hidden bg-card",
-              !menuStyle && "invisible"
-            )}
+            className={cn("fixed z-50 border border-border rounded-xl shadow-lg overflow-hidden bg-card", !menuStyle && "invisible")}
           >
-            {STATUS_ORDER.map(s => {
+            {STATUS_ORDER.map((s) => {
               const cfg = STATUS_CONFIG[s]
               const Icon = cfg.icon
               const isCurrent = s === currentStatus
@@ -380,20 +487,21 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
               return (
                 <button
                   key={s}
+                  role="menuitem"
                   onClick={() => { if (!disabled) changeStatus(s) }}
                   disabled={disabled}
                   className={cn(
                     "w-full flex items-start gap-2 px-4 py-2.5 text-[13px] text-start transition-colors hover:bg-secondary",
-                    isCurrent ? "bg-secondary/60 font-semibold" : "",
-                    disabled ? "opacity-40 cursor-not-allowed hover:bg-transparent" : ""
+                    isCurrent && "bg-brand-600/5 font-semibold",
+                    disabled && "opacity-40 cursor-not-allowed hover:bg-transparent"
                   )}
                 >
-                  <Icon size={14} className={cn("mt-0.5 shrink-0", cfg.color)} />
+                  <Icon size={14} className={cn("mt-0.5 shrink-0", s === "CANCELLED" ? "text-red-600" : "text-brand-600")} />
                   <span className="min-w-0">
-                    <span className={cn("block", cfg.color)}>{t(cfg.key)}</span>
+                    <span className="block text-foreground">{t(cfg.key)}</span>
                     {(isCurrent || disabled) && (
                       <span className="mt-0.5 block text-[10px] font-normal leading-4 text-muted-foreground">
-                        {isCurrent ? t('orders.status_current') : t('orders.status_not_allowed')}
+                        {isCurrent ? t("orders.status_current") : t("orders.status_not_allowed")}
                       </span>
                     )}
                   </span>
@@ -407,46 +515,52 @@ function StatusDropdown({ orderId, currentStatus, onUpdated, sendMessage, tracki
   )
 }
 
-/* ─── Delete Modal ────────────────────────────────────────── */
+/* ─── Delete Modal ─── */
 function DeleteModal({ open, name, onConfirm, onCancel, isProcessing }) {
   const { t } = useLanguage()
+  const m = useM()
+  useEscape(open, onCancel)
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
-      <div
-        className="relative w-full max-w-sm border border-border rounded-3xl shadow-2xl overflow-hidden bg-card"
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-red-500/5">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
+      <div className="relative w-full max-w-sm border border-border rounded-2xl shadow-xl overflow-hidden bg-card">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center">
               <AlertTriangle size={16} className="text-red-500" />
             </div>
-            <p className="text-sm font-bold text-red-500">{t('orders.delete_title')}</p>
+            <p className="text-sm font-bold text-foreground">{t("orders.delete_title")}</p>
           </div>
-          <button onClick={onCancel}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+          <button
+            onClick={onCancel}
+            aria-label={m.close}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
             <X size={16} />
           </button>
         </div>
         <div className="px-5 py-4">
           <p className="text-sm text-foreground font-medium mb-1">
-            {t('orders.delete_confirm')}
+            {t("orders.delete_confirm")}
             <span className="text-brand-600 font-bold mx-1">{name}</span>?
           </p>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {t('orders.delete_warning')}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t("orders.delete_warning")}</p>
         </div>
-        <div className="flex gap-2 px-5 py-4 border-t border-border/60 bg-secondary/20">
-          <button onClick={onCancel}
-            className="flex-1 py-2.5 border border-border rounded-xl text-sm font-semibold hover:bg-secondary transition-colors">
-            {t('common.cancel')}
+        <div className="flex gap-2 px-5 py-4 border-t border-border">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 border border-border rounded-xl text-sm font-semibold hover:bg-secondary transition-colors"
+          >
+            {t("common.cancel")}
           </button>
-          <button onClick={onConfirm} disabled={isProcessing}
-            className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5">
-            {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-            {t('common.yes')}, {t('common.delete')}
+          <button
+            onClick={onConfirm}
+            disabled={isProcessing}
+            className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-1.5"
+          >
+            {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {t("common.yes")}, {t("common.delete")}
           </button>
         </div>
       </div>
@@ -454,49 +568,54 @@ function DeleteModal({ open, name, onConfirm, onCancel, isProcessing }) {
   )
 }
 
-/* ─── Order Detail Modal ──────────────────────────────────── */
+/* ─── Info row (detail modal) ─── */
+function InfoRow({ icon: Icon, label, children, alt = false, align = "center" }) {
+  return (
+    <div className={cn(
+      "flex gap-2 px-3 py-2.5 border-b border-border last:border-b-0",
+      align === "start" ? "items-start" : "items-center",
+      alt && "bg-secondary/40"
+    )}>
+      {Icon && <Icon size={14} className={cn("text-muted-foreground shrink-0", align === "start" && "mt-0.5")} />}
+      <span className="text-muted-foreground text-xs shrink-0">{label}</span>
+      <div className="ms-auto min-w-0 flex justify-end text-sm">{children}</div>
+    </div>
+  )
+}
+
+const editInputCls = "px-2 py-1 bg-background border border-border rounded-md text-xs focus:outline-none focus:border-brand-600 transition-colors"
+
+/* ─── Order Detail Modal ─── */
 function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sendMessage }) {
   const { t, language } = useLanguage()
+  const m = useM()
   const [isEditing, setIsEditing] = useState(false)
-  const [form, setForm] = useState({
-    customerName: order?.customerName || "",
-    customerPhone: order?.customerPhone || "",
-    productName: order?.productName || "",
-    quantity: order?.quantity ?? 1,
-    totalAmount: order?.totalAmount ?? 0,
-    city: order?.city || "",
-    address: order?.address || "",
-    notes: order?.notes || "",
-    trackingNumber: order?.trackingNumber || "",
+  const buildForm = (o) => ({
+    customerName: o?.customerName || "",
+    customerPhone: o?.customerPhone || "",
+    productName: o?.productName || "",
+    quantity: o?.quantity ?? 1,
+    totalAmount: o?.totalAmount ?? 0,
+    city: o?.city || "",
+    address: o?.address || "",
+    notes: o?.notes || "",
+    trackingNumber: o?.trackingNumber || "",
   })
+  const [form, setForm] = useState(buildForm(order))
   const [savingTracking, setSavingTracking] = useState(false)
   const [savingEdits, setSavingEdits] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
+  useEscape(true, onClose)
+
   useEffect(() => {
-    setForm({
-      customerName: order?.customerName || "",
-      customerPhone: order?.customerPhone || "",
-      productName: order?.productName || "",
-      quantity: order?.quantity ?? 1,
-      totalAmount: order?.totalAmount ?? 0,
-      city: order?.city || "",
-      address: order?.address || "",
-      notes: order?.notes || "",
-      trackingNumber: order?.trackingNumber || "",
-    })
+    setForm(buildForm(order))
     setIsEditing(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    order?.id,
-    order?.customerName,
-    order?.customerPhone,
-    order?.productName,
-    order?.quantity,
-    order?.totalAmount,
-    order?.city,
-    order?.address,
-    order?.notes,
-    order?.trackingNumber,
+    order?.id, order?.customerName, order?.customerPhone, order?.productName,
+    order?.quantity, order?.totalAmount, order?.city, order?.address,
+    order?.notes, order?.trackingNumber,
   ])
 
   if (!order) return null
@@ -509,7 +628,7 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
       onStatusChange?.(order.id, order.status, updated?.data)
     } catch (err) {
       console.error("Save tracking failed:", err)
-      setSaveError(err?.response?.data?.error || t('orders.err_save_failed') || "فشل الحفظ")
+      setSaveError(err?.response?.data?.error || m.saveFailed)
     } finally {
       setSavingTracking(false)
     }
@@ -519,12 +638,8 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
     setSaveError(null)
     const quantity = Number(form.quantity)
     const totalAmount = Number(form.totalAmount)
-    if (!Number.isFinite(quantity) || quantity < 1) {
-      setSaveError(t('orders.err_qty_invalid') || "الكمية غير صالحة"); return
-    }
-    if (!Number.isFinite(totalAmount) || totalAmount < 0) {
-      setSaveError(t('orders.err_amount_invalid') || "المبلغ غير صالح"); return
-    }
+    if (!Number.isFinite(quantity) || quantity < 1) { setSaveError(m.qtyInvalid); return }
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) { setSaveError(m.amountInvalid); return }
     setSavingEdits(true)
     try {
       const payload = {
@@ -543,48 +658,46 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
       setIsEditing(false)
     } catch (err) {
       console.error("Save edits failed:", err)
-      setSaveError(err?.response?.data?.error || t('orders.err_save_failed') || "فشل الحفظ")
+      setSaveError(err?.response?.data?.error || m.saveFailed)
     } finally {
       setSavingEdits(false)
     }
   }
 
-  const date = new Date(order.createdAt).toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR', {
-    day: "numeric", month: "long", year: "numeric",
-  })
-  const conversationLink = order.conversationId
-    ? `/dashboard/conversations?id=${order.conversationId}`
-    : null
-
-  const isRtl = language === 'ar'
+  const locale = language === "ar" ? "ar-MA" : "fr-FR"
+  const date = new Date(order.createdAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+  const conversationLink = order.conversationId ? `/dashboard/conversations?id=${order.conversationId}` : null
+  const isRtl = language === "ar"
   const confidence = order.confidence
+  const setField = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
-      <div className="absolute inset-0 bg-black/60 dark:bg-black/80" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div
-        className="relative w-full sm:max-w-3xl lg:max-w-4xl border border-border shadow-2xl bg-card flex flex-col max-h-[95dvh] sm:max-h-[88dvh] rounded-t-3xl sm:rounded-2xl overflow-hidden"
-        dir={isRtl ? 'rtl' : 'ltr'}
+        className="relative w-full sm:max-w-3xl lg:max-w-4xl border border-border shadow-xl bg-card flex flex-col max-h-[95dvh] sm:max-h-[88dvh] rounded-t-3xl sm:rounded-2xl overflow-hidden"
+        dir={isRtl ? "rtl" : "ltr"}
       >
-        {/* Drag handle - mobile only */}
+        {/* Drag handle (mobile) */}
         <div className="sm:hidden w-full flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-12 h-1.5 rounded-full bg-border" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3 border-b border-border bg-secondary/50 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <OrderProductThumb order={order} />
-            <div>
-              <p className="text-sm font-bold text-foreground">{t('common.details')}</p>
-              <p className="text-xs text-muted-foreground font-medium">#{order.id.slice(-8).toUpperCase()}</p>
+            <IconTile icon={ClipboardList} />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground">{t("common.details")}</p>
+              <p className="text-xs text-muted-foreground font-medium tabular-nums">#{order.id.slice(-8).toUpperCase()}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={order.status} />
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-brand-600/20"
+              aria-label={m.close}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
               <X size={16} />
             </button>
@@ -595,290 +708,222 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
         <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] gap-4 items-start">
 
-          {saveError && (
-            <div className="lg:col-span-2 flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[13px] text-red-600">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <span>{saveError}</span>
-            </div>
-          )}
+            {saveError && (
+              <Notice tone="error" className="lg:col-span-2" onClose={() => setSaveError(null)}>{saveError}</Notice>
+            )}
 
-          {/* ─── Edit / Save Bar ─── */}
-          <div className="lg:col-span-2 flex items-center gap-3 rounded-lg border border-border/60 bg-secondary/25 p-3">
-            <OrderProductThumb order={order} size="lg" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-foreground">{order.productName || "—"}</p>
-              {order.variant && <p className="truncate text-xs text-muted-foreground">{order.variant}</p>}
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-                <span>{order.quantity || 1} ×</span>
-                <span className="font-semibold text-brand-600">{order.totalAmount || 0} {t('common.currency')}</span>
-                <span>•</span>
-                <span className="truncate">{order.customerName || "—"}</span>
+            {/* Product summary */}
+            <div className="lg:col-span-2 flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+              <OrderProductThumb order={order} size="lg" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-foreground">{order.productName || "—"}</p>
+                {order.variant && <p className="truncate text-xs text-muted-foreground">{order.variant}</p>}
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+                  <span>{order.quantity || 1} ×</span>
+                  <span className="font-semibold text-brand-600 tabular-nums">{order.totalAmount || 0} {t("common.currency")}</span>
+                  <span>•</span>
+                  <span className="truncate">{order.customerName || "—"}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {confidence && (
-            <div className={cn(
-              "lg:col-span-2 flex items-start gap-2 p-2.5 rounded-lg border text-[13px]",
-              confidence.level === "high"
-                ? "bg-transparent border-emerald-500/30 text-emerald-700"
-                : confidence.level === "medium"
-                  ? "bg-transparent border-amber-500/30 text-amber-700"
-                  : "bg-transparent border-red-500/30 text-red-600"
-            )}>
-              <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <p className="font-semibold">
-                  {confidence.score}% {getConfidenceCopy(confidence, language)}
-                </p>
-                {confidence.missingFields?.length > 0 && (
-                  <p className="text-xs mt-0.5 opacity-80">
-                    {language === "ar" ? "ناقص: " : "Manquant: "}
-                    {confidence.missingFields.map(field => getMissingFieldLabel(field, language)).join(", ")}
-                  </p>
-                )}
+            {/* Confidence */}
+            {confidence && (
+              <div className={cn("lg:col-span-2 flex items-start gap-2 px-3 py-2.5 rounded-xl border text-[13px] bg-transparent", confidenceTone(confidence.level))}>
+                <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="font-semibold">{confidence.score}% {getConfidenceCopy(confidence, m)}</p>
+                  {confidence.missingFields?.length > 0 && (
+                    <p className="text-xs mt-0.5 opacity-80">
+                      {m.missing}
+                      {confidence.missingFields.map((f) => getMissingFieldLabel(f, m)).join(", ")}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="lg:col-span-2 flex items-center justify-between gap-2 border border-border/60 rounded-lg px-3 py-2 bg-secondary/20">
-            <p className="text-xs text-muted-foreground">
-              {isEditing ? (t('common.edit') || "Modifier") : (t('common.details') || "Détails")}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsEditing(v => !v)}
-                className="px-2.5 py-1.5 rounded-lg border border-brand-600/25 bg-brand-600/10 text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-600/15 hover:border-brand-600/35 transition-colors"
-              >
-                {isEditing ? t('common.cancel') : (t('common.edit') || "Modifier")}
-              </button>
-              {isEditing && (
+            {/* Edit bar */}
+            <div className="lg:col-span-2 flex items-center justify-between gap-2 border border-border rounded-xl px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                {isEditing ? m.edit : m.details}
+              </p>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={saveEdits}
-                  disabled={savingEdits}
-                  className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 disabled:opacity-50 flex items-center gap-1.5"
+                  onClick={() => setIsEditing((v) => !v)}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-foreground hover:border-brand-600/40 hover:text-brand-600 transition-colors"
                 >
-                  {savingEdits ? <Loader2 size={12} className="animate-spin" /> : null}
-                  {t('common.save')}
+                  {isEditing ? t("common.cancel") : m.edit}
                 </button>
-              )}
-            </div>
-          </div>
-
-          {/* ─── Compact Info Grid ─── */}
-          <div className="lg:row-span-2 border border-border/60 rounded-lg overflow-hidden text-sm">
-            {/* Customer Name */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40 bg-secondary/20">
-              <User size={14} className="text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground text-xs">{t('orders.customer_name')}</span>
-              {isEditing ? (
-                <input
-                  className="ms-auto w-48 max-w-[60%] px-2 py-1 bg-background border border-border rounded-md text-xs"
-                  value={form.customerName}
-                  onChange={(e) => setForm(p => ({ ...p, customerName: e.target.value }))}
-                />
-              ) : (
-                <span className="font-semibold text-foreground ms-auto truncate">{order.customerName || "—"}</span>
-              )}
-            </div>
-            {/* Phone */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40">
-              <Phone size={14} className="text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground text-xs">{t('orders.customer_phone')}</span>
-              {isEditing ? (
-                <input
-                  className="ms-auto w-48 max-w-[60%] px-2 py-1 bg-background border border-border rounded-md text-xs ltr"
-                  dir="ltr"
-                  value={form.customerPhone}
-                  onChange={(e) => setForm(p => ({ ...p, customerPhone: e.target.value }))}
-                />
-              ) : (
-                <span className="font-semibold text-foreground ms-auto ltr truncate" dir="ltr">{order.customerPhone || "—"}</span>
-              )}
-            </div>
-            {/* Product */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40 bg-secondary/20">
-              <Tag size={14} className="text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground text-xs">{t('orders.product_name')}</span>
-              {isEditing ? (
-                <input
-                  className="ms-auto w-60 max-w-[70%] px-2 py-1 bg-background border border-border rounded-md text-xs"
-                  value={form.productName}
-                  onChange={(e) => setForm(p => ({ ...p, productName: e.target.value }))}
-                />
-              ) : (
-                <span className="font-semibold text-foreground ms-auto truncate">{order.productName || "—"}</span>
-              )}
-            </div>
-            {/* Variant (size/color) */}
-            {order.variant && (
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40">
-                <span className="text-muted-foreground text-xs">🎨 {t('orders.variant') || "الخيار"}</span>
-                <span className="font-medium text-foreground ms-auto text-xs">{order.variant}</span>
-              </div>
-            )}
-            {/* Qty & Amount */}
-            <div className="grid grid-cols-2 border-b border-border/40">
-              <div className="flex items-center gap-2 px-3 py-2 border-e border-border/40">
-                <Hash size={14} className="text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground text-xs">{t('orders.qty')}</span>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    min="1"
-                    className="ms-auto w-20 px-2 py-1 bg-background border border-border rounded-md text-xs"
-                    value={form.quantity}
-                    onChange={(e) => setForm(p => ({ ...p, quantity: e.target.value }))}
-                  />
-                ) : (
-                  <span className="font-semibold text-foreground ms-auto">{order.quantity || 1}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2">
-                <DollarSign size={14} className="text-brand-600 shrink-0" />
-                <span className="text-muted-foreground text-xs">{t('orders.price')}</span>
-                {isEditing ? (
-                  <input
-                    type="number"
-                    min="0"
-                    className="ms-auto w-24 px-2 py-1 bg-background border border-border rounded-md text-xs"
-                    value={form.totalAmount}
-                    onChange={(e) => setForm(p => ({ ...p, totalAmount: e.target.value }))}
-                  />
-                ) : (
-                  <span className="font-semibold text-brand-600 ms-auto">{order.totalAmount || 0} {t('common.currency')}</span>
+                {isEditing && (
+                  <button
+                    onClick={saveEdits}
+                    disabled={savingEdits}
+                    className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+                  >
+                    {savingEdits && <Loader2 size={12} className="animate-spin" />}
+                    {t("common.save")}
+                  </button>
                 )}
               </div>
             </div>
-            {/* Address */}
-            <div className="flex items-start gap-2 px-3 py-2 border-b border-border/40 bg-secondary/20">
-              <MapPin size={14} className="text-muted-foreground shrink-0 mt-0.5" />
-              <span className="text-muted-foreground text-xs shrink-0">{t('common.address')}</span>
-              {isEditing ? (
-                <textarea
-                  rows={2}
-                  className="ms-auto w-[70%] px-2 py-1 bg-background border border-border rounded-md text-xs resize-none text-end"
-                  value={form.address}
-                  onChange={(e) => setForm(p => ({ ...p, address: e.target.value }))}
-                />
-              ) : (
-                <span className="font-medium text-foreground ms-auto text-end leading-snug">{order.address || "—"}</span>
-              )}
-            </div>
 
-            {/* City */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40">
-              <span className="text-sm shrink-0" aria-hidden="true">🏙️</span>
-              <span className="text-muted-foreground text-xs">{t('common.city') || "Ville"}</span>
-              {isEditing ? (
-                <input
-                  className="ms-auto w-48 max-w-[60%] px-2 py-1 bg-background border border-border rounded-md text-xs"
-                  value={form.city}
-                  onChange={(e) => setForm(p => ({ ...p, city: e.target.value }))}
-                />
-              ) : (
-                <span className="font-semibold text-foreground ms-auto truncate">{order.city || "—"}</span>
+            {/* Info grid */}
+            <div className="lg:row-span-2 border border-border rounded-xl overflow-hidden">
+              <InfoRow icon={User} label={t("orders.customer_name")} alt>
+                {isEditing ? (
+                  <input className={cn(editInputCls, "w-48 max-w-full")} value={form.customerName} onChange={setField("customerName")} />
+                ) : (
+                  <span className="font-semibold text-foreground truncate">{order.customerName || "—"}</span>
+                )}
+              </InfoRow>
+              <InfoRow icon={Phone} label={t("orders.customer_phone")}>
+                {isEditing ? (
+                  <input dir="ltr" className={cn(editInputCls, "w-48 max-w-full")} value={form.customerPhone} onChange={setField("customerPhone")} />
+                ) : (
+                  <span dir="ltr" className="font-semibold text-foreground truncate">{order.customerPhone || "—"}</span>
+                )}
+              </InfoRow>
+              <InfoRow icon={Tag} label={t("orders.product_name")} alt>
+                {isEditing ? (
+                  <input className={cn(editInputCls, "w-56 max-w-full")} value={form.productName} onChange={setField("productName")} />
+                ) : (
+                  <span className="font-semibold text-foreground truncate">{order.productName || "—"}</span>
+                )}
+              </InfoRow>
+              {order.variant && (
+                <InfoRow icon={Palette} label={t("orders.variant") || m.variant}>
+                  <span className="font-medium text-foreground text-xs">{order.variant}</span>
+                </InfoRow>
               )}
-            </div>
-            {/* Date */}
-            <div className="flex items-center gap-2 px-3 py-2">
-              <Clock size={14} className="text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground text-xs">{t('common.date')}</span>
-              <span className="font-medium text-foreground ms-auto">{date}</span>
-            </div>
-            {(order.deliveryReference || order.deliveryStatus || order.deliveryProviderName) && (
-              <div className="grid grid-cols-1 gap-1 px-3 py-2 border-t border-border/40 bg-cyan-500/5">
-                <div className="flex items-center gap-2">
-                  <Truck size={14} className="text-cyan-700 shrink-0" />
-                  <span className="text-muted-foreground text-xs">{t('orders.delivery_reference') || "Delivery ref"}</span>
-                  <span className="font-semibold text-foreground ms-auto">{order.deliveryReference || "—"}</span>
+              <div className="grid grid-cols-2 border-b border-border">
+                <div className="flex items-center gap-2 px-3 py-2.5 border-e border-border">
+                  <Hash size={14} className="text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground text-xs">{t("orders.qty")}</span>
+                  <div className="ms-auto">
+                    {isEditing ? (
+                      <input type="number" min="1" className={cn(editInputCls, "w-16")} value={form.quantity} onChange={setField("quantity")} />
+                    ) : (
+                      <span className="font-semibold text-foreground text-sm tabular-nums">{order.quantity || 1}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{order.deliveryStatus || "—"}</span>
-                  {order.deliveryProviderName && <span>· {order.deliveryProviderName}</span>}
+                <div className="flex items-center gap-2 px-3 py-2.5">
+                  <DollarSign size={14} className="text-brand-600 shrink-0" />
+                  <span className="text-muted-foreground text-xs">{t("orders.price")}</span>
+                  <div className="ms-auto">
+                    {isEditing ? (
+                      <input type="number" min="0" className={cn(editInputCls, "w-20")} value={form.totalAmount} onChange={setField("totalAmount")} />
+                    ) : (
+                      <span className="font-semibold text-brand-600 text-sm tabular-nums">{order.totalAmount || 0} {t("common.currency")}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* ─── Tracking Number ─── */}
-          <div className="border border-border/60 rounded-lg p-3 bg-secondary/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Truck size={14} className="text-purple-600" />
-              <span className="text-xs font-semibold text-foreground">{t('orders.tracking')}</span>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={form.trackingNumber}
-                onChange={(e) => setForm(p => ({ ...p, trackingNumber: e.target.value }))}
-                placeholder={t('orders.tracking_placeholder') || "أدخل رقم التتبع"}
-                className="flex-1 min-w-0 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-600/10 transition-all"
-              />
-              <button
-                onClick={saveTrackingNumber}
-                disabled={savingTracking || form.trackingNumber === (order.trackingNumber || "")}
-                className="shrink-0 px-4 py-2 bg-brand-600 text-white rounded-lg text-xs font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-              >
-                {savingTracking ? <Loader2 size={14} className="animate-spin" /> : t('common.save')}
-              </button>
-            </div>
-          </div>
-
-          {/* ─── Notes ─── */}
-          <div className="flex items-start gap-2 px-3 py-2.5 border border-border/60 rounded-lg bg-card">
-            <StickyNote size={14} className="text-amber-600 shrink-0 mt-0.5" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground mb-0.5">{t('common.notes')}</p>
-              {isEditing ? (
-                <textarea
-                  rows={2}
-                  className="w-full px-2 py-1 bg-background border border-border rounded-md text-xs resize-none"
-                  value={form.notes}
-                  onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))}
-                />
-              ) : (
-                <p className="text-sm font-medium text-foreground break-words">{order.notes || "—"}</p>
+              <InfoRow icon={MapPin} label={t("common.address")} alt align="start">
+                {isEditing ? (
+                  <textarea rows={2} className={cn(editInputCls, "w-full min-w-[160px] resize-none")} value={form.address} onChange={setField("address")} />
+                ) : (
+                  <span className="font-medium text-foreground leading-snug text-end">{order.address || "—"}</span>
+                )}
+              </InfoRow>
+              <InfoRow icon={Building2} label={t("common.city") || m.city}>
+                {isEditing ? (
+                  <input className={cn(editInputCls, "w-48 max-w-full")} value={form.city} onChange={setField("city")} />
+                ) : (
+                  <span className="font-semibold text-foreground truncate">{order.city || "—"}</span>
+                )}
+              </InfoRow>
+              <InfoRow icon={Clock} label={t("common.date")} alt>
+                <span className="font-medium text-foreground">{date}</span>
+              </InfoRow>
+              {(order.deliveryReference || order.deliveryStatus || order.deliveryProviderName) && (
+                <div className="px-3 py-2.5 border-t border-border bg-brand-600/5 flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Truck size={14} className="text-brand-600 shrink-0" />
+                    <span className="text-muted-foreground text-xs">{t("orders.delivery_reference") || m.deliveryRef}</span>
+                    <span className="font-semibold text-foreground text-sm ms-auto">{order.deliveryReference || "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{order.deliveryStatus || "—"}</span>
+                    {order.deliveryProviderName && <span>· {order.deliveryProviderName}</span>}
+                  </div>
+                </div>
               )}
             </div>
+
+            {/* Tracking */}
+            <div className="border border-border rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Truck size={14} className="text-brand-600" />
+                <span className="text-xs font-semibold text-foreground">{t("orders.tracking")}</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={form.trackingNumber}
+                  onChange={setField("trackingNumber")}
+                  placeholder={t("orders.tracking_placeholder") || m.trackingPlaceholder}
+                  className="flex-1 min-w-0 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-brand-600 transition-colors"
+                />
+                <button
+                  onClick={saveTrackingNumber}
+                  disabled={savingTracking || form.trackingNumber === (order.trackingNumber || "")}
+                  className="shrink-0 px-4 py-2 bg-brand-600 text-white rounded-lg text-xs font-semibold hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                >
+                  {savingTracking ? <Loader2 size={14} className="animate-spin" /> : t("common.save")}
+                </button>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="flex items-start gap-2 px-3 py-2.5 border border-border rounded-xl">
+              <StickyNote size={14} className="text-muted-foreground shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground mb-0.5">{t("common.notes")}</p>
+                {isEditing ? (
+                  <textarea rows={2} className={cn(editInputCls, "w-full resize-none")} value={form.notes} onChange={setField("notes")} />
+                ) : (
+                  <p className="text-sm font-medium text-foreground break-words">{order.notes || "—"}</p>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border bg-secondary/30 shrink-0">
+        <div className="px-4 sm:px-5 py-3 border-t border-border shrink-0">
           <div className="flex items-center gap-2">
-            {/* View Conversation - Icon Button */}
             {conversationLink ? (
               <a
                 href={conversationLink}
-                className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-background hover:bg-white hover:border-brand-600/30 hover:text-brand-600 text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-brand-600/20"
-                title={t('orders.view_conv')}
+                className="flex items-center justify-center w-9 h-9 rounded-lg border border-border text-muted-foreground hover:border-brand-600/40 hover:text-brand-600 transition-colors"
+                title={t("orders.view_conv")}
+                aria-label={t("orders.view_conv")}
               >
                 <MessageCircle size={16} />
               </a>
             ) : (
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg border border-border/50 bg-secondary/50 text-muted-foreground/50 cursor-not-allowed">
+              <div className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-secondary/50 text-muted-foreground/40 cursor-not-allowed">
                 <MessageCircle size={16} />
               </div>
             )}
 
-            {/* Status Dropdown - Flex 1 */}
             <div className="flex-1">
               <StatusDropdown
                 orderId={order.id}
                 currentStatus={order.status}
-                onUpdated={(id, status) => { onStatusChange(id, status) }}
+                onUpdated={(id, status, updated) => onStatusChange(id, status, updated)}
                 sendMessage={sendMessage}
                 trackingNumber={form.trackingNumber}
               />
             </div>
 
-            {/* Delete - Danger */}
             <button
               onClick={() => { onClose(); onDeleteRequest(order.id, order.productName) }}
-              className="flex items-center justify-center w-9 h-9 rounded-lg border border-red-200 bg-red-50/50 text-red-600 hover:bg-red-500/10 hover:border-red-300 transition-all focus:outline-none focus:ring-2 focus:ring-red-500/20"
-              title={t('common.delete')}
+              className="flex items-center justify-center w-9 h-9 rounded-lg border border-border text-muted-foreground hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500 transition-colors"
+              title={t("common.delete")}
+              aria-label={t("common.delete")}
             >
               <Trash2 size={16} />
             </button>
@@ -889,32 +934,33 @@ function OrderDetailModal({ order, onClose, onStatusChange, onDeleteRequest, sen
   )
 }
 
-/* ─── Order Card ──────────────────────────────────────────── */
+/* ─── Order Card (mobile) ─── */
 function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpenDetail, selected, onToggleSelect }) {
   const { t, language } = useLanguage()
-  // Derive from props — avoids stale state after edits in detail modal
+  const m = useM()
   const trackingNumber = order?.trackingNumber || ""
   const confidence = order?.confidence
 
   const needsReview =
     confidence?.needsReview ||
     order.isDraft === true ||
-    (!order.city || !String(order.city).trim()) ||
-    (!order.address || !String(order.address).trim()) ||
+    !order.city || !String(order.city).trim() ||
+    !order.address || !String(order.address).trim() ||
     (order.notes && String(order.notes).includes("⚠️ DRAFT_ORDER"))
 
-  const date = new Date(order.createdAt).toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR', {
+  const date = new Date(order.createdAt).toLocaleDateString(language === "ar" ? "ar-MA" : "fr-FR", {
     day: "numeric", month: "short", year: "numeric",
   })
 
   return (
     <div
-      className="bg-card border border-border/60 rounded-2xl hover:border-brand-300 hover:shadow-md hover:shadow-brand-600/5 transition-all flex flex-col cursor-pointer"
+      className={cn(
+        "bg-card border rounded-2xl hover:border-brand-600/40 transition-colors flex flex-col cursor-pointer",
+        selected ? "border-brand-600" : "border-border"
+      )}
       onClick={() => onOpenDetail(order)}
     >
-      {/* Top section */}
       <div className="p-4 flex flex-col gap-3 flex-1">
-        {/* Icon + Status */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-2">
             <input
@@ -923,14 +969,15 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
               onClick={(e) => e.stopPropagation()}
               onChange={() => onToggleSelect?.(order.id)}
               className="mt-1 h-4 w-4 accent-brand-600"
-              aria-label="Select order"
+              aria-label={m.selectOrder}
             />
             <OrderProductThumb order={order} size="lg" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
             {needsReview && (
-              <span className="text-[11px] font-bold px-2 py-1 rounded-lg border border-amber-400/40 bg-transparent text-amber-700">
-                {t('orders.needs_review') || "Needs review"}
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border border-border text-foreground">
+                <AlertTriangle size={11} className="text-brand-600" />
+                {t("orders.needs_review") || m.needsReview}
               </span>
             )}
             <ConfidenceBadge confidence={confidence} />
@@ -938,47 +985,33 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
           </div>
         </div>
 
-        {/* Product name + variant */}
         <div className="flex flex-col gap-0.5">
           <p className="text-[14px] font-semibold text-foreground leading-snug line-clamp-2">{order.productName}</p>
           {order.variant && (
-            <p className="text-[11px] text-muted-foreground leading-snug">🎨 {order.variant}</p>
+            <p className="inline-flex items-center gap-1 text-[11px] text-muted-foreground leading-snug">
+              <Palette size={11} /> {order.variant}
+            </p>
           )}
           <p className="text-[11px] text-muted-foreground leading-snug">
-            {t('common.quantity')}: <span className="font-semibold text-foreground">{order.quantity || 1}</span>
+            {t("common.quantity")}: <span className="font-semibold text-foreground">{order.quantity || 1}</span>
           </p>
-          <DeliveryBadge order={order} />
+          <div className="mt-1"><DeliveryBadge order={order} /></div>
         </div>
 
-        {/* Customer info */}
         <div className="flex flex-col gap-1 text-[13px] text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <User size={13} className="shrink-0" /> {order.customerName}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Phone size={13} className="shrink-0" /> {order.customerPhone}
-          </span>
-          {order.city && (
-            <span className="flex items-center gap-1.5 truncate">
-              <span className="shrink-0" aria-hidden="true">🏙️</span> {order.city}
-            </span>
-          )}
-          {order.address && (
-            <span className="flex items-center gap-1.5 truncate">
-              <MapPin size={13} className="shrink-0" /> {order.address}
-            </span>
-          )}
+          <span className="flex items-center gap-1.5 truncate"><User size={13} className="shrink-0" /> {order.customerName}</span>
+          <span className="flex items-center gap-1.5" dir="ltr"><Phone size={13} className="shrink-0" /> {order.customerPhone}</span>
+          {order.city && <span className="flex items-center gap-1.5 truncate"><Building2 size={13} className="shrink-0" /> {order.city}</span>}
+          {order.address && <span className="flex items-center gap-1.5 truncate"><MapPin size={13} className="shrink-0" /> {order.address}</span>}
         </div>
 
-        {/* Amount + date */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/40">
-          <span className="text-[14px] font-bold text-brand-600">{order.totalAmount} {t('common.currency')}</span>
-          <span className="text-[12px] text-muted-foreground/70">{date}</span>
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
+          <span className="text-[14px] font-bold text-brand-600 tabular-nums">{order.totalAmount} {t("common.currency")}</span>
+          <span className="text-[12px] text-muted-foreground">{date}</span>
         </div>
       </div>
 
-      {/* Footer actions */}
-      <div className="px-4 py-2.5 border-t border-border/40 bg-secondary/20 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+      <div className="px-4 py-2.5 border-t border-border flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
         <StatusDropdown
           orderId={order.id}
           currentStatus={order.status}
@@ -986,26 +1019,21 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
           sendMessage={sendMessage}
           trackingNumber={trackingNumber}
         />
-        <button
-          onClick={e => { e.stopPropagation(); onOpenDetail(order) }}
-          className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-          title={t('common.details')}
-        >
-          <ChevronDown size={15} />
-        </button>
         {order.conversationId && (
           <a
             href={`/dashboard/conversations?id=${order.conversationId}`}
-            onClick={e => e.stopPropagation()}
-            className="p-1.5 rounded-lg hover:bg-brand-600/10 text-muted-foreground hover:text-brand-600 transition-colors"
-            title={t('orders.view_conv')}
+            className="p-2 rounded-lg hover:bg-brand-600/10 text-muted-foreground hover:text-brand-600 transition-colors"
+            title={t("orders.view_conv")}
+            aria-label={t("orders.view_conv")}
           >
             <MessageCircle size={15} />
           </a>
         )}
         <button
-          onClick={e => { e.stopPropagation(); onDeleteRequest(order.id, order.productName) }}
-          className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors ml-auto"
+          onClick={() => onDeleteRequest(order.id, order.productName)}
+          className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors ms-auto"
+          title={t("common.delete")}
+          aria-label={t("common.delete")}
         >
           <Trash2 size={15} />
         </button>
@@ -1014,41 +1042,37 @@ function OrderCard({ order, onStatusChange, onDeleteRequest, sendMessage, onOpen
   )
 }
 
-/* ─── Add Order Modal ─────────────────────────────────────────── */
+/* ─── Orders Table (desktop) ─── */
 function OrdersTable({
-  orders,
-  onDeleteRequest,
-  onOpenDetail,
-  onStatusChange,
-  sendMessage,
-  selectedOrderIds = [],
-  onToggleSelect,
-  onToggleAllVisible,
+  orders, onDeleteRequest, onOpenDetail, onStatusChange, sendMessage,
+  selectedOrderIds = [], onToggleSelect, onToggleAllVisible,
 }) {
   const { t, language } = useLanguage()
+  const m = useM()
   const selectedSet = new Set(selectedOrderIds)
-  const allVisibleSelected = orders.length > 0 && orders.every(order => selectedSet.has(order.id))
+  const allVisibleSelected = orders.length > 0 && orders.every((o) => selectedSet.has(o.id))
+  const th = "px-2 text-start font-semibold"
 
   return (
-    <div className="hidden lg:block overflow-x-auto overflow-y-visible rounded-lg border border-border/70 bg-card">
-      <table className="w-full border-collapse text-left">
-        <thead className="bg-secondary/40">
-          <tr className="h-7 border-b border-border/70 text-[11px] uppercase text-muted-foreground">
+    <div className="hidden lg:block overflow-x-auto overflow-y-visible rounded-2xl border border-border bg-card">
+      <table className="w-full border-collapse">
+        <thead className="bg-secondary/60">
+          <tr className="h-9 border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
             <th className="w-8 px-2">
               <input
                 type="checkbox"
                 checked={allVisibleSelected}
                 onChange={() => onToggleAllVisible?.()}
                 className="h-3.5 w-3.5 accent-brand-600"
-                aria-label="Select visible orders"
+                aria-label={m.selectVisible}
               />
             </th>
-            <th className="px-2 font-semibold">Commande</th>
-            <th className="px-2 font-semibold">Date</th>
-            <th className="px-2 font-semibold">Client</th>
-            <th className="px-2 font-semibold">Adresse</th>
-            <th className="px-2 font-semibold">Statut</th>
-            <th className="px-3 text-right font-semibold">Montant dû</th>
+            <th className={th}>{m.colOrder}</th>
+            <th className={th}>{m.colDate}</th>
+            <th className={th}>{m.colClient}</th>
+            <th className={th}>{m.colAddress}</th>
+            <th className={th}>{m.colStatus}</th>
+            <th className="px-3 text-end font-semibold">{m.colAmount}</th>
             <th className="w-10 px-2" />
           </tr>
         </thead>
@@ -1057,34 +1081,44 @@ function OrdersTable({
             const needsReview =
               order?.confidence?.needsReview ||
               order.isDraft === true ||
-              (!order.city || !String(order.city).trim()) ||
-              (!order.address || !String(order.address).trim())
+              !order.city || !String(order.city).trim() ||
+              !order.address || !String(order.address).trim()
+            const qty = Number(order.quantity || 1)
+            const isSelected = selectedSet.has(order.id)
 
             return (
               <tr
                 key={order.id}
                 onClick={() => onOpenDetail(order)}
-                className="h-[62px] cursor-pointer border-b border-border/50 last:border-b-0 hover:bg-brand-600/[0.04] transition-colors"
+                className={cn(
+                  "h-[64px] cursor-pointer border-b border-border last:border-b-0 hover:bg-secondary/60 transition-colors",
+                  isSelected && "bg-brand-600/5"
+                )}
               >
                 <td className="px-2" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
-                    checked={selectedSet.has(order.id)}
+                    checked={isSelected}
                     onChange={() => onToggleSelect?.(order.id)}
                     className="h-3.5 w-3.5 accent-brand-600"
-                    aria-label="Select order"
+                    aria-label={m.selectOrder}
                   />
                 </td>
                 <td className="px-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <OrderProductThumb order={order} />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-[13px] font-bold text-foreground">#{order.id.slice(-8).toUpperCase()}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-[13px] font-bold text-foreground tabular-nums">#{order.id.slice(-8).toUpperCase()}</p>
                         <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                          {order.quantity || 1} article{Number(order.quantity || 1) > 1 ? "s" : ""}
+                          {qty} {qty > 1 ? m.itemMany : m.itemOne}
                         </span>
-                        {needsReview && <span className="rounded-md border border-amber-400/40 bg-transparent px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Review</span>}
+                        {needsReview && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                            <AlertTriangle size={10} className="text-brand-600" />
+                            {m.review}
+                          </span>
+                        )}
                         <DeliveryBadge order={order} />
                       </div>
                       <p className="max-w-[260px] truncate text-[12px] text-muted-foreground">
@@ -1094,11 +1128,11 @@ function OrdersTable({
                   </div>
                 </td>
                 <td className="px-2 text-[13px] text-muted-foreground whitespace-nowrap">
-                  {formatOrderDate(order.createdAt, language)}
+                  {formatOrderDate(order.createdAt, language, m)}
                 </td>
                 <td className="px-2">
                   <p className="max-w-[180px] truncate text-[13px] font-medium text-foreground">{order.customerName || "—"}</p>
-                  <p className="text-[12px] font-medium text-cyan-700">{order.customerPhone || "—"}</p>
+                  <p dir="ltr" className="text-start text-[12px] text-muted-foreground tabular-nums">{order.customerPhone || "—"}</p>
                 </td>
                 <td className="px-2">
                   <p className="max-w-[230px] truncate text-[13px] text-foreground">{order.address || "—"}</p>
@@ -1116,16 +1150,18 @@ function OrdersTable({
                     />
                   </div>
                 </td>
-                <td className="px-3 text-right text-[14px] font-bold text-foreground whitespace-nowrap">
-                  MAD {Number(order.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <td className="px-3 text-end text-[14px] font-bold text-foreground whitespace-nowrap tabular-nums">
+                  {Number(order.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                  <span className="text-[12px] font-semibold text-muted-foreground">{t("common.currency")}</span>
                 </td>
                 <td className="px-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => onDeleteRequest(order.id, order.productName)}
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                    title={t('common.delete')}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                    title={t("common.delete")}
+                    aria-label={t("common.delete")}
                   >
-                    <MoreHorizontal size={16} />
+                    <Trash2 size={15} />
                   </button>
                 </td>
               </tr>
@@ -1137,8 +1173,10 @@ function OrdersTable({
   )
 }
 
+/* ─── Add Order Modal ─── */
 function AddOrderModal({ onClose, onCreated }) {
   const { t } = useLanguage()
+  const m = useM()
   const [form, setForm] = useState({
     customerName: "", customerPhone: "", productName: "",
     quantity: 1, totalAmount: "", city: "", address: "", notes: "",
@@ -1146,12 +1184,13 @@ function AddOrderModal({ onClose, onCreated }) {
   const [products, setProducts] = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+
+  useEscape(true, onClose)
 
   function getProductUnitPrice(product) {
     if (!product) return null
-    return product.salePrice != null && product.salePrice < product.price
-      ? product.salePrice
-      : product.price
+    return product.salePrice != null && product.salePrice < product.price ? product.salePrice : product.price
   }
 
   useEffect(() => {
@@ -1172,23 +1211,17 @@ function AddOrderModal({ onClose, onCreated }) {
     return () => { mounted = false }
   }, [])
 
-  const [submitError, setSubmitError] = useState(null)
-
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitError(null)
     if (!form.customerName?.trim() || !form.customerPhone?.trim() || (!form.productName && !form.productId) || !form.totalAmount) {
-      setSubmitError(t('orders.err_missing_fields') || "حقول إلزامية ناقصة")
+      setSubmitError(t("orders.err_missing_fields") || m.missingFields)
       return
     }
     const quantity = Number(form.quantity)
     const totalAmount = Number(form.totalAmount)
-    if (!Number.isFinite(quantity) || quantity < 1) {
-      setSubmitError(t('orders.err_qty_invalid') || "الكمية غير صالحة"); return
-    }
-    if (!Number.isFinite(totalAmount) || totalAmount < 0) {
-      setSubmitError(t('orders.err_amount_invalid') || "المبلغ غير صالح"); return
-    }
+    if (!Number.isFinite(quantity) || quantity < 1) { setSubmitError(m.qtyInvalid); return }
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) { setSubmitError(m.amountInvalid); return }
     setSaving(true)
     try {
       const res = await ordersAPI.create({ ...form, quantity, totalAmount })
@@ -1196,55 +1229,57 @@ function AddOrderModal({ onClose, onCreated }) {
       onClose()
     } catch (err) {
       console.error("Create order failed:", err)
-      setSubmitError(err?.response?.data?.error || t('orders.err_save_failed') || "فشل إنشاء الطلب")
+      setSubmitError(err?.response?.data?.error || m.createFailed)
     } finally {
       setSaving(false)
     }
   }
 
-  const inputCls = "w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-xl text-sm focus:outline-none focus:border-brand-600 transition-colors"
+  const inputCls = "w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:border-brand-600 transition-colors"
+  const labelCls = "text-[13px] font-medium text-muted-foreground"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-3xl max-h-[88dvh] border border-border rounded-3xl shadow-2xl bg-card overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border/50 bg-secondary/50">
-          <div className="flex items-center gap-2">
-            <span className="w-1 h-4 rounded-full bg-brand-600" />
-            <p className="text-sm font-bold text-foreground">{t('orders.add_order')}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative w-full max-w-3xl max-h-[88dvh] border border-border rounded-2xl shadow-xl bg-card overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <IconTile icon={Plus} size={15} className="w-8 h-8 rounded-lg" />
+            <p className="text-sm font-bold text-foreground">{t("orders.add_order")}</p>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-sm">✕</button>
+          <button
+            onClick={onClose}
+            aria-label={m.close}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <X size={16} />
+          </button>
         </div>
+
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 flex flex-col gap-3 overflow-y-auto">
-          {submitError && (
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[13px] text-red-600">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <span>{submitError}</span>
-            </div>
-          )}
+          {submitError && <Notice tone="error" onClose={() => setSubmitError(null)}>{submitError}</Notice>}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Left column */}
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-muted-foreground">{t('orders.customer_name')} *</label>
-                <input className={inputCls} value={form.customerName} onChange={e => setForm({...form, customerName: e.target.value})} required />
+                <label className={labelCls}>{t("orders.customer_name")} *</label>
+                <input className={inputCls} value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} required />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-muted-foreground">{t('orders.customer_phone')} *</label>
-                <input className={inputCls} value={form.customerPhone} onChange={e => setForm({...form, customerPhone: e.target.value})} required />
+                <label className={labelCls}>{t("orders.customer_phone")} *</label>
+                <input dir="ltr" className={cn(inputCls, "text-start")} value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} required />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-muted-foreground">{t('orders.product_name')} *</label>
+                <label className={labelCls}>{t("orders.product_name")} *</label>
                 <select
                   className={inputCls}
                   value={form.productId || ""}
                   onChange={(e) => {
                     const id = e.target.value || ""
-                    const p = products.find(x => x.id === id)
-                    // Use salePrice if set and valid, otherwise base price — consistent with AI logic
+                    const p = products.find((x) => x.id === id)
                     const unitPrice = getProductUnitPrice(p)
                     const qty = Math.max(1, Number(form.quantity) || 1)
-                    setForm(prev => ({
+                    setForm((prev) => ({
                       ...prev,
                       productId: id || null,
                       productName: p?.name || prev.productName,
@@ -1254,15 +1289,15 @@ function AddOrderModal({ onClose, onCreated }) {
                   disabled={loadingProducts}
                   required
                 >
-                  <option value="">{loadingProducts ? "..." : (t('common.select') || "Sélectionner")}</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} — {p.price} {t('common.currency')}</option>
+                  <option value="">{loadingProducts ? "..." : (t("common.select") || m.select)}</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name} — {p.price} {t("common.currency")}</option>
                   ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[13px] font-medium text-muted-foreground">{t('common.quantity')}</label>
+                  <label className={labelCls}>{t("common.quantity")}</label>
                   <input
                     type="number"
                     min="1"
@@ -1270,10 +1305,10 @@ function AddOrderModal({ onClose, onCreated }) {
                     value={form.quantity}
                     onChange={(e) => {
                       const quantity = e.target.value
-                      const p = products.find(x => x.id === form.productId)
+                      const p = products.find((x) => x.id === form.productId)
                       const unitPrice = getProductUnitPrice(p)
                       const qty = Math.max(1, Number(quantity) || 1)
-                      setForm(prev => ({
+                      setForm((prev) => ({
                         ...prev,
                         quantity,
                         totalAmount: unitPrice != null ? String(unitPrice * qty) : prev.totalAmount,
@@ -1282,36 +1317,35 @@ function AddOrderModal({ onClose, onCreated }) {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[13px] font-medium text-muted-foreground">{t('orders.price')} *</label>
-                  <input type="number" min="0" className={inputCls} value={form.totalAmount} onChange={e => setForm({...form, totalAmount: e.target.value})} required />
+                  <label className={labelCls}>{t("orders.price")} *</label>
+                  <input type="number" min="0" className={inputCls} value={form.totalAmount} onChange={(e) => setForm({ ...form, totalAmount: e.target.value })} required />
                 </div>
               </div>
             </div>
 
-            {/* Right column */}
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-muted-foreground">{t('common.city') || "Ville"}</label>
-                <input className={inputCls} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+                <label className={labelCls}>{t("common.city") || m.city}</label>
+                <input className={inputCls} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-muted-foreground">{t('common.address')}</label>
-                <input className={inputCls} value={form.address} onChange={e => setForm({...form, address: e.target.value})} />
+                <label className={labelCls}>{t("common.address")}</label>
+                <input className={inputCls} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-muted-foreground">{t('common.notes')}</label>
-                <textarea className={cn(inputCls, "resize-none")} rows={4} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+                <label className={labelCls}>{t("common.notes")}</label>
+                <textarea className={cn(inputCls, "resize-none")} rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2 border-t border-border/50">
-            <button type="button" onClick={onClose} className="flex-1 py-2 border border-border rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
-              {t('common.cancel')}
+          <div className="flex gap-2 pt-3 border-t border-border">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-secondary transition-colors">
+              {t("common.cancel")}
             </button>
-            <button type="submit" disabled={saving} className="flex-1 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-800 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-md shadow-brand-600/20">
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50">
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-              {saving ? t('common.saving') : t('orders.add_order')}
+              {saving ? t("common.saving") : t("orders.add_order")}
             </button>
           </div>
         </form>
@@ -1320,24 +1354,23 @@ function AddOrderModal({ onClose, onCreated }) {
   )
 }
 
-/* ─── Main Page ──────────────────────────────────────────────── */
-function getDeliveryErrorReason(error, t) {
-  const reason = error?.reason
+/* ─── Delivery helpers ─── */
+function getDeliveryErrorReason(error, t, m) {
   const reasonMap = {
-    missing_reference: t('orders.delivery_error_missing_reference') || "Missing reference",
-    order_not_found: t('orders.delivery_error_order_not_found') || "Order not found",
-    missing_tracking_or_status: t('orders.delivery_error_missing_tracking_or_status') || "Missing tracking/status",
-    invalid_delivery_transition: t('orders.delivery_error_invalid_transition') || "Invalid status transition",
+    missing_reference: t("orders.delivery_error_missing_reference") || m.errMissingRef,
+    order_not_found: t("orders.delivery_error_order_not_found") || m.errNotFound,
+    missing_tracking_or_status: t("orders.delivery_error_missing_tracking_or_status") || m.errMissingTracking,
+    invalid_delivery_transition: t("orders.delivery_error_invalid_transition") || m.errTransition,
   }
-  return reasonMap[reason] || reason || t('orders.delivery_error_unknown') || "Unknown reason"
+  return reasonMap[error?.reason] || error?.reason || t("orders.delivery_error_unknown") || m.errUnknown
 }
 
-function formatDeliveryError(error, t) {
+function formatDeliveryError(error, t, m) {
   const parts = []
-  if (error?.row) parts.push(`${t('orders.delivery_row') || "Row"} ${error.row}`)
-  if (error?.reference) parts.push(`${t('orders.delivery_reference') || "Reference"} ${error.reference}`)
+  if (error?.row) parts.push(`${m.row} ${error.row}`)
+  if (error?.reference) parts.push(`${m.reference} ${error.reference}`)
   if (!error?.reference && error?.orderId) parts.push(`#${String(error.orderId).slice(-8).toUpperCase()}`)
-  parts.push(getDeliveryErrorReason(error, t))
+  parts.push(getDeliveryErrorReason(error, t, m))
   if (error?.currentStatus && error?.nextStatus) {
     const from = STATUS_CONFIG[error.currentStatus]?.key ? t(STATUS_CONFIG[error.currentStatus].key) : error.currentStatus
     const to = STATUS_CONFIG[error.nextStatus]?.key ? t(STATUS_CONFIG[error.nextStatus].key) : error.nextStatus
@@ -1346,22 +1379,24 @@ function formatDeliveryError(error, t) {
   return parts.filter(Boolean).join(" - ")
 }
 
-function formatDeliverySummary(prefix, data, t) {
-  const base = `${prefix}: ${data.updated || 0} updated, ${data.notified || 0} WhatsApp, ${data.skipped || 0} skipped.`
+function formatDeliverySummary(prefix, data, t, m) {
+  const base = `${prefix}: ${data.updated || 0} ${m.updated}, ${data.notified || 0} ${m.whatsapp}, ${data.skipped || 0} ${m.skipped}.`
   const errors = Array.isArray(data.errors) ? data.errors.slice(0, 3) : []
   if (errors.length === 0) return base
-  const details = errors.map(error => formatDeliveryError(error, t)).join(" | ")
+  const details = errors.map((e) => formatDeliveryError(e, t, m)).join(" | ")
   const more = data.errors.length > errors.length ? ` +${data.errors.length - errors.length}` : ""
-  return `${base} ${t('orders.delivery_skipped_reasons') || "Skipped reasons"}: ${details}${more}`
+  return `${base} ${m.skippedReasons}: ${details}${more}`
 }
 
+/* ─── Main Page ─── */
 export default function OrdersPage() {
   const { t } = useLanguage()
+  const m = useM()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filterStatus, setFilterStatus] = useState("")
-  const [draftFilter, setDraftFilter] = useState("")  // "" | "true" | "false"
+  const [draftFilter, setDraftFilter] = useState("") // "" | "true" | "false"
   const [showAdd, setShowAdd] = useState(false)
   const [detailOrder, setDetailOrder] = useState(null)
   const [sendMessage, setSendMessage] = useState(true)
@@ -1372,7 +1407,7 @@ export default function OrdersPage() {
   const [selectedOrderIds, setSelectedOrderIds] = useState([])
   const [deliveryProviderName, setDeliveryProviderName] = useState("")
   const [bulkStatus, setBulkStatus] = useState("SHIPPED")
-  const [deliveryNotice, setDeliveryNotice] = useState(null)
+  const [deliveryNotice, setDeliveryNotice] = useState(null) // { text, tone }
   const importFileRef = useRef(null)
 
   const fetchOrders = useCallback(async ({ silent = false } = {}) => {
@@ -1383,15 +1418,11 @@ export default function OrdersPage() {
       if (draftFilter) params.draft = draftFilter
       if (search.trim()) params.search = search.trim()
       const res = await ordersAPI.getAll(params)
-      const list = Array.isArray(res.data?.orders)
-        ? res.data.orders
-        : Array.isArray(res.data)
-          ? res.data
-          : []
+      const list = Array.isArray(res.data?.orders) ? res.data.orders : Array.isArray(res.data) ? res.data : []
       setOrders(list)
-      setDetailOrder(prev => {
+      setDetailOrder((prev) => {
         if (!prev) return prev
-        const fresh = list.find(order => order.id === prev.id)
+        const fresh = list.find((order) => order.id === prev.id)
         return fresh ? { ...prev, ...fresh } : prev
       })
     } catch (err) {
@@ -1402,27 +1433,25 @@ export default function OrdersPage() {
   }, [filterStatus, draftFilter, search])
 
   useEffect(() => {
-    const t = setTimeout(fetchOrders, 300)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => fetchOrders(), 300)
+    return () => clearTimeout(timer)
   }, [fetchOrders])
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        fetchOrders({ silent: true })
-      }
+      if (document.visibilityState === "visible") fetchOrders({ silent: true })
     }, 15000)
     return () => clearInterval(interval)
   }, [fetchOrders])
 
   useEffect(() => {
-    const visibleIds = new Set(orders.map(order => order.id))
-    setSelectedOrderIds(prev => prev.filter(id => visibleIds.has(id)))
+    const visibleIds = new Set(orders.map((o) => o.id))
+    setSelectedOrderIds((prev) => prev.filter((id) => visibleIds.has(id)))
   }, [orders])
 
-  // onStatusChange is used both for status updates and for refreshing an order after edits
+  // Used both for status updates and for refreshing an order after edits
   function handleStatusChange(orderId, newStatus, updatedOrder = null) {
-    setOrders(prev => prev.map(o => {
+    setOrders((prev) => prev.map((o) => {
       if (o.id !== orderId) return o
       return {
         ...o,
@@ -1431,7 +1460,7 @@ export default function OrdersPage() {
       }
     }))
     if (updatedOrder && detailOrder?.id === orderId) {
-      setDetailOrder(prev => prev ? { ...prev, ...updatedOrder } : prev)
+      setDetailOrder((prev) => (prev ? { ...prev, ...updatedOrder } : prev))
     }
   }
 
@@ -1440,15 +1469,14 @@ export default function OrdersPage() {
   }
 
   async function confirmDelete() {
-    setDeleteModal(prev => ({ ...prev, deleting: true }))
+    setDeleteModal((prev) => ({ ...prev, deleting: true }))
     try {
       await ordersAPI.delete(deleteModal.id)
-      setOrders(prev => prev.filter(o => o.id !== deleteModal.id))
+      setOrders((prev) => prev.filter((o) => o.id !== deleteModal.id))
       setDeleteModal({ open: false, id: null, name: "", deleting: false })
     } catch (err) {
       console.error("Delete order failed:", err)
-      // Keep modal open + reset deleting flag so user can retry
-      setDeleteModal(prev => ({ ...prev, deleting: false }))
+      setDeleteModal((prev) => ({ ...prev, deleting: false }))
     }
   }
 
@@ -1457,22 +1485,18 @@ export default function OrdersPage() {
   }
 
   function handleCreated(order) {
-    setOrders(prev => [order, ...prev])
+    setOrders((prev) => [order, ...prev])
   }
 
   function toggleOrderSelection(orderId) {
-    setSelectedOrderIds(prev => (
-      prev.includes(orderId)
-        ? prev.filter(id => id !== orderId)
-        : [...prev, orderId]
-    ))
+    setSelectedOrderIds((prev) => (prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]))
   }
 
   function toggleVisibleSelection() {
-    const visibleIds = orders.map(order => order.id)
-    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedOrderIds.includes(id))
-    setSelectedOrderIds(prev => {
-      if (allVisibleSelected) return prev.filter(id => !visibleIds.includes(id))
+    const visibleIds = orders.map((o) => o.id)
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedOrderIds.includes(id))
+    setSelectedOrderIds((prev) => {
+      if (allVisibleSelected) return prev.filter((id) => !visibleIds.includes(id))
       return [...new Set([...prev, ...visibleIds])]
     })
   }
@@ -1491,32 +1515,25 @@ export default function OrdersPage() {
   }
 
   async function handleExportCSV() {
-    const confirmedVisibleIds = orders
-      .filter(order => order.status === "CONFIRMED" && !order.isDraft)
-      .map(order => order.id)
-    const selectedConfirmedIds = selectedOrderIds.filter(id => confirmedVisibleIds.includes(id))
+    const confirmedVisibleIds = orders.filter((o) => o.status === "CONFIRMED" && !o.isDraft).map((o) => o.id)
+    const selectedConfirmedIds = selectedOrderIds.filter((id) => confirmedVisibleIds.includes(id))
     const orderIds = selectedOrderIds.length > 0 ? selectedConfirmedIds : confirmedVisibleIds
 
     if (orderIds.length === 0) {
-      setDeliveryNotice(t('orders.delivery_no_confirmed') || "No confirmed orders selected for delivery export.")
+      setDeliveryNotice({ text: t("orders.delivery_no_confirmed") || m.noConfirmed, tone: "error" })
       return
     }
 
     setExporting(true)
     try {
-      const res = await ordersAPI.exportDelivery({
-        orderIds,
-        providerName: deliveryProviderName,
-      })
-      if (res?.data?.csv) {
-        downloadCsv(res.data.csv, res.data.filename)
-      }
-      setDeliveryNotice(`${res?.data?.count || orderIds.length} ${t('orders.delivery_exported') || "orders exported for delivery."}`)
-      setSelectedOrderIds(prev => prev.filter(id => !orderIds.includes(id)))
+      const res = await ordersAPI.exportDelivery({ orderIds, providerName: deliveryProviderName })
+      if (res?.data?.csv) downloadCsv(res.data.csv, res.data.filename)
+      setDeliveryNotice({ text: `${res?.data?.count || orderIds.length} ${m.exportedMsg}`, tone: "brand" })
+      setSelectedOrderIds((prev) => prev.filter((id) => !orderIds.includes(id)))
       await fetchOrders({ silent: true })
     } catch (err) {
       console.error("Delivery CSV export failed:", err)
-      setDeliveryNotice(err?.message || "Delivery CSV export failed.")
+      setDeliveryNotice({ text: err?.message || m.exportFailed, tone: "error" })
     } finally {
       setExporting(false)
     }
@@ -1531,12 +1548,11 @@ export default function OrdersPage() {
     try {
       const csvText = await file.text()
       const res = await ordersAPI.importDeliveryTracking({ csvText, sendMessage })
-      const data = res?.data || {}
-      setDeliveryNotice(formatDeliverySummary("Import", data, t))
+      setDeliveryNotice({ text: formatDeliverySummary(m.importLabel, res?.data || {}, t, m), tone: "brand" })
       await fetchOrders({ silent: true })
     } catch (err) {
       console.error("Delivery CSV import failed:", err)
-      setDeliveryNotice(err?.message || "Tracking CSV import failed.")
+      setDeliveryNotice({ text: err?.message || m.importFailed, tone: "error" })
     } finally {
       setImporting(false)
     }
@@ -1544,247 +1560,233 @@ export default function OrdersPage() {
 
   async function handleBulkDeliveryStatus() {
     if (selectedOrderIds.length === 0) {
-      setDeliveryNotice(t('orders.delivery_select_first') || "Select orders first.")
+      setDeliveryNotice({ text: t("orders.delivery_select_first") || m.selectFirst, tone: "error" })
       return
     }
 
-    const ok = window.confirm(`${t('orders.delivery_bulk_confirm') || "Apply delivery status to selected orders?"} (${selectedOrderIds.length})`)
+    const ok = window.confirm(`${t("orders.delivery_bulk_confirm") || m.bulkConfirm} (${selectedOrderIds.length})`)
     if (!ok) return
 
     setBulkUpdating(true)
     try {
-      const res = await ordersAPI.bulkDeliveryStatus({
-        orderIds: selectedOrderIds,
-        status: bulkStatus,
-        sendMessage,
-      })
-      const data = res?.data || {}
-      setDeliveryNotice(formatDeliverySummary("Bulk", data, t))
+      const res = await ordersAPI.bulkDeliveryStatus({ orderIds: selectedOrderIds, status: bulkStatus, sendMessage })
+      setDeliveryNotice({ text: formatDeliverySummary(m.bulkLabel, res?.data || {}, t, m), tone: "brand" })
       setSelectedOrderIds([])
       await fetchOrders({ silent: true })
     } catch (err) {
       console.error("Bulk delivery status failed:", err)
-      setDeliveryNotice(err?.message || "Bulk delivery status update failed.")
+      setDeliveryNotice({ text: err?.message || m.bulkFailed, tone: "error" })
     } finally {
       setBulkUpdating(false)
     }
   }
 
   /* Stats */
-  const stats = STATUS_ORDER.map(s => ({
+  const stats = STATUS_ORDER.map((s) => ({
     statusKey: s,
     translKey: STATUS_CONFIG[s].key,
-    count: orders.filter(o => o.status === s).length,
+    count: orders.filter((o) => o.status === s).length,
     icon: STATUS_CONFIG[s].icon,
-    color: STATUS_CONFIG[s].color,
-    bg: STATUS_CONFIG[s].bg,
   }))
   const totalRevenue = orders
-    .filter(o => o.status !== "CANCELLED" && !o.isDraft)
+    .filter((o) => o.status !== "CANCELLED" && !o.isDraft)
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0)
   const selectedCount = selectedOrderIds.length
-  const confirmedVisibleCount = orders.filter(o => o.status === "CONFIRMED" && !o.isDraft).length
-  const exportableSelectedCount = selectedOrderIds.filter(id =>
-    orders.some(order => order.id === id && order.status === "CONFIRMED" && !order.isDraft)
+  const confirmedVisibleCount = orders.filter((o) => o.status === "CONFIRMED" && !o.isDraft).length
+  const exportableSelectedCount = selectedOrderIds.filter((id) =>
+    orders.some((o) => o.id === id && o.status === "CONFIRMED" && !o.isDraft)
   ).length
   const exportTargetCount = selectedCount > 0 ? exportableSelectedCount : confirmedVisibleCount
 
   if (loading && orders.length === 0) return <OrdersSkeleton />
+
+  const chipCls = (active) => cn(
+    "px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors flex items-center gap-1.5",
+    active
+      ? "bg-brand-600 text-white border-brand-600"
+      : "bg-card border-border text-foreground hover:border-brand-600/40"
+  )
 
   return (
     <div className="flex flex-col gap-4 pb-8">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-brand-600 border border-brand-600 flex items-center justify-center shrink-0">
-            <ClipboardList size={16} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-foreground leading-tight">{t('orders.title')}</h1>
-            <p className="text-[13px] text-muted-foreground">{orders.length}</p>
+        <div className="flex items-center gap-3 min-w-0">
+          <IconTile icon={ClipboardList} />
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground tracking-tight leading-tight">{t("orders.title")}</h1>
+            <p className="text-[13px] text-muted-foreground tabular-nums">{orders.length}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <input
-            ref={importFileRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={handleImportTrackingCsv}
-          />
+          <input ref={importFileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportTrackingCsv} />
           <button
-            onClick={fetchOrders}
+            onClick={() => fetchOrders()}
             disabled={loading}
-            className="p-2 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+            aria-label={m.refresh}
+            title={m.refresh}
+            className="p-2.5 rounded-xl border border-border text-muted-foreground hover:text-brand-600 hover:border-brand-600/40 transition-colors"
           >
             <RefreshCw size={16} className={cn(loading && "animate-spin")} />
           </button>
           <button
             onClick={handleExportCSV}
             disabled={exporting || exportTargetCount === 0}
-            title={`${t('orders.delivery_export_csv') || "Export Delivery CSV"} (${exportTargetCount})`}
-            className="flex items-center gap-1.5 border border-border px-3.5 py-2 rounded-xl text-sm font-medium text-foreground hover:border-brand-300 hover:text-brand-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            title={`${t("orders.delivery_export_csv") || m.exportCsv} (${exportTargetCount})`}
+            className="flex items-center gap-1.5 border border-border px-3 py-2 rounded-xl text-sm font-medium text-foreground hover:border-brand-600/40 hover:text-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-            <span className="hidden sm:inline">{t('orders.delivery_export_csv') || "Delivery CSV"}</span>
+            <span className="hidden sm:inline">{t("orders.delivery_export_csv") || m.exportCsv}</span>
           </button>
           <button
             onClick={() => importFileRef.current?.click()}
             disabled={importing}
-            title={t('orders.delivery_import_tracking') || "Import Tracking CSV"}
-            className="flex items-center gap-1.5 border border-border px-3.5 py-2 rounded-xl text-sm font-medium text-foreground hover:border-cyan-300 hover:text-cyan-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            title={t("orders.delivery_import_tracking") || m.importTracking}
+            className="flex items-center gap-1.5 border border-border px-3 py-2 rounded-xl text-sm font-medium text-foreground hover:border-brand-600/40 hover:text-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-            <span className="hidden sm:inline">{t('orders.delivery_import_tracking') || "Import Tracking"}</span>
+            <span className="hidden sm:inline">{t("orders.delivery_import_tracking") || m.importTracking}</span>
           </button>
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 bg-brand-600 text-white px-3.5 py-2 rounded-xl text-sm font-semibold hover:bg-brand-800 transition-all shadow-md shadow-brand-600/20"
+            className="flex items-center gap-1.5 bg-brand-600 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors"
           >
-            <Plus size={16} /><span className="hidden sm:inline"> {t('orders.new')}</span>
+            <Plus size={16} />
+            <span className="hidden sm:inline">{t("orders.new")}</span>
           </button>
         </div>
       </div>
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-        {stats.map(({ statusKey, translKey, count, icon: Icon }) => (
-          <button
-            key={statusKey}
-            onClick={() => setFilterStatus(filterStatus === statusKey ? '' : statusKey)}
-            className={cn(
-              "flex flex-col gap-1 p-4 rounded-xl border transition-all text-right",
-              filterStatus === statusKey
-                ? "bg-brand-600/10 border-brand-600/30 text-brand-800 shadow-sm"
-                : "bg-card border-border/50 hover:border-brand-600/30 hover:bg-white"
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <span className={cn("text-xl font-bold", filterStatus === statusKey ? "text-brand-800" : "text-brand-600")}>{count}</span>
-              <Icon size={16} className={cn("opacity-60", filterStatus === statusKey ? "text-brand-800" : "text-brand-600")} />
-            </div>
-            <p className="text-[12px] text-muted-foreground">{t(translKey)}</p>
-          </button>
-        ))}
-        <div className="flex flex-col gap-1 p-4 rounded-xl border bg-card border-border/50 text-right">
+        {stats.map(({ statusKey, translKey, count, icon: Icon }) => {
+          const active = filterStatus === statusKey
+          return (
+            <button
+              key={statusKey}
+              onClick={() => setFilterStatus(active ? "" : statusKey)}
+              aria-pressed={active}
+              className={cn(
+                "flex flex-col gap-1.5 p-4 rounded-2xl border transition-colors text-start",
+                active ? "bg-brand-600/5 border-brand-600" : "bg-card border-border hover:border-brand-600/40"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xl font-bold text-foreground tabular-nums">{count}</span>
+                <Icon size={16} className="text-brand-600" />
+              </div>
+              <p className="text-[12px] text-muted-foreground">{t(translKey)}</p>
+            </button>
+          )
+        })}
+        <div className="flex flex-col gap-1.5 p-4 rounded-2xl border bg-card border-border text-start">
           <div className="flex items-center justify-between">
-            <span className="text-xl font-bold text-brand-600">{totalRevenue.toLocaleString()}</span>
-            <DollarSign size={16} className="opacity-60 text-brand-600" />
+            <span className="text-xl font-bold text-foreground tabular-nums">{totalRevenue.toLocaleString()}</span>
+            <DollarSign size={16} className="text-brand-600" />
           </div>
-          <p className="text-[12px] text-muted-foreground">{t('orders.total')}</p>
+          <p className="text-[12px] text-muted-foreground">{t("orders.total")}</p>
         </div>
       </div>
 
       {/* ── Draft filter chips ── */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => setDraftFilter("")}
-          className={cn(
-            "px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all",
-            draftFilter === ""
-              ? "bg-brand-600 text-white border-brand-600"
-              : "bg-card border-border hover:border-brand-600/40 text-foreground"
-          )}
-        >
-          {t('orders.filter_all') || "الكل"}
+        <button onClick={() => setDraftFilter("")} className={chipCls(draftFilter === "")}>
+          {t("orders.filter_all") || m.filterAll}
         </button>
-        <button
-          onClick={() => setDraftFilter("true")}
-          className={cn(
-            "px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all flex items-center gap-1.5",
-            draftFilter === "true"
-              ? "bg-card text-amber-700 border-amber-500 ring-1 ring-amber-500/20"
-              : "bg-card border-border text-amber-700 hover:border-amber-500/40"
-          )}
-        >
+        <button onClick={() => setDraftFilter("true")} className={chipCls(draftFilter === "true")}>
           <AlertTriangle size={13} />
-          {t('orders.filter_drafts') || "طلبيات ناقصة"}
+          {t("orders.filter_drafts") || m.filterDrafts}
         </button>
-        <button
-          onClick={() => setDraftFilter("false")}
-          className={cn(
-            "px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all",
-            draftFilter === "false"
-              ? "bg-card text-green-700 border-green-600 ring-1 ring-green-600/20"
-              : "bg-card border-border hover:border-green-600/40 text-green-700"
-          )}
-        >
-          {t('orders.filter_complete') || "طلبيات مكتملة"}
+        <button onClick={() => setDraftFilter("false")} className={chipCls(draftFilter === "false")}>
+          <CheckCircle2 size={13} />
+          {t("orders.filter_complete") || m.filterComplete}
         </button>
       </div>
 
-      {/* ── Filters bar ── */}
+      {/* ── Search + WhatsApp toggle ── */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search size={15} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={t('orders.search')}
-            className="w-full pl-4 pr-9 py-2.5 bg-secondary/50 border border-border rounded-xl text-sm focus:outline-none focus:border-brand-600 transition-colors"
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("orders.search")}
+            className="w-full ps-10 pe-4 py-2.5 bg-card border border-border rounded-xl text-sm focus:outline-none focus:border-brand-600 transition-colors"
           />
         </div>
-        <label className="flex items-center gap-2 text-[13px] text-muted-foreground px-4 py-2.5 bg-secondary/50 border border-border rounded-xl cursor-pointer select-none">
+        <label className="flex items-center gap-2 text-[13px] text-muted-foreground px-4 py-2.5 bg-card border border-border rounded-xl cursor-pointer select-none hover:border-brand-600/40 transition-colors">
           <input
             type="checkbox"
             checked={sendMessage}
-            onChange={e => setSendMessage(e.target.checked)}
+            onChange={(e) => setSendMessage(e.target.checked)}
             className="w-3.5 h-3.5 accent-brand-600"
           />
-          {t('orders.send_whatsapp')}
+          {t("orders.send_whatsapp")}
         </label>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-card px-3 py-3">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Truck size={16} className="text-cyan-700 shrink-0" />
+      {/* ── Delivery workflow ── */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <IconTile icon={Truck} />
             <div className="min-w-0">
-              <p className="text-[13px] font-bold text-foreground">{t('orders.delivery_workflow') || "Delivery CSV Workflow"}</p>
+              <p className="text-[14px] font-bold text-foreground">{t("orders.delivery_workflow") || m.deliveryWorkflow}</p>
               <p className="text-[12px] text-muted-foreground truncate">
                 {selectedCount > 0
-                  ? `${selectedCount} ${t('orders.selected') || "selected"}`
-                  : `${confirmedVisibleCount} ${t('orders.confirmed')}`}
+                  ? `${selectedCount} ${t("orders.selected") || m.selected}`
+                  : `${confirmedVisibleCount} ${t("orders.confirmed")}`}
               </p>
             </div>
           </div>
+
+          {selectedCount > 0 && (
+            <button
+              onClick={() => setSelectedOrderIds([])}
+              className="text-[12px] font-semibold text-brand-600 hover:text-brand-700 transition-colors self-start lg:self-auto"
+            >
+              {t("common.cancel")}
+            </button>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-2 lg:ms-auto">
             <input
               value={deliveryProviderName}
               onChange={(e) => setDeliveryProviderName(e.target.value)}
-              placeholder={t('orders.delivery_provider_optional') || "Provider name (optional)"}
-              className="w-full sm:w-56 px-3 py-2 bg-secondary/50 border border-border rounded-lg text-[13px] focus:outline-none focus:border-brand-600 transition-colors"
+              placeholder={t("orders.delivery_provider_optional") || m.providerOptional}
+              className="w-full sm:w-56 px-3 py-2 bg-background border border-border rounded-lg text-[13px] focus:outline-none focus:border-brand-600 transition-colors"
             />
             <div className="flex gap-2">
               <select
                 value={bulkStatus}
                 onChange={(e) => setBulkStatus(e.target.value)}
-                className="px-3 py-2 bg-secondary/50 border border-border rounded-lg text-[13px] focus:outline-none focus:border-brand-600 transition-colors"
+                className="px-3 py-2 bg-background border border-border rounded-lg text-[13px] focus:outline-none focus:border-brand-600 transition-colors"
               >
-                <option value="SHIPPED">{t('orders.shipped')}</option>
-                <option value="DELIVERED">{t('orders.delivered')}</option>
-                <option value="CANCELLED">{t('orders.cancelled')}</option>
+                <option value="SHIPPED">{t("orders.shipped")}</option>
+                <option value="DELIVERED">{t("orders.delivered")}</option>
+                <option value="CANCELLED">{t("orders.cancelled")}</option>
               </select>
               <button
                 onClick={handleBulkDeliveryStatus}
                 disabled={bulkUpdating || selectedCount === 0}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-[13px] font-semibold text-foreground hover:border-cyan-300 hover:text-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-[13px] font-semibold text-foreground hover:border-brand-600/40 hover:text-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {bulkUpdating ? <Loader2 size={14} className="animate-spin" /> : <Truck size={14} />}
-                {t('orders.delivery_bulk_update') || "Bulk update"}
+                {t("orders.delivery_bulk_update") || m.bulkUpdate}
               </button>
             </div>
           </div>
         </div>
+
         {deliveryNotice && (
-          <div className="flex items-start justify-between gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[12px] font-medium text-cyan-800">
-            <span>{deliveryNotice}</span>
-            <button onClick={() => setDeliveryNotice(null)} className="text-cyan-800/60 hover:text-cyan-900">
-              <X size={14} />
-            </button>
-          </div>
+          <Notice
+            tone={deliveryNotice.tone}
+            icon={deliveryNotice.tone === "error" ? AlertTriangle : CheckCircle2}
+            onClose={() => setDeliveryNotice(null)}
+          >
+            {deliveryNotice.text}
+          </Notice>
         )}
       </div>
 
@@ -1795,14 +1797,16 @@ export default function OrdersPage() {
         </div>
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20 text-center border border-dashed border-border rounded-2xl">
-          <ClipboardList size={32} className="text-muted-foreground/30" />
+          <IconTile icon={ClipboardList} size={20} className="w-12 h-12 rounded-2xl" />
           <p className="text-sm font-medium text-muted-foreground">
-            {filterStatus || search ? t('orders.no_match') : t('orders.no_orders')}
+            {filterStatus || search ? t("orders.no_match") : t("orders.no_orders")}
           </p>
           {!filterStatus && !search && (
-            <button onClick={() => setShowAdd(true)}
-              className="text-sm text-brand-600 font-semibold hover:text-brand-800 transition-colors">
-              {t('orders.add_first')}
+            <button
+              onClick={() => setShowAdd(true)}
+              className="text-sm text-brand-600 font-semibold hover:text-brand-700 transition-colors"
+            >
+              {t("orders.add_first")}
             </button>
           )}
         </div>
@@ -1819,7 +1823,7 @@ export default function OrdersPage() {
             onToggleAllVisible={toggleVisibleSelection}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
-            {orders.map(order => (
+            {orders.map((order) => (
               <OrderCard
                 key={order.id}
                 order={order}
@@ -1835,15 +1839,13 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {showAdd && (
-        <AddOrderModal onClose={() => setShowAdd(false)} onCreated={handleCreated} />
-      )}
+      {showAdd && <AddOrderModal onClose={() => setShowAdd(false)} onCreated={handleCreated} />}
 
       {detailOrder && (
         <OrderDetailModal
           order={detailOrder}
           onClose={() => setDetailOrder(null)}
-          onStatusChange={(id, status, updatedOrder) => { handleStatusChange(id, status, updatedOrder) }}
+          onStatusChange={(id, status, updatedOrder) => handleStatusChange(id, status, updatedOrder)}
           onDeleteRequest={handleDeleteRequest}
           sendMessage={sendMessage}
         />
