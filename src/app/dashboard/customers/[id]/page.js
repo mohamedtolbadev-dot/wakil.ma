@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { customersAPI } from "@/lib/api"
 import { formatAmount, getCustomerTagConfig, timeAgo, getStageClassName } from "@/lib/helpers"
@@ -220,9 +220,7 @@ export default function CustomerProfilePage() {
   const [editingTag, setEditingTag]   = useState(false)
   const [savingTag, setSavingTag]     = useState(false)
 
-  useEffect(() => { fetchCustomer() }, [id])
-
-  async function fetchCustomer() {
+  const fetchCustomer = useCallback(async () => {
     try {
       setLoading(true); setError(false)
       const res = await customersAPI.getById(id)
@@ -232,7 +230,9 @@ export default function CustomerProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => { fetchCustomer() }, [fetchCustomer])
 
   async function handleTagChange(newTag) {
     setSavingTag(true)

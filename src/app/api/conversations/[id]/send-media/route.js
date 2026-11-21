@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma"
-import { uploadWhatsAppMedia, sendWhatsAppMessage } from "@/lib/whatsapp"
+import { uploadWhatsAppMedia } from "@/lib/whatsapp"
+import { hasAgentWhatsAppConfig, sendAgentWhatsAppMessage } from "@/lib/whatsappProvider"
+import { cloudinary } from "@/lib/cloudinary"
 import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/response"
 import { rateLimit } from "@/lib/rateLimit"
@@ -100,7 +102,7 @@ export async function POST(request, { params }) {
     const agent = decryptAgentSecrets(rawAgent)
     if (!conversation) return errorResponse("المحادثة غير موجودة", 404)
     if (!agent) return errorResponse("Agent غير موجود", 404)
-    if (!agent.whatsappPhoneId || !agent.whatsappToken) {
+    if (!hasAgentWhatsAppConfig(agent)) {
       return errorResponse("إعدادات واتساب غير مكتملة", 400)
     }
     if (!conversation.customer?.phone) {
@@ -110,26 +112,31 @@ export async function POST(request, { params }) {
     const normalizedPhone = normalizePhoneForWhatsApp(conversation.customer.phone)
     if (!normalizedPhone) return errorResponse("رقم هاتف العميل غير صالح", 400)
 
-    // ── Send via WhatsApp ──
     let sentResult
-    let mediaId = null  // ✅ Declare mediaId at top level for both paths
+    let mediaId = null
+
+    if (!mediaUrl && agent.waProvider === "twilio") {
+      const buffer = Buffer.from(await file.arrayBuffer())
+      if (!buffer || buffer.length < 100) {
+        return errorResponse("الملف فارغ أو غير صالح", 400)
+      }
+      const dataUri = `data:${fileType};base64,${buffer.toString("base64")}`
+      const uploaded = await cloudinary.uploader.upload(dataUri, {
+        folder: "wakil/conversations",
+        resource_type: mediaType === "image" ? "image" : "raw",
+      })
+      mediaUrl = uploaded.secure_url
+    }
 
     if (mediaUrl) {
-      // URL path — send Cloudinary link directly to WhatsApp (no upload needed)
-      if (mediaType === "image") {
-        sentResult = await sendWhatsAppMessage({
-          phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
-          to: normalizedPhone, type: "image", message: mediaUrl,
-        })
-      } else {
-        sentResult = await sendWhatsAppMessage({
-          phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
-          to: normalizedPhone, type: "document",
-          document: { link: mediaUrl, filename: fileName },
-        })
-      }
+      sentResult = await sendAgentWhatsAppMessage(agent, {
+        to: normalizedPhone,
+        type: mediaType,
+        message: mediaType === "image" ? mediaUrl : "",
+        document: mediaType === "document" ? { link: mediaUrl, filename: fileName } : null,
+        mediaUrl,
+      })
     } else {
-      // File path — upload to WhatsApp Media first, then send
       const buffer = Buffer.from(await file.arrayBuffer())
       if (!buffer || buffer.length < 100) {
         return errorResponse("الملف فارغ أو غير صالح", 400)
@@ -145,21 +152,14 @@ export async function POST(request, { params }) {
         return errorResponse(errMsg, 500)
       }
 
-      mediaId = uploadResult.mediaId  // ✅ Use existing mediaId variable
-      console.log(`✅ Media uploaded (ID: ${mediaId})`)
-
-      if (mediaType === "image") {
-        sentResult = await sendWhatsAppMessage({
-          phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
-          to: normalizedPhone, type: "image", imageId: mediaId,
-        })
-      } else {
-        sentResult = await sendWhatsAppMessage({
-          phoneId: agent.whatsappPhoneId, token: agent.whatsappToken,
-          to: normalizedPhone, type: "document",
-          document: { id: mediaId, filename: fileName },
-        })
-      }
+      mediaId = uploadResult.mediaId
+      sentResult = await sendAgentWhatsAppMessage(agent, {
+        to: normalizedPhone,
+        type: mediaType,
+        message: "",
+        imageId: mediaType === "image" ? mediaId : null,
+        document: mediaType === "document" ? { id: mediaId, filename: fileName } : null,
+      })
     }
 
     if (!sentResult.success) {

@@ -954,6 +954,34 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleTestTwilioConnection() {
+    if (!twilioForm.accountSid?.trim() || !twilioForm.authToken?.trim() || !twilioForm.phoneNumber?.trim()) {
+      showToast("أدخل بيانات Twilio كاملة", "error")
+      return
+    }
+    setTestingWA(true)
+    try {
+      const response = await fetch('/api/twilio/test-connection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({
+          accountSid: twilioForm.accountSid.trim(),
+          authToken: twilioForm.authToken.trim(),
+          phoneNumber: twilioForm.phoneNumber.trim(),
+        })
+      })
+      const data = await response.json()
+      showToast(data.success ? "تم الاتصال بـ Twilio بنجاح" : data.error || "فشل اختبار Twilio", data.success ? "success" : "error")
+    } catch {
+      showToast("تعذر الاتصال بالسيرفر", "error")
+    } finally {
+      setTestingWA(false)
+    }
+  }
+
   function handleSaveNotifications() {
     try { localStorage.setItem('notificationSettings', JSON.stringify(notificationSettings)) } catch {}
     showToast(t('settings.toast_notif_saved'))
@@ -1750,7 +1778,7 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-1.5 text-[12px] text-muted-foreground">
                     <p>1. سجّل في <a href="https://www.twilio.com" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">twilio.com</a> واحصل على Account SID و Auth Token</p>
                     <p>2. فعّل WhatsApp Sandbox أو رقم مدفوع من Twilio Console</p>
-                    <p>3. في إعدادات الـ Sandbox، ضع Webhook URL أدناه في حقل "When a message comes in"</p>
+                    <p>3. في إعدادات الـ Sandbox، ضع Webhook URL أدناه في حقل &quot;When a message comes in&quot;</p>
                   </div>
                 </div>
 
@@ -1805,14 +1833,22 @@ export default function SettingsPage() {
                       })
                     })
                     const data = await res.json()
-                    if (data.success) showToast("تم حفظ إعدادات Twilio ✓")
-                    else showToast(data.error || "فشل الحفظ", "error")
+                    if (data.success) {
+                      setTwilioForm(form => ({ ...form, phoneNumber: data.data.phoneNumber }))
+                      showToast("تم حفظ إعدادات Twilio بنجاح")
+                    } else showToast(data.error || "فشل الحفظ", "error")
                   } catch { showToast("خطأ في الاتصال", "error") }
                   finally { setSavingWA(false) }
                 }}
                   className="w-full flex items-center gap-2 justify-center bg-brand-600 text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-all shadow-md shadow-brand-600/25 disabled:opacity-50">
                   {savingWA ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                   {savingWA ? t('settings.saving') : "حفظ إعدادات Twilio"}
+                </button>
+
+                <button onClick={handleTestTwilioConnection} disabled={testingWA}
+                  className="w-full flex items-center gap-2 justify-center bg-secondary border border-border text-foreground py-3.5 rounded-xl text-sm font-semibold hover:bg-secondary/80 transition-all disabled:opacity-50">
+                  {testingWA ? <Loader2 size={15} className="animate-spin" /> : <Phone size={15} />}
+                  {testingWA ? "جاري الاختبار..." : "اختبار اتصال Twilio"}
                 </button>
               </>)}
             </div>

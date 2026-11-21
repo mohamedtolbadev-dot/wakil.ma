@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { statsAPI } from "@/lib/api"
 import { formatAmount, translateObjectionReason } from "@/lib/helpers"
 import { cn } from "@/lib/utils"
@@ -362,16 +362,14 @@ function ExtraStatCard({ label, value, icon: Icon, delay = 0 }) {
 }
 
 /* ─────────────── Main Page ─────────────── */
+const PERIOD_KEYS = ["week", "month", "3months"]
+
 export default function AnalyticsPage() {
   const { t, locale, dir } = useLanguage()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activePeriod, setActivePeriod] = useState(0)
-
-  const PERIOD_KEYS = ["week", "month", "3months"]
-
-  useEffect(() => { fetchStats(activePeriod) }, [activePeriod])
 
   const chartLabels = useMemo(() => {
     const n    = stats?.weeklyChart?.length || 0
@@ -394,7 +392,7 @@ export default function AnalyticsPage() {
     })
   }, [stats?.weeklyChart, stats?.chartGranularity, locale])
 
-  async function fetchStats(periodIdx = 0) {
+  const fetchStats = useCallback(async (periodIdx = 0) => {
     const period = PERIOD_KEYS[periodIdx] || "week"
     try {
       setLoading(true); setError(null)
@@ -405,7 +403,9 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => { fetchStats(activePeriod) }, [activePeriod, fetchStats])
 
   /* ── Loading → Skeleton ── */
   if (loading) return <AnalyticsSkeleton />
@@ -420,7 +420,7 @@ export default function AnalyticsPage() {
         <p className="text-sm font-semibold text-foreground">{t('common.load_error')}</p>
         <p className="text-xs text-muted-foreground mt-1">{t(error)}</p>
       </div>
-      <button onClick={fetchStats} className="flex items-center gap-2 text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors">
+      <button onClick={() => fetchStats(activePeriod)} className="flex items-center gap-2 text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors">
         <RefreshCw size={15} /> {t('common.retry')}
       </button>
     </div>

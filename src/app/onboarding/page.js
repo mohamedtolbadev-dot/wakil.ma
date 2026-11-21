@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/contexts/LanguageContext"
 import fetchAPI, { agentAPI, productsAPI } from "@/lib/api"
-import { getPublicAppUrl, getWhatsAppWebhookUrl } from "@/lib/publicAppUrl"
+import { getPublicAppUrl, getTwilioWebhookUrl, getWhatsAppWebhookUrl } from "@/lib/publicAppUrl"
 import {
   Loader2, Store, MessageCircle, Package, CheckCircle2,
   ArrowRight, ArrowLeft, Phone, Key, Copy, Check, Sparkles,
@@ -92,10 +92,16 @@ export default function OnboardingPage() {
   })
 
   // Step 2 — WhatsApp
+  const [waProvider, setWaProvider] = useState("meta")
   const [whatsapp, setWhatsapp] = useState({
     whatsappPhoneId: "",
     whatsappToken: "",
     verifyToken: "",
+  })
+  const [twilio, setTwilio] = useState({
+    accountSid: "",
+    authToken: "",
+    phoneNumber: "",
   })
 
   // Step 3 — First Product
@@ -109,11 +115,7 @@ export default function OnboardingPage() {
   // Canonical app URL for the WhatsApp webhook shown in Meta setup.
   const appUrl = getPublicAppUrl()
 
-  useEffect(() => {
-    fetchStatus()
-  }, [])
-
-  async function fetchStatus() {
+  const fetchStatus = useCallback(async () => {
     try {
       const res = await fetchAPI("/api/onboarding/status")
       const data = res?.data || {}
@@ -130,11 +132,17 @@ export default function OnboardingPage() {
           language: data.agent.language || s.language,
           style: data.agent.style || s.style,
         }))
+        setWaProvider(data.agent.waProvider || "meta")
         setWhatsapp(w => ({
           ...w,
           whatsappPhoneId: data.agent.whatsappPhoneId || "",
           whatsappToken: data.agent.whatsappToken || "",
         }))
+        setTwilio({
+          accountSid: data.agent.twilioAccountSid || "",
+          authToken: data.agent.twilioAuthToken || "",
+          phoneNumber: data.agent.twilioPhoneNumber || "",
+        })
         // Fetch verify token
         try {
           const agentFull = await agentAPI.get()
@@ -160,7 +168,11 @@ export default function OnboardingPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    fetchStatus()
+  }, [fetchStatus])
 
   async function saveStep1() {
     if (!storeInfo.storeName?.trim() || !storeInfo.agentName?.trim()) {
@@ -196,20 +208,34 @@ export default function OnboardingPage() {
   }
 
   async function saveStep2() {
-    if (!whatsapp.whatsappPhoneId?.trim() || !whatsapp.whatsappToken?.trim()) {
-      setError(t('onboarding.step2_required') || "Phone ID و Token مطلوبان")
+    const missingMeta = !whatsapp.whatsappPhoneId?.trim() || !whatsapp.whatsappToken?.trim()
+    const missingTwilio = !twilio.accountSid?.trim() || !twilio.authToken?.trim() || !twilio.phoneNumber?.trim()
+    if ((waProvider === "meta" && missingMeta) || (waProvider === "twilio" && missingTwilio)) {
+      setError(waProvider === "twilio" ? "بيانات Twilio كاملة مطلوبة" : "Phone ID و Token مطلوبان")
       return false
     }
     try {
       setSaving(true)
       setError(null)
-      await agentAPI.update({
-        whatsappPhoneId: whatsapp.whatsappPhoneId.trim(),
-        whatsappToken: whatsapp.whatsappToken.trim(),
-      })
+      if (waProvider === "twilio") {
+        await fetchAPI("/api/twilio/connect", {
+          method: "POST",
+          body: JSON.stringify({
+            accountSid: twilio.accountSid.trim(),
+            authToken: twilio.authToken.trim(),
+            phoneNumber: twilio.phoneNumber.trim(),
+          }),
+        })
+      } else {
+        await agentAPI.update({
+          waProvider: "meta",
+          whatsappPhoneId: whatsapp.whatsappPhoneId.trim(),
+          whatsappToken: whatsapp.whatsappToken.trim(),
+        })
+      }
       return true
     } catch (err) {
-      setError(t('onboarding.save_error'))
+      setError(err?.message || t('onboarding.save_error'))
       return false
     } finally {
       setSaving(false)
@@ -266,7 +292,7 @@ export default function OnboardingPage() {
   }
 
   function copyWebhookUrl() {
-    const webhookUrl = getWhatsAppWebhookUrl(appUrl)
+    const webhookUrl = waProvider === "twilio" ? getTwilioWebhookUrl(appUrl) : getWhatsAppWebhookUrl(appUrl)
     navigator.clipboard.writeText(webhookUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -425,59 +451,120 @@ export default function OnboardingPage() {
                 subtitle={t('onboarding.step2_subtitle') || "أدخل بيانات WhatsApp Cloud API"}
               />
 
+              <div className="grid grid-cols-2 gap-2 mb-5">
+                {[{ key: "meta", label: "Meta Cloud API" }, { key: "twilio", label: "Twilio" }].map(provider => (
+                  <button
+                    key={provider.key}
+                    type="button"
+                    onClick={() => { setWaProvider(provider.key); setError(null) }}
+                    className={cn(
+                      "py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all",
+                      waProvider === provider.key
+                        ? "bg-brand-600 text-white border-brand-600"
+                        : "border-border text-muted-foreground hover:border-brand-300"
+                    )}
+                  >
+                    {provider.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="bg-white border border-brand-600/15 rounded-xl p-4 mb-5">
-                <p className="text-xs font-semibold text-foreground mb-2">
-                  💡 {t('onboarding.wa_help') || "تحتاج إعداد WhatsApp Business API أولاً من Meta"}
-                </p>
-                <ol className="text-[11px] text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>{t('onboarding.wa_step1') || "أنشئ App في"} <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Meta Developers</a></li>
-                  <li>{t('onboarding.wa_step2') || "فعّل WhatsApp Business API"}</li>
-                  <li>{t('onboarding.wa_step3') || "انسخ Phone ID و Access Token"}</li>
-                  <li>{t('onboarding.wa_step4') || "ألصقهم هنا ↓"}</li>
-                </ol>
+                {waProvider === "meta" ? (
+                  <ol className="text-[11px] text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>{t('onboarding.wa_step1') || "أنشئ App في"} <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">Meta Developers</a></li>
+                    <li>{t('onboarding.wa_step2') || "فعّل WhatsApp Business API"}</li>
+                    <li>{t('onboarding.wa_step3') || "انسخ Phone ID و Access Token"}</li>
+                    <li>{t('onboarding.wa_step4') || "ألصقهم هنا"}</li>
+                  </ol>
+                ) : (
+                  <ol className="text-[11px] text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>فعّل WhatsApp Sandbox أو رقم WhatsApp من Twilio Console.</li>
+                    <li>انسخ Account SID و Auth Token ورقم WhatsApp.</li>
+                    <li>ضع رابط Webhook أدناه في حقل When a message comes in.</li>
+                  </ol>
+                )}
               </div>
 
               <div className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
-                    <Phone size={12} className="inline me-1" />
-                    {t('onboarding.phone_id') || "WhatsApp Phone ID"} *
-                  </label>
-                  <input
-                    type="text"
-                    value={whatsapp.whatsappPhoneId}
-                    onChange={(e) => setWhatsapp({ ...whatsapp, whatsappPhoneId: e.target.value })}
-                    placeholder="123456789012345"
-                    dir="ltr"
-                    className={inputCls}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
-                    <Key size={12} className="inline me-1" />
-                    {t('onboarding.access_token') || "Access Token"} *
-                  </label>
-                  <input
-                    type="password"
-                    value={whatsapp.whatsappToken}
-                    onChange={(e) => setWhatsapp({ ...whatsapp, whatsappToken: e.target.value })}
-                    placeholder="EAAxxxxxxxxxxxxxxxxxxx"
-                    dir="ltr"
-                    className={inputCls}
-                  />
-                </div>
+                {waProvider === "meta" ? (
+                  <>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+                        <Phone size={12} className="inline me-1" />
+                        {t('onboarding.phone_id') || "WhatsApp Phone ID"} *
+                      </label>
+                      <input
+                        type="text"
+                        value={whatsapp.whatsappPhoneId}
+                        onChange={(e) => setWhatsapp({ ...whatsapp, whatsappPhoneId: e.target.value })}
+                        placeholder="123456789012345"
+                        dir="ltr"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+                        <Key size={12} className="inline me-1" />
+                        {t('onboarding.access_token') || "Access Token"} *
+                      </label>
+                      <input
+                        type="password"
+                        value={whatsapp.whatsappToken}
+                        onChange={(e) => setWhatsapp({ ...whatsapp, whatsappToken: e.target.value })}
+                        placeholder="EAAxxxxxxxxxxxxxxxxxxx"
+                        dir="ltr"
+                        className={inputCls}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Account SID *</label>
+                      <input
+                        type="text"
+                        value={twilio.accountSid}
+                        onChange={(e) => setTwilio({ ...twilio, accountSid: e.target.value })}
+                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        dir="ltr"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Auth Token *</label>
+                      <input
+                        type="password"
+                        value={twilio.authToken}
+                        onChange={(e) => setTwilio({ ...twilio, authToken: e.target.value })}
+                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        dir="ltr"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Twilio WhatsApp Number *</label>
+                      <input
+                        type="text"
+                        value={twilio.phoneNumber}
+                        onChange={(e) => setTwilio({ ...twilio, phoneNumber: e.target.value })}
+                        placeholder="+212600000000"
+                        dir="ltr"
+                        className={inputCls}
+                      />
+                    </div>
+                  </>
+                )}
 
                 {appUrl && (
                   <div className="p-3 bg-secondary/40 border border-border rounded-xl">
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">
-                      📌 {t('onboarding.webhook_url') || "رابط الـ Webhook (ستحتاجه في Meta):"}
-                    </p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Webhook URL</p>
                     <div className="flex items-center gap-2">
                       <code dir="ltr" className="flex-1 text-[11px] bg-background border border-border rounded-lg px-2.5 py-1.5 break-all">
-                        {getWhatsAppWebhookUrl(appUrl)}
+                        {waProvider === "twilio" ? getTwilioWebhookUrl(appUrl) : getWhatsAppWebhookUrl(appUrl)}
                       </code>
                       <button
+                        type="button"
                         onClick={copyWebhookUrl}
                         className="p-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition-colors shrink-0"
                         title="Copy"
@@ -485,11 +572,9 @@ export default function OnboardingPage() {
                         {copied ? <Check size={14} /> : <Copy size={14} />}
                       </button>
                     </div>
-                    {whatsapp.verifyToken && (
+                    {waProvider === "meta" && whatsapp.verifyToken && (
                       <div className="mt-2">
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">
-                          🔑 Verify Token:
-                        </p>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">Verify Token</p>
                         <code dir="ltr" className="block text-[11px] bg-background border border-border rounded-lg px-2.5 py-1.5 break-all">
                           {whatsapp.verifyToken}
                         </code>

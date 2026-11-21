@@ -1,3 +1,4 @@
+import { after } from "next/server"
 import { prisma } from "@/lib/prisma"
 import {
   parseTwilioIncomingMessage,
@@ -14,6 +15,25 @@ import {
 import { sanitizeInput } from "@/lib/helpers"
 import { normalizePhone } from "@/lib/phone"
 import { decryptAgentSecrets } from "@/lib/secretCrypto"
+import { getTwilioWebhookUrl } from "@/lib/publicAppUrl"
+import { normalizeTwilioPhoneNumber } from "@/lib/twilioAccount"
+
+async function findAgentByTwilioPhone(phoneNumber) {
+  const normalized = normalizeTwilioPhoneNumber(phoneNumber)
+  if (!normalized) return null
+
+  return decryptAgentSecrets(await prisma.agent.findFirst({
+    where: {
+      waProvider: "twilio",
+      OR: [
+        { twilioPhoneNumber: normalized },
+        { twilioPhoneNumber: `whatsapp:${normalized}` },
+        { twilioPhoneNumber: normalized.slice(1) },
+      ],
+    },
+    include: { objectionReplies: { orderBy: { order: "asc" } } },
+  }))
+}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -73,15 +93,30 @@ export async function GET() {
 export async function POST(request) {
   const rawBody = await request.text()
   const formData = new URLSearchParams(rawBody)
-  const formObj  = Object.fromEntries(formData.entries())
+  const formObj = Object.fromEntries(formData.entries())
+  const incoming = parseTwilioIncomingMessage(formData)
 
-  // التحقق من التوقيع في production فقط
-  if (process.env.NODE_ENV === "production" && process.env.TWILIO_AUTH_TOKEN) {
+  if (!incoming.from) {
+    return new Response("<Response></Response>", {
+      status: 200,
+      headers: { "Content-Type": "text/xml" },
+    })
+  }
+
+  const agent = await findAgentByTwilioPhone(incoming.toPhone)
+  if (!agent) {
+    console.log("[Twilio] No agent matched the destination phone")
+    return new Response("<Response></Response>", {
+      status: 200,
+      headers: { "Content-Type": "text/xml" },
+    })
+  }
+
+  if (process.env.NODE_ENV === "production") {
     const signature = request.headers.get("x-twilio-signature") || ""
-    const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/twilio`
     if (!verifyTwilioSignature({
-      authToken: process.env.TWILIO_AUTH_TOKEN,
-      url,
+      authToken: agent.twilioAuthToken,
+      url: getTwilioWebhookUrl(),
       params: formObj,
       signature,
     })) {
@@ -90,18 +125,9 @@ export async function POST(request) {
     }
   }
 
-  const incoming = parseTwilioIncomingMessage(new URLSearchParams(rawBody))
-  if (!incoming.from) {
-    return new Response("<Response></Response>", {
-      status: 200,
-      headers: { "Content-Type": "text/xml" },
-    })
-  }
-
-  // معالجة غير متزامنة — نرجع 200 فوراً لـ Twilio
-  processInbound(incoming).catch(err =>
+  after(() => processInbound(agent, incoming).catch(err =>
     console.error("[Twilio Webhook] unhandled error:", err?.message)
-  )
+  ))
 
   return new Response("<Response></Response>", {
     status: 200,
@@ -109,21 +135,8 @@ export async function POST(request) {
   })
 }
 
-async function processInbound(incoming) {
+async function processInbound(agent, incoming) {
   try {
-    // إيجاد الـ agent عبر رقم Twilio
-    const agent = decryptAgentSecrets(
-      await prisma.agent.findFirst({
-        where: { twilioPhoneNumber: incoming.toPhone, waProvider: "twilio" },
-        include: { objectionReplies: { orderBy: { order: "asc" } } },
-      })
-    )
-
-    if (!agent) {
-      console.log(`[Twilio] No agent for toPhone ${incoming.toPhone}`)
-      return
-    }
-
     // dedup بـ MessageSid
     if (incoming.messageId) {
       const exists = await prisma.message.findFirst({
@@ -142,9 +155,11 @@ async function processInbound(incoming) {
 
     // Opt-out
     if (isMarketingOptOutMessage(sanitizedText)) {
-      await saveInboundOnly(agent, incoming, sanitizedText)
+      const conversationId = await saveInboundOnly(agent, incoming, sanitizedText)
       await unsubscribeCustomerFromCampaigns({ userId: agent.userId, phone: incoming.from })
-      await sendReply(agent, incoming.from, buildOptOutReply(agent))
+      const reply = buildOptOutReply(agent)
+      const sent = await sendReply(agent, incoming.from, reply)
+      if (sent.success && conversationId) await saveAgentOnly(conversationId, reply)
       return
     }
 
@@ -156,9 +171,10 @@ async function processInbound(incoming) {
 
     // خارج ساعات العمل
     if (agent.workHoursEnabled && !isInsideWorkHours(agent)) {
-      await saveInboundOnly(agent, incoming, sanitizedText)
+      const conversationId = await saveInboundOnly(agent, incoming, sanitizedText)
       if (agent.offlineMessage) {
-        await sendReply(agent, incoming.from, agent.offlineMessage)
+        const sent = await sendReply(agent, incoming.from, agent.offlineMessage)
+        if (sent.success && conversationId) await saveAgentOnly(conversationId, agent.offlineMessage)
       }
       return
     }
@@ -173,15 +189,17 @@ async function processInbound(incoming) {
           authToken:  agent.twilioAuthToken,
           mediaUrl:   incoming.mediaUrl,
         })
-        if (downloaded) {
-          const transcription = await transcribeFromBuffer(downloaded.buffer, downloaded.mimeType)
-          if (transcription) {
-            aiInputText = sanitizeInput(transcription)
-            console.log(`[Twilio] Voice transcribed: "${aiInputText.slice(0, 80)}"`)
-          } else {
-            await saveInboundOnly(agent, incoming, sanitizedText)
-            return
-          }
+        if (!downloaded) {
+          await saveInboundOnly(agent, incoming, sanitizedText)
+          return
+        }
+        const transcription = await transcribeFromBuffer(downloaded.buffer, downloaded.mimeType)
+        if (transcription) {
+          aiInputText = sanitizeInput(transcription)
+          console.log(`[Twilio] Voice transcribed: "${aiInputText.slice(0, 80)}"`)
+        } else {
+          await saveInboundOnly(agent, incoming, sanitizedText)
+          return
         }
       } catch (err) {
         console.error("[Twilio] Voice processing failed:", err?.message)
@@ -206,6 +224,11 @@ async function processInbound(incoming) {
           `وصف الصورة لتحليل المنتج: ${imageDescription}`,
           "",
           "تعليمات للوكيل: قارن وصف الصورة مع المنتجات المتوفرة.",
+        ].join("\n")
+      } else {
+        aiInputText = [
+          sanitizedText,
+          "تعليمات للوكيل: العميل أرسل صورة، لكن لم نتمكن من تحليلها تقنياً. اطلب منه اسم المنتج أو تفاصيل أكثر.",
         ].join("\n")
       }
     }
@@ -312,6 +335,16 @@ async function saveInboundOnly(agent, incoming, text) {
   })
 
   return convId
+}
+
+async function saveAgentOnly(conversationId, content) {
+  await prisma.message.create({
+    data: { conversationId, role: "AGENT", content },
+  })
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { updatedAt: new Date() },
+  })
 }
 
 async function transcribeFromBuffer(buffer, mimeType) {

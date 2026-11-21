@@ -1,4 +1,4 @@
-﻿// منطق AI Agent — يحلل ويرد على الرسائل
+// منطق AI Agent — يحلل ويرد على الرسائل
 import { prisma } from "@/lib/prisma"
 import { TAGS, stageTag, cleanReply as cleanReplyTags, hasOrderConfirmed, hasCancelOrder, hasSendImages } from "@/lib/aiTags"
 import { applyOrderCancellationSideEffects, applyOrderCountedSideEffects, applyOrderEditSideEffects, isCountedStatus } from "@/lib/orderLifecycle"
@@ -12,7 +12,7 @@ import {
   extractSelectedVariant,
 } from "@/lib/orderExtraction"
 import { reserveAIReply, releaseAIReplyReservation, recordAIUsage, estimateCostUsd, getEffectivePlan } from "@/lib/usageLimits"
-import { sendWhatsAppMessage } from "@/lib/whatsapp"
+import { sendAgentWhatsAppMessage as sendWhatsAppMessage } from "@/lib/whatsappProvider"
 import { decryptAgentSecrets } from "@/lib/secretCrypto"
 // دالة تطبيع رقم الهاتف (منع التكرار)
 export function normalizePhone(phone) {
@@ -3886,9 +3886,7 @@ export async function processIncomingMessage({
                 agentName: agent.name,
               })
               if (confirmMessage) {
-                const sendResult = await sendWhatsAppMessage({
-                  phoneId: agent.whatsappPhoneId,
-                  token: agent.whatsappToken,
+                const sendResult = await sendWhatsAppMessage(agent, {
                   to: customer.phone,
                   message: confirmMessage,
                 })

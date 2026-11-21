@@ -1537,7 +1537,7 @@ function ConversationMessagesScroll({
     requestAnimationFrame(() => {
       el.scrollTop = el.scrollHeight
     })
-  }, [conversationId, messagesError, scrollKey])
+  }, [conversationId, messagesError, scrollKey, messages.length])
 
   return (
     <div ref={scrollRef} className={className}>

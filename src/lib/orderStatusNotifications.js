@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage } from "@/lib/whatsapp"
+import { hasAgentWhatsAppConfig, sendAgentWhatsAppMessage as sendWhatsAppMessage } from "@/lib/whatsappProvider"
 import { decryptAgentSecrets } from "@/lib/secretCrypto"
 
 const DELIVERY_NOTIFY_STATUSES = new Set(["SHIPPED", "DELIVERED", "CANCELLED"])
@@ -192,6 +192,10 @@ export async function sendOrderStatusNotification({ userId, order, status }) {
         language: true,
         whatsappPhoneId: true,
         whatsappToken: true,
+        waProvider: true,
+        twilioAccountSid: true,
+        twilioAuthToken: true,
+        twilioPhoneNumber: true,
         orderConfirmMessage: true,
         orderShipMessage: true,
         orderDeliverMessage: true,
@@ -200,7 +204,7 @@ export async function sendOrderStatusNotification({ userId, order, status }) {
       },
     }))
 
-    if (!agent?.whatsappPhoneId || !agent?.whatsappToken) {
+    if (!hasAgentWhatsAppConfig(agent)) {
       return { messageSent: false, sentMessage: null, sentFlag: null }
     }
 
@@ -226,9 +230,7 @@ export async function sendOrderStatusNotification({ userId, order, status }) {
     const message = templateMessage || getOrderFallbackMessage(status, order, fallbackLanguage, agent.trackingUrlTemplate)
     if (!message) return { messageSent: false, sentMessage: null, sentFlag: null }
 
-    const result = await sendWhatsAppMessage({
-      phoneId: agent.whatsappPhoneId,
-      token: agent.whatsappToken,
+    const result = await sendWhatsAppMessage(agent, {
       to: order.customerPhone,
       message,
     })

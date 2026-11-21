@@ -29,16 +29,23 @@ export async function GET(request) {
           language: true,
           whatsappPhoneId: true,
           whatsappToken: true,
+          waProvider: true,
+          twilioAccountSid: true,
+          twilioAuthToken: true,
+          twilioPhoneNumber: true,
         },
       }),
       prisma.product.count({ where: { userId: user.id } }),
     ])
 
     const safeAgent = decryptAgentSecrets(agent)
+    const whatsappConnected = safeAgent?.waProvider === "twilio"
+      ? Boolean(safeAgent.twilioAccountSid && safeAgent.twilioAuthToken && safeAgent.twilioPhoneNumber)
+      : Boolean(safeAgent?.whatsappPhoneId && safeAgent?.whatsappToken)
 
     const steps = {
       storeInfo: Boolean(fullUser?.storeName && safeAgent?.name && safeAgent?.domain),
-      whatsapp: Boolean(safeAgent?.whatsappPhoneId && safeAgent?.whatsappToken),
+      whatsapp: whatsappConnected,
       product: productsCount > 0,
     }
 

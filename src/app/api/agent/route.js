@@ -68,7 +68,7 @@ export async function PUT(request) {
     const {
       name, domain, style, language,
       isActive, instructions, productInstructions,
-      whatsappPhoneId, whatsappToken,
+      whatsappPhoneId, whatsappToken, waProvider,
       selectedProductId,
       workHoursEnabled, workStart, workEnd, offlineMessage,
       welcomeMessage, postSaleMessage,
@@ -84,6 +84,10 @@ export async function PUT(request) {
 
     if (language !== undefined && !ALLOWED_AGENT_LANGUAGES.has(language)) {
       return errorResponse("لغة الوكيل غير مدعومة", 400)
+    }
+
+    if (waProvider !== undefined && !["meta", "twilio"].includes(waProvider)) {
+      return errorResponse("مزود واتساب غير مدعوم", 400)
     }
 
     if (replyDelayMode !== undefined && !ALLOWED_REPLY_DELAY_MODES.has(replyDelayMode)) {
@@ -120,6 +124,7 @@ export async function PUT(request) {
         ...(productInstructions !== undefined && { productInstructions }),
         ...(whatsappPhoneId !== undefined && { whatsappPhoneId }),
         ...(whatsappToken !== undefined && { whatsappToken: encryptSecret(whatsappToken) }),
+        ...(waProvider !== undefined && { waProvider }),
         ...(selectedProductId !== undefined && {
           selectedProductId: selectedProductId || null
         }),

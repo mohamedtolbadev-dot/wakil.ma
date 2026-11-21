@@ -92,9 +92,13 @@ export async function dispatchCampaignBatch({ campaignId, userId }) {
     select: {
       whatsappPhoneId: true,
       whatsappToken: true,
+      waProvider: true,
     },
   }))
 
+  if (agent?.waProvider === "twilio") {
+    throw new Error("Meta WhatsApp is required for campaign templates; Twilio templates are not configured")
+  }
   if (!agent?.whatsappPhoneId || !agent?.whatsappToken) {
     throw new Error("WhatsApp is not configured for this account")
   }

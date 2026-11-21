@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { getUserFromRequest } from "@/lib/auth"
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/response"
-import { sendWhatsAppMessage } from "@/lib/whatsapp"
+import { hasAgentWhatsAppConfig, sendAgentWhatsAppMessage as sendWhatsAppMessage } from "@/lib/whatsappProvider"
 import { sanitizeInput } from "@/lib/helpers"
 import { rateLimit } from "@/lib/rateLimit"
 import { decryptAgentSecrets } from "@/lib/secretCrypto"
@@ -52,9 +52,8 @@ export async function POST(request, { params }) {
       return errorResponse("Agent is active — manual reply not allowed", 403)
     }
 
-    // ✅ WhatsApp config guards
-    if (!agent.whatsappPhoneId || !agent.whatsappToken) {
-      return errorResponse("إعدادات واتساب غير مكتملة (Phone ID أو Token مفقود)", 400)
+    if (!hasAgentWhatsAppConfig(agent)) {
+      return errorResponse("إعدادات واتساب غير مكتملة", 400)
     }
     if (!conversation.customer?.phone) {
       return errorResponse("رقم هاتف العميل غير متوفر", 400)
@@ -63,9 +62,7 @@ export async function POST(request, { params }) {
     const maskedPhone = maskPhone(conversation.customer.phone)
     console.log(`✅ [reply] Sending to customer ${maskedPhone}...`)
 
-    const sent = await sendWhatsAppMessage({
-      phoneId: agent.whatsappPhoneId,
-      token: agent.whatsappToken,
+    const sent = await sendWhatsAppMessage(agent, {
       to: conversation.customer.phone,
       message: cleanMessage,
     })

@@ -1,3 +1,6 @@
+import crypto from "crypto"
+import { normalizeTwilioPhoneNumber } from "@/lib/twilioAccount"
+
 // دوال التواصل مع WhatsApp Cloud API + Twilio
 
 const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL ||
@@ -87,9 +90,8 @@ export function parseTwilioIncomingMessage(formData) {
   const mediaUrl    = numMedia > 0 ? formData.get("MediaUrl0") || null : null
   const mediaType   = numMedia > 0 ? formData.get("MediaContentType0") || "" : ""
 
-  // نزيل prefix "whatsapp:"
   const fromPhone = from.replace("whatsapp:", "")
-  const toPhone   = to.replace("whatsapp:", "")
+  const toPhone = normalizeTwilioPhoneNumber(to)
 
   let type = "text"
   if (numMedia > 0) {
@@ -116,12 +118,12 @@ export function parseTwilioIncomingMessage(formData) {
 export function verifyTwilioSignature({ authToken, url, params, signature }) {
   if (!authToken || !signature) return false
   try {
-    const crypto = require("crypto")
-    // Twilio signature: HMAC-SHA1 على URL + params مرتبة أبجدياً
     const sortedKeys = Object.keys(params).sort()
     const str = url + sortedKeys.map(k => k + params[k]).join("")
     const expected = crypto.createHmac("sha1", authToken).update(str).digest("base64")
-    return expected === signature
+    const expectedBuffer = Buffer.from(expected)
+    const signatureBuffer = Buffer.from(signature)
+    return expectedBuffer.length === signatureBuffer.length && crypto.timingSafeEqual(expectedBuffer, signatureBuffer)
   } catch {
     return false
   }

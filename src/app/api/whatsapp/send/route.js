@@ -2,7 +2,7 @@
 
 import { getUserFromRequest } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage } from "@/lib/whatsapp"
+import { hasAgentWhatsAppConfig, sendAgentWhatsAppMessage as sendWhatsAppMessage } from "@/lib/whatsappProvider"
 import { successResponse, errorResponse,
          unauthorizedResponse } from "@/lib/response"
 import { decryptAgentSecrets } from "@/lib/secretCrypto"
@@ -22,15 +22,11 @@ export async function POST(request) {
       where: { userId: user.id }
     }))
 
-    if (!agent?.whatsappPhoneId || !agent?.whatsappToken) {
-      return errorResponse(
-        "WhatsApp غير مربوط — أضف Phone ID و Token في الإعدادات"
-      )
+    if (!hasAgentWhatsAppConfig(agent)) {
+      return errorResponse("WhatsApp غير مربوط — أكمل إعدادات Meta أو Twilio")
     }
 
-    const result = await sendWhatsAppMessage({
-      phoneId: agent.whatsappPhoneId,
-      token: agent.whatsappToken,
+    const result = await sendWhatsAppMessage(agent, {
       to: phone,
       message,
     })

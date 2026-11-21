@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { customersAPI, statsAPI, conversationsAPI } from "@/lib/api"
 import { formatAmount, getCustomerTagConfig, timeAgo } from "@/lib/helpers"
@@ -231,8 +231,6 @@ export default function CustomersPage() {
   const [deleteModal, setDeleteModal] = useState({ open: false, customer: null })
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => { fetchData() }, [search])
-
   async function handleDelete() {
     if (!deleteModal.customer) return
     setDeleting(true)
@@ -247,14 +245,14 @@ export default function CustomersPage() {
     }
   }
 
-  async function fetchConversations() {
+  const fetchConversations = useCallback(async () => {
     try {
       const convData = await conversationsAPI.getAll()
       setConversations(convData.data?.conversations || [])
     } catch (err) {
       console.error("Failed to fetch conversations:", err)
     }
-  }
+  }, [])
 
   // Merge customer data with conversation type
   const customersWithType = useMemo(() => {
@@ -276,7 +274,7 @@ export default function CustomersPage() {
     })
   }, [customers, conversations])
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true); setError(null)
       const [customersData, statsData] = await Promise.all([
@@ -288,13 +286,15 @@ export default function CustomersPage() {
       ])
       setCustomers(customersData.data || [])
       setStats(statsData.data)
-      await fetchConversations() // Fetch conversations after customers
+      await fetchConversations()
     } catch {
       setError("customers.loading_error")
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchConversations, search, tagFilter])
+
+  useEffect(() => { fetchData() }, [fetchData])
 
   const tagButtons = [
     { key: "all",      label: t('common.all'),             icon: null,     count: customers.length },
