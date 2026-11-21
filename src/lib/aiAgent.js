@@ -2582,7 +2582,7 @@ export async function processIncomingMessage({
           updatedAt: { gte: oneDayAgo }
         },
         include: {
-          messages: { orderBy: { createdAt: "asc" }, take: 50 }
+          messages: { orderBy: { createdAt: "desc" }, take: 50 }
         },
         orderBy: { updatedAt: "desc" }
       })
@@ -2603,7 +2603,7 @@ export async function processIncomingMessage({
               ...(withDateFilter && { updatedAt: { gte: oneDayAgo } }),
             },
             include: {
-              messages: { orderBy: { createdAt: "asc" }, take: 50 }
+              messages: { orderBy: { createdAt: "desc" }, take: 50 }
             },
             orderBy: { updatedAt: "desc" }
           })
@@ -2627,7 +2627,7 @@ export async function processIncomingMessage({
           updatedAt: { gte: oneDayAgo }
         },
         include: {
-          messages: { orderBy: { createdAt: "asc" }, take: 50 }
+          messages: { orderBy: { createdAt: "desc" }, take: 50 }
         },
         orderBy: { updatedAt: "desc" }
       })
@@ -2656,7 +2656,7 @@ export async function processIncomingMessage({
         // ✅ [FIX] إعادة تحميل الرسائل بشكل منفصل من DB للتأكد من freshness
         const freshMessages = await prisma.message.findMany({
           where: { conversationId: conversation.id },
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
           take: 50
         })
         conversation.messages = freshMessages
@@ -2683,6 +2683,7 @@ export async function processIncomingMessage({
         console.log(`Created new conversation: ${conversation.id}`)
       }
     }
+    conversation.messages = [...(conversation.messages || [])].reverse()
     // Ensure context is always an object
     conversation.context = safeObj(conversation.context)
     let currentOrderFromDb = null
