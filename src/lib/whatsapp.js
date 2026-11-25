@@ -1,10 +1,10 @@
 import crypto from "crypto"
 import { normalizeTwilioPhoneNumber } from "@/lib/twilioAccount"
+import { META_GRAPH_API_URL } from "@/lib/metaGraph"
 
 // دوال التواصل مع WhatsApp Cloud API + Twilio
 
-const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL ||
-  "https://graph.facebook.com/v19.0"
+const WHATSAPP_API_URL = META_GRAPH_API_URL
 
 const TWILIO_API_URL = "https://api.twilio.com/2010-04-01"
 

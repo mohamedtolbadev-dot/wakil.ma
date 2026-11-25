@@ -4,6 +4,7 @@ import { getUserFromRequest } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { successResponse, unauthorizedResponse } from "@/lib/response"
 import { encryptSecret } from "@/lib/secretCrypto"
+import { META_GRAPH_API_URL } from "@/lib/metaGraph"
 
 function whatsappTestError(message, status, code, details = null) {
   return Response.json(
@@ -29,7 +30,7 @@ export async function POST(request) {
     }
 
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/${encodeURIComponent(phoneId)}?access_token=${encodeURIComponent(token)}`,
+      `${META_GRAPH_API_URL}/${encodeURIComponent(phoneId)}?access_token=${encodeURIComponent(token)}`,
       { method: "GET" }
     )
 

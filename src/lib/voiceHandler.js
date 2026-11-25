@@ -1,6 +1,8 @@
 // lib/voiceHandler.js
 
-const WHATSAPP_API_URL = "https://graph.facebook.com/v19.0"
+import { META_GRAPH_API_URL } from "@/lib/metaGraph"
+
+const WHATSAPP_API_URL = META_GRAPH_API_URL
 
 // ─── Download audio buffer from WhatsApp Media API ─────────────────────────
 // WhatsApp sends a mediaId in the webhook. We fetch the temporary URL first,
