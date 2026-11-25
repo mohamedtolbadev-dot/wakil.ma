@@ -4,7 +4,7 @@ export const siteConfig = {
   name: "Wakil.ma",
   shortName: "Wakil",
   domain: "wakil.ma",
-  url: "https://www.wakil.ma",
+  url: "https://wakil.ma",
   ogImage: "/og-image.jpg",
   twitter: "@wakilma",
   verification: {

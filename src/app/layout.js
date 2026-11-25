@@ -35,7 +35,7 @@ export default function RootLayout({ children, params }) {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Wakil.ma",
-    "url": "https://www.wakil.ma",
+    "url": "https://wakil.ma",
     "operatingSystem": "All",
     "applicationCategory": "BusinessApplication",
     "description": "Wakil.ma est un agent commercial IA pour WhatsApp. Il répond aux clients et crée les commandes.",

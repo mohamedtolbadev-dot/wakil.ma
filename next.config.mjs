@@ -32,10 +32,10 @@ const nextConfig = {
         has: [
           {
             type: 'host',
-            value: 'wakil.ma',
+            value: 'www.wakil.ma',
           },
         ],
-        destination: 'https://www.wakil.ma/:path*',
+        destination: 'https://wakil.ma/:path*',
         permanent: true, // مهمة جدا لجوجل باش يعرف بلي التغيير دائم
       },
     ];
