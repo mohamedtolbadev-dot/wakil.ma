@@ -3313,19 +3313,31 @@ export async function processIncomingMessage({
         runtimeContextBlock,
       })
     let { reply, stage, score, orderConfirmed, sendImages, cancelOrder, quotaExceeded } = aiResult
-    if (quotaExceeded) {
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { isRead: false, updatedAt: new Date() },
-      })
-      return {
-        reply: null,
-        skipped: true,
-        quotaExceeded: true,
-        imageUrls: [],
-        conversationId: conversation.id,
-      }
-    }
+   if (quotaExceeded) {
+  const fallbackText = aiResult.reply
+
+  await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      role: "AGENT",
+      content: fallbackText,
+    },
+  })
+
+  await prisma.conversation.update({
+    where: { id: conversation.id },
+    data: { isRead: false, updatedAt: new Date() },
+  })
+
+  return {
+    reply: fallbackText,
+    stage: conversation.stage,
+    score: conversation.score,
+    orderConfirmed: false,
+    imageUrls: [],
+    conversationId: conversation.id,
+  }
+}
     console.log(`AI result: confirmed=${orderConfirmed}, stage=${stage}, cancelOrder=${cancelOrder}`)
     // ✅ GUARD: Only block DANGEROUS AI behavior — confirming or presenting summary with missing fields.
     // NEVER override normal conversation replies (the AI knows how to collect fields naturally).
