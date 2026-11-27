@@ -2,9 +2,9 @@
 import {
   analyzeWhatsAppImage,
   parseAllIncomingMessages,
-  sendWhatsAppMessage,
   transcribeWhatsAppAudio,
 } from "@/lib/whatsapp"
+import { sendAgentWhatsAppMessage } from "@/lib/whatsappProvider"
 import { processIncomingMessage } from "@/lib/aiAgent"
 import {
   isMarketingOptOutMessage,
@@ -246,7 +246,7 @@ export async function GET(request) {
   })
 
   if (mode === "subscribe" && agent) {
-    console.log(`âœ… WhatsApp webhook verified for agent: ${agent.id}`)
+    console.log(`WhatsApp webhook verified for agent: ${agent.id}`)
     return new Response(challenge, { status: 200 })
   }
 
@@ -291,7 +291,7 @@ export async function POST(request) {
     return new Response("OK", { status: 200 })
   }
 
-  console.log(`ðŸ“© WhatsApp inbound messages: ${incomingMessages.length}`)
+  console.log(`WhatsApp inbound messages: ${incomingMessages.length}`)
 
   await Promise.allSettled(
     incomingMessages.map(async (incoming) => {
@@ -299,7 +299,7 @@ export async function POST(request) {
 
       try {
         if (await hasProcessedInboundMessage(incoming.messageId)) {
-          console.log(`â†©ï¸ [${maskedIncomingPhone}] duplicate inbound skipped`)
+          console.log(`[${maskedIncomingPhone}] duplicate inbound skipped`)
           return
         }
 
@@ -309,17 +309,17 @@ export async function POST(request) {
         }))
 
         if (!agent) {
-          console.log(`âš ï¸ [${maskedIncomingPhone}] no agent for phoneId ${incoming.phoneId}`)
+          console.log(`[${maskedIncomingPhone}] no agent for phoneId ${incoming.phoneId}`)
           return
         }
 
         const incomingMediaId = incoming.mediaId || incoming.audioId || null
         const messageText = incoming.type === "audio"
-          ? "[\u0631\u0633\u0627\u0644\u0629 \u0635\u0648\u062A\u064A\u0629]"
+          ? "[رسالة صوتية]"
           : incoming.text
         const sanitizedText = sanitizeInput(messageText)
         if (!sanitizedText) {
-          console.log(`â­ï¸ [${maskedIncomingPhone}] empty inbound skipped after sanitization`)
+          console.log(`[${maskedIncomingPhone}] empty inbound skipped after sanitization`)
           return
         }
 
@@ -346,9 +346,7 @@ export async function POST(request) {
           })
 
           const confirmationMessage = buildOptOutConfirmation(agent)
-          const optOutSent = await sendWhatsAppMessage({
-            phoneId: agent.whatsappPhoneId,
-            token: agent.whatsappToken,
+          const optOutSent = await sendAgentWhatsAppMessage(agent, {
             to: incoming.from,
             message: confirmationMessage,
           })
@@ -360,7 +358,7 @@ export async function POST(request) {
             })
           }
 
-          console.log(`🛑 [${maskedIncomingPhone}] marketing opt-out handled`)
+          console.log(`[${maskedIncomingPhone}] marketing opt-out handled`)
           return
         }
 
@@ -377,7 +375,7 @@ export async function POST(request) {
             whatsappMediaId: incomingMediaId,
           })
           if (!saved?.duplicate) {
-            console.log(`💾 [${maskedIncomingPhone}] inbound saved while agent inactive`)
+            console.log(`[${maskedIncomingPhone}] inbound saved while agent inactive`)
           }
           return
         }
@@ -393,9 +391,7 @@ export async function POST(request) {
           if (!saved || saved.duplicate) return
 
           if (agent.offlineMessage) {
-            const offlineSent = await sendWhatsAppMessage({
-              phoneId: agent.whatsappPhoneId,
-              token: agent.whatsappToken,
+            const offlineSent = await sendAgentWhatsAppMessage(agent, {
               to: incoming.from,
               message: agent.offlineMessage,
             })
@@ -405,9 +401,9 @@ export async function POST(request) {
                 conversationId: saved.conversation.id,
                 content: agent.offlineMessage,
               })
-              console.log(`📤 [${maskedIncomingPhone}] offline message sent and saved`)
+              console.log(`[${maskedIncomingPhone}] offline message sent and saved`)
             } else {
-              console.error(`❌ [${maskedIncomingPhone}] offline message send failed`, offlineSent.error)
+              console.error(`[${maskedIncomingPhone}] offline message send failed`, offlineSent.error)
             }
           }
           return
@@ -428,21 +424,20 @@ export async function POST(request) {
             if (transcription) {
               aiInputText = sanitizeInput(transcription)
               transcribedFromVoice = true
-              console.log(`🎙️ [Webhook] Voice transcribed: "${aiInputText.slice(0, 80)}${aiInputText.length > 80 ? "…" : ""}"`)
+              console.log(`[Webhook] Voice transcribed: "${aiInputText.slice(0, 80)}${aiInputText.length > 80 ? "…" : ""}"`)
             } else {
-              // ✅ Whisper couldn't transcribe — save silently without forced reply
-              // AI agent will not send any forced message; conversation stays open
+              // Whisper couldn't transcribe: save silently without forced reply
               await saveInboundWithoutAi({
                 agent,
                 incoming,
                 messageText: sanitizedText,
                 whatsappMediaId: incomingMediaId,
               })
-              console.log(`🎙️ [Webhook] Voice empty/silent — saved without reply`)
+              console.log(`[Webhook] Voice empty/silent — saved without reply`)
               return
             }
           } catch (err) {
-            console.error("❌ [Webhook] Voice processing failed:", err.message)
+            console.error("[Webhook] Voice processing failed:", err.message)
             // Fail silently — don't return error to WhatsApp (causes retry loop)
             return
           }
@@ -465,13 +460,13 @@ export async function POST(request) {
               "",
               "تعليمات للوكيل: قارن وصف الصورة مع المنتجات المتوفرة في الكاتالوغ. إذا وجدت نفس المنتج أو منتجاً مشابهاً فاذكر ذلك بوضوح وأرسل صور المنتج فقط إذا كان مطابقاً أو قريباً. إذا لم تكن متأكداً، قل إنك ستقترح الأقرب ولا تدّعي أنه نفس المنتج.",
             ].join("\n")
-            console.log(`🖼️ [Webhook] Image analyzed: "${imageDescription.slice(0, 100)}${imageDescription.length > 100 ? "…" : ""}"`)
+            console.log(`[Webhook] Image analyzed: "${imageDescription.slice(0, 100)}${imageDescription.length > 100 ? "…" : ""}"`)
           } else {
             aiInputText = [
               sanitizedText,
               "تعليمات للوكيل: العميل أرسل صورة، لكن لم نتمكن من تحليلها تقنياً. اطلب منه اسم المنتج أو تفاصيل أكثر مثل النوع/اللون/العلامة.",
             ].join("\n")
-            console.log(`🖼️ [Webhook] Image analysis unavailable; asking for details`)
+            console.log(`[Webhook] Image analysis unavailable; asking for details`)
           }
         }
 
@@ -486,7 +481,7 @@ export async function POST(request) {
         })
 
         if (!result || result.skipped || !result.reply) {
-          console.log(`â„¹ï¸ [${maskedIncomingPhone}] AI reply skipped`)
+          console.log(`[${maskedIncomingPhone}] AI reply skipped`)
           return
         }
 
@@ -501,33 +496,31 @@ export async function POST(request) {
 
         const replyDelayMs = resolveReplyDelayMs(agent)
         if (replyDelayMs > 0) {
-          console.log(`⏳ [${maskedIncomingPhone}] delaying AI reply ${replyDelayMs}ms`)
+          console.log(`[${maskedIncomingPhone}] delaying AI reply ${replyDelayMs}ms`)
           await sleep(replyDelayMs)
         }
 
-        console.log("📤 [AI Reply] sending:", {
+        console.log("[AI Reply] sending:", {
           conversationId: result.conversationId,
           to: incoming.from,
           reply: safeReply?.slice(0, 120),
         })
-        sent = await sendWhatsAppMessage({
-          phoneId: agent.whatsappPhoneId,
-          token: agent.whatsappToken,
+        sent = await sendAgentWhatsAppMessage(agent, {
           to: incoming.from,
           message: safeReply,
         })
 
         if (sent.success) {
-          console.log(`âœ… [${maskedIncomingPhone}] AI reply sent`)
+          console.log(`[${maskedIncomingPhone}] AI reply sent`)
         } else if (sent.isTokenExpired) {
-          console.error(`ðŸš¨ WhatsApp token expired for agent ${agent.id}`)
+          console.error(`WhatsApp token expired for agent ${agent.id}`)
           try {
             await prisma.notification.create({
               data: {
                 userId: agent.userId,
                 type: "SYSTEM",
-                title: "fr:ðŸš¨ ProblÃ¨me WhatsApp Token||ar:ðŸš¨ Ù…Ø´ÙƒÙ„ ÙÙŠ WhatsApp Token",
-                message: "fr:Le token d'accÃ¨s a expirÃ©. Mettez Ã  jour WhatsApp dans les paramÃ¨tres.||ar:Ø§Ù†ØªÙ‡Øª ØµÙ„Ø§Ø­ÙŠØ© Token Ø§Ù„ÙˆØ§ØªØ³Ø§Ø¨. Ø§Ù„Ù…Ø±Ø¬Ùˆ ØªØ­Ø¯ÙŠØ«Ù‡ Ù…Ù† Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª.",
+                title: "fr:🚨 Problème WhatsApp Token||ar:🚨 مشكل في WhatsApp Token",
+                message: "fr:Le token d'accès a expiré. Mettez à jour WhatsApp dans les paramètres.||ar:انتهت صلاحية Token الواتساب. المرجو تحديثه من الإعدادات.",
                 isRead: false,
               },
             })
@@ -535,7 +528,7 @@ export async function POST(request) {
             console.error("Failed to create WhatsApp token notification:", notificationError?.message || notificationError)
           }
         } else {
-          console.error(`âŒ [${maskedIncomingPhone}] AI reply send failed:`, sent.error)
+          console.error(`[${maskedIncomingPhone}] AI reply send failed:`, sent.error)
         }
 
         const validImageUrls = [...new Set(
@@ -549,9 +542,7 @@ export async function POST(request) {
           let sentImage = false
 
           for (let attempt = 1; attempt <= 3; attempt++) {
-            const imageResult = await sendWhatsAppMessage({
-              phoneId: agent.whatsappPhoneId,
-              token: agent.whatsappToken,
+            const imageResult = await sendAgentWhatsAppMessage(agent, {
               to: incoming.from,
               message: imageUrl,
               type: "image",
@@ -559,7 +550,7 @@ export async function POST(request) {
 
             if (imageResult.success) {
               sentImage = true
-              console.log(`ðŸ“¸ [${maskedIncomingPhone}] AI image ${index + 1}/${validImageUrls.length} sent`)
+              console.log(`[${maskedIncomingPhone}] AI image ${index + 1}/${validImageUrls.length} sent`)
               break
             }
 
@@ -569,17 +560,16 @@ export async function POST(request) {
           }
 
           if (!sentImage) {
-            console.error(`âŒ [${maskedIncomingPhone}] failed to send AI image ${index + 1}/${validImageUrls.length}`)
+            console.error(`[${maskedIncomingPhone}] failed to send AI image ${index + 1}/${validImageUrls.length}`)
           }
 
           await new Promise(resolve => setTimeout(resolve, 2500))
         }
       } catch (error) {
-        console.error(`âŒ [${maskedIncomingPhone}] inbound processing error:`, error?.message || error)
+        console.error(`[${maskedIncomingPhone}] inbound processing error:`, error?.message || error)
       }
     })
   )
 
   return new Response("OK", { status: 200 })
 }
-
